@@ -44,3 +44,40 @@ Built the first-phase SanguiShop foundation scaffold with Maven multi-module str
 - Run local verification outside the sandbox if Maven can access the normal local repository.
 - Start the next task only after deciding which business domain should be implemented first.
 
+
+
+## Session 2: 补 Maven Wrapper
+
+**Date**: 2026-04-29
+**Task**: 补 Maven Wrapper
+**Branch**: `main`
+
+### Summary
+
+为项目补充 Maven Wrapper 入口 mvnw、mvnw.cmd 和 .mvn/wrapper 配置，固定 Maven 3.9.9；同步后端 DevOps/Quality 规范改为优先使用 wrapper 命令，并补充跨平台换行约束。已验证 mvnw.cmd -v 可运行；测试/编译在当前沙箱因 Maven 依赖网络解析被拦截未完成。
+
+### Main Changes
+
+- Added Maven Wrapper entrypoints `mvnw` and `mvnw.cmd`.
+- Added `.mvn/wrapper/maven-wrapper.properties` pinned to Apache Maven 3.9.9 with SHA-512 verification.
+- Added `.gitattributes` rules for wrapper line endings across Windows and Unix CI.
+- Updated backend DevOps and Quality specs to prefer wrapper-based Maven commands.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ce2b520` | feat:补 Maven Wrapper |
+
+### Testing
+
+- [OK] `.\mvnw.cmd -v` reports Apache Maven 3.9.9.
+- [WARN] `.\mvnw.cmd -q test` and `.\mvnw.cmd -q -DskipTests compile` were attempted but blocked by sandboxed Maven dependency resolution/network access.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

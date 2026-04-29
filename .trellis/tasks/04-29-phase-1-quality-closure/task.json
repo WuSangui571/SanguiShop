@@ -1,7 +1,7 @@
 {
-  "id": "add-maven-wrapper",
-  "name": "add-maven-wrapper",
-  "title": "Add Maven Wrapper",
+  "id": "phase-1-quality-closure",
+  "name": "phase-1-quality-closure",
+  "title": "Phase 1 Quality Closure",
   "description": "",
   "status": "planning",
   "dev_type": "backend",

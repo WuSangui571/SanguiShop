@@ -69,6 +69,48 @@ Wrapper files live at:
 
 The wrapper pins `mavenVersion=3.9.9` and `distributionUrl` to the Apache Maven 3.9.9 binary distribution. Keep checksum validation enabled when changing the Maven distribution.
 
+### Phase 1 Verify Contract
+
+Executable local command:
+
+```powershell
+.\scripts\verify.ps1
+```
+
+The script must run, in order:
+
+```powershell
+.\mvnw.cmd -q "-Dmaven.repo.local=<repo>\.m2\repository" test
+.\mvnw.cmd -q "-Dmaven.repo.local=<repo>\.m2\repository" -DskipTests package
+docker compose -f deploy/docker-compose.yml config
+```
+
+When `MAVEN_USER_HOME` is not already set, `scripts/verify.ps1` must set it to `<repo>\.m2` before invoking Maven.
+
+CI entrypoint:
+
+- File: `.github/workflows/ci.yml`
+- Java: Temurin 21
+- Maven commands: `./mvnw -q test`, then `./mvnw -q -DskipTests package`
+- Docker Compose command: `docker compose -f deploy/docker-compose.yml config`
+
+Validation matrix:
+
+| Case | Command | Expected Result |
+| --- | --- | --- |
+| Good | `.\scripts\verify.ps1` | Tests pass, package succeeds, Compose config renders. |
+| Base | `.\scripts\verify.ps1 -SkipDocker` | Tests and package pass when Docker is unavailable locally. |
+| Bad | `mvn test` | Not accepted for CI/docs because it bypasses the project wrapper. |
+| Bad | Real secret in `application.yml` | Reject; use empty placeholders or `*_REF` variables. |
+
+Required assertion points:
+
+- Common tests assert `ApiResult` JSON fields: `code`, `message`, `data`, `traceId`, `timestamp`.
+- Redis tests assert key shape `sangui:{env}:{service}:{domain}:{identifier}`.
+- MQ tests assert event envelope fields: `eventId`, `eventType`, `version`, `occurredAt`, `shopId`, `traceId`, `payload`.
+- Smoke tests cover `sangui-gateway` and at least one business service with Nacos/Sentinel disabled for test scope.
+- Maven Enforcer requires Java 21 and Maven 3.9.9 or newer.
+
 如果 Windows PowerShell 执行 npm `.ps1` shim 被策略拦截，前端命令使用 `cmd /c npm ...`。
 
 ## Kubernetes Rules
@@ -84,6 +126,7 @@ The wrapper pins `mavenVersion=3.9.9` and `distributionUrl` to the Apache Maven 
 ```bash
 ./mvnw test
 ./mvnw -DskipTests package
+docker compose -f deploy/docker-compose.yml config
 npm run build   # 如果前端变更
 ```
 

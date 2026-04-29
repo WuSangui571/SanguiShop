@@ -42,3 +42,22 @@ Review 时先看契约，再看实现：
 | Integration Test | Redis/MQ/MySQL | 序列化、事务、重试、幂等 |
 | Contract Test | Feign/API/Event | 字段兼容、必填、版本 |
 | Load Test | 秒杀/AI | QPS、P95/P99、资源瓶颈 |
+## Phase 1 Foundation Tests
+
+The minimum scaffold test suite must stay cheap and executable:
+
+| Module | Test | Required Assertions |
+| --- | --- | --- |
+| `common/sangui-common-core` | `ApiResultJsonTest` | JSON envelope fields are exactly `code`, `message`, `data`, `traceId`, `timestamp`. |
+| `common/sangui-common-core` | `CommonErrorCodeTest` | Baseline codes include auth, validation, rate-limit, secret-missing, downstream-timeout, idempotency, and internal errors. |
+| `common/sangui-common-redis` | `RedisKeyBuilderTest` | Key shape is `sangui:{env}:{service}:{domain}:{identifier}`. |
+| `common/sangui-common-mq` | `EventEnvelopeJsonTest` | MQ envelope fields match the event contract. |
+| `services/sangui-gateway` | smoke test | Startup class exists and Spring context loads with external config clients disabled. |
+| `services/sangui-user-service` | smoke test | Startup class exists and Spring context loads with external config clients disabled. |
+
+Good/Base/Bad cases:
+
+- Good: `.\scripts\verify.ps1` passes all Maven tests, package, and Compose config validation.
+- Base: `.\scripts\verify.ps1 -SkipDocker` is allowed only for local machines without Docker.
+- Bad: A new common contract has no serialization or shape test.
+- Bad: A service smoke test depends on live Nacos, Redis, MQ, or MySQL.

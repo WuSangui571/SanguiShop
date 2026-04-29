@@ -1,0 +1,7 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify tests, smoke coverage, no temporary debug code."}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Verify CI, wrapper commands, Docker Compose config validation, Enforcer documentation."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Verify ApiResult/EventEnvelope field contracts."}
+{"file": ".trellis/spec/backend/messaging-cache-guidelines.md", "reason": "Verify Redis key and MQ contract alignment."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Verify gateway/config/secret expectations."}

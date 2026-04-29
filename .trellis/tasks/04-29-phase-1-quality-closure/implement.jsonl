@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Testing strategy and definition of done for backend quality loop."}
+{"file": ".trellis/spec/backend/messaging-cache-guidelines.md", "reason": "Redis key and MQ envelope/naming contract tests."}
+
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "CI, Docker Compose validation, wrapper commands, service config conventions."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "ApiResult and EventEnvelope contract tests."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Gateway smoke test and secret/config conventions."}
