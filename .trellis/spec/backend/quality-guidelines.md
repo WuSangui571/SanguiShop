@@ -5,7 +5,7 @@
 - [ ] 代码符合对应 spec，特别是契约、幂等、错误码、日志和测试。
 - [ ] 新增/修改 API 有 request/response 示例。
 - [ ] 新增 DB/MQ/Redis 契约已写入 spec。
-- [ ] `mvn test` 通过；必要时补集成测试。
+- [ ] `./mvnw -q test` / `.\mvnw.cmd -q test` 通过；必要时补集成测试。
 - [ ] 不包含真实 secret、临时 debug 日志、无用 TODO。
 - [ ] 关键链路可观测：日志、traceId、metrics。
 

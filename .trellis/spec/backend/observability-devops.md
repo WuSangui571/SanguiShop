@@ -48,9 +48,26 @@ api-key: sk-real-token
 Required checks:
 
 ```bash
-mvn -q -DskipTests compile
-mvn -q test
+./mvnw -q -DskipTests compile
+./mvnw -q test
 ```
+
+### Maven Wrapper Contract
+
+Root build commands must use the project Maven Wrapper instead of requiring a globally installed Maven:
+
+```bash
+./mvnw -q test
+.\mvnw.cmd -q test
+```
+
+Wrapper files live at:
+
+- `mvnw`
+- `mvnw.cmd`
+- `.mvn/wrapper/maven-wrapper.properties`
+
+The wrapper pins `mavenVersion=3.9.9` and `distributionUrl` to the Apache Maven 3.9.9 binary distribution. Keep checksum validation enabled when changing the Maven distribution.
 
 如果 Windows PowerShell 执行 npm `.ps1` shim 被策略拦截，前端命令使用 `cmd /c npm ...`。
 
@@ -65,8 +82,8 @@ mvn -q test
 ## CI/CD Gates
 
 ```bash
-mvn test
-mvn -DskipTests package
+./mvnw test
+./mvnw -DskipTests package
 npm run build   # 如果前端变更
 ```
 
