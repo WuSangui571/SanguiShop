@@ -1,0 +1,20 @@
+CREATE TABLE ums_user (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    shop_id BIGINT NOT NULL DEFAULT 1,
+    username VARCHAR(64) NOT NULL,
+    mobile VARCHAR(32) NULL,
+    email VARCHAR(128) NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    nickname VARCHAR(64) NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+    last_login_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    version INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ums_user_shop_username (shop_id, username),
+    UNIQUE KEY uk_ums_user_shop_mobile (shop_id, mobile),
+    KEY idx_ums_user_shop_deleted (shop_id, deleted),
+    KEY idx_ums_user_status (shop_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

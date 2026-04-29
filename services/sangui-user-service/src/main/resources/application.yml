@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: sangui-user
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${SANGUI_USER_MYSQL_SCHEMA:sangui_user}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:sangui_app}
+    password: ${MYSQL_PASSWORD:}
+  flyway:
+    enabled: ${SANGUI_USER_FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    default-schema: ${SANGUI_USER_MYSQL_SCHEMA:sangui_user}
+    schemas:
+      - ${SANGUI_USER_MYSQL_SCHEMA:sangui_user}
+    baseline-on-migrate: false
+    validate-on-migrate: true
   config:
     import: optional:nacos:${spring.application.name}.yml
   cloud:

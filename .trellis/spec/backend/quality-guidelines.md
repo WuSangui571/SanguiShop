@@ -61,3 +61,19 @@ Good/Base/Bad cases:
 - Base: `.\scripts\verify.ps1 -SkipDocker` is allowed only for local machines without Docker.
 - Bad: A new common contract has no serialization or shape test.
 - Bad: A service smoke test depends on live Nacos, Redis, MQ, or MySQL.
+
+## Phase 2 Persistence Tests
+
+The persistence baseline starts with user-service migration contract coverage:
+
+| Module | Test | Required Assertions |
+| --- | --- | --- |
+| `services/sangui-user-service` | `UserMigrationContractTest` | Flyway resource exists at `db/migration/V1__create_user_identity_tables.sql`, creates `ums_user`, includes required platform columns, and declares username/mobile uniqueness plus logical-delete index. |
+
+Good/Base/Bad cases:
+
+- Good: `UserMigrationContractTest` passes without live MySQL.
+- Good: A manual run with Docker MySQL starts `sangui-user-service` and lets Flyway create or validate `ums_user`.
+- Base: Before repository code exists, schema SQL contract tests are sufficient and repository tests remain documented as required next work.
+- Bad: A service smoke test requires live MySQL/Flyway.
+- Bad: A migration adds tables or indexes without updating `.trellis/spec/backend/database-guidelines.md`.

@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Primary contract for Flyway, user schema migration, table naming, required columns, repository tests."}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Environment-driven datasource/Flyway config and verify commands."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Database schema change affects future API/service/repository contracts."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Testing strategy and definition of done for migration/repository foundation."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Keep schema ready for future user APIs without exposing entities as contracts."}

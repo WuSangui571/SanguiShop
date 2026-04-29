@@ -1,0 +1,6 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify migration contract, required columns, indexes, repository test strategy."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify tests and definition of done."}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Verify service module file placement."}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Verify env placeholders and no secrets."}

@@ -61,8 +61,58 @@ CREATE UNIQUE INDEX uk_sk_user_activity ON sk_order_record(shop_id, activity_id,
 - Seata 只用于确实需要强一致且已评估性能损耗的场景。
 - 秒杀链路禁止在 Redis 预扣减阶段开启长数据库事务。
 
+## Flyway Migration Contract
+
+- 每个服务的迁移脚本放在 `services/<service>/src/main/resources/db/migration/`。
+- 文件命名使用 `V{version}__{description}.sql`，例如 `V1__create_user_identity_tables.sql`。
+- 已提交的 `V*` 迁移视为不可变；后续结构变更新增 `V2__...`，禁止改写历史脚本。
+- 建表迁移默认使用普通 `CREATE TABLE`，避免 `IF NOT EXISTS` 掩盖已存在但结构漂移的表。
+- 服务通过 `spring.flyway.locations=classpath:db/migration` 加载迁移。
+- schema 必须来自服务专属环境变量，例如 user 服务使用 `SANGUI_USER_MYSQL_SCHEMA`，默认 `sangui_user`。
+- secret 不写入迁移脚本或配置文件；连接密码只能来自 `MYSQL_PASSWORD` 等本地环境变量。
+
+Phase 2 user schema baseline:
+
+| Service | Schema Env | Default Schema | Migration |
+| --- | --- | --- | --- |
+| `services/sangui-user-service` | `SANGUI_USER_MYSQL_SCHEMA` | `sangui_user` | `db/migration/V1__create_user_identity_tables.sql` |
+
+`V1__create_user_identity_tables.sql` 必须创建 `ums_user`，并至少包含：
+
+- 平台列：`id`、`shop_id`、`created_at`、`updated_at`、`deleted`、`version`。
+- 登录身份列：`username`、`mobile`、`password_hash`。
+- 唯一索引：`uk_ums_user_shop_username(shop_id, username)`、`uk_ums_user_shop_mobile(shop_id, mobile)`。
+- 逻辑删除查询索引：`idx_ums_user_shop_deleted(shop_id, deleted)`。
+
+Executable validation:
+
+```powershell
+.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -pl services/sangui-user-service -Dtest=UserMigrationContractTest test
+docker compose -f deploy/docker-compose.yml config
+```
+
+Manual local Flyway run:
+
+```powershell
+docker compose -f deploy/docker-compose.yml up -d mysql
+.\mvnw.cmd -pl services/sangui-user-service -am -DskipTests package
+java -jar services\sangui-user-service\target\sangui-user-service-0.1.0-SNAPSHOT.jar
+```
+
 ## Tests Required
 
 - Repository/Mapper 测试覆盖唯一索引、分页、逻辑删除、乐观锁。
 - 订单/支付/秒杀表必须有并发幂等测试。
 - 迁移脚本至少在本地 Docker MySQL 执行一次。
+
+Repository test strategy:
+
+| Case | 断言重点 |
+| --- | --- |
+| Good | 正常插入并按 `shop_id` + username/mobile 查询。 |
+| Good | 分页排序稳定，且不泄露其他 `shop_id` 数据。 |
+| Good | 逻辑删除后默认查询排除 `deleted=1` 数据。 |
+| Good | 乐观锁更新递增 `version`，过期版本更新失败。 |
+| Base | 仅有迁移脚本、尚无 repository 时，至少保留 SQL contract test。 |
+| Bad | 重复 `(shop_id, username)` 或 `(shop_id, mobile)` 必须被唯一索引拒绝。 |
+| Bad | repository 查询遗漏 `shop_id` 条件。 |
