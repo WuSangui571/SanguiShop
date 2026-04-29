@@ -45,8 +45,8 @@ class HmacJwtUserTokenIssuerTest {
         assertThat(payload.get(JwtClaimConstants.SHOP_ID).asLong()).isEqualTo(1L);
         assertThat(payload.get(JwtClaimConstants.ROLES).get(0).asText()).isEqualTo("USER");
         assertThat(payload.get(JwtClaimConstants.PERMISSIONS).isEmpty()).isTrue();
-        assertThat(payload.get(JwtClaimConstants.ISSUED_AT).asLong()).isEqualTo(1777478400L);
-        assertThat(payload.get(JwtClaimConstants.EXPIRES_AT).asLong()).isEqualTo(1777485600L);
+        assertThat(payload.get(JwtClaimConstants.ISSUED_AT).asLong()).isEqualTo(1777449600L);
+        assertThat(payload.get(JwtClaimConstants.EXPIRES_AT).asLong()).isEqualTo(1777456800L);
         assertThat(payload.get(JwtClaimConstants.JWT_ID).asText()).isNotBlank();
     }
 
