@@ -1,51 +1,37 @@
 # Logging Guidelines
 
-> How logging is done in this project.
+## Scope
 
----
+适用于后端日志、审计日志、链路追踪、指标埋点和排障输出。
 
-## Overview
+## Log Format
 
-<!--
-Document your project's logging conventions here.
+生产日志输出 JSON，至少包含 `timestamp`、`level`、`service`、`traceId`、`shopId`、`userId`、`event`、`message`、`durationMs`。
 
-Questions to answer:
-- What logging library do you use?
-- What are the log levels and when to use each?
-- What should be logged?
-- What should NOT be logged (PII, secrets)?
--->
+## Level Rules
 
-(To be filled by the team)
+- DEBUG：本地调试，生产默认关闭。
+- INFO：关键业务状态变化，如订单创建、支付成功、知识库导入完成。
+- WARN：可恢复异常、降级、限流、重复消息、幂等冲突。
+- ERROR：不可恢复或需要人工介入，如支付对账失败、DLQ 堆积、数据不一致。
 
----
+## Sensitive Data
 
-## Log Levels
+禁止日志输出：密码、JWT、支付密钥、模型 API Key、完整身份证/手机号、支付原始签名串、系统 prompt。
 
-<!-- When to use each level: debug, info, warn, error -->
+## Required Business Logs
 
-(To be filled by the team)
+| 场景 | 必须字段 |
+| --- | --- |
+| 登录失败 | `userIdentifier`, `ip`, `reason` |
+| 秒杀请求接受 | `activityId`, `skuId`, `userId`, `requestNo` |
+| 订单创建 | `orderNo`, `userId`, `amount` |
+| 支付回调 | `paymentNo`, `channel`, `channelTradeNo`, `verifyResult` |
+| MQ 消费失败 | `eventId`, `eventType`, `retryCount`, `errorCode` |
+| AI 调用 | `sessionId`, `model`, `retrievalMs`, `modelMs`, `topK` |
 
----
+## Tracing
 
-## Structured Logging
-
-<!-- Log format, required fields -->
-
-(To be filled by the team)
-
----
-
-## What to Log
-
-<!-- Important events to log -->
-
-(To be filled by the team)
-
----
-
-## What NOT to Log
-
-<!-- Sensitive data, PII, secrets -->
-
-(To be filled by the team)
+- Gateway 生成或透传 `traceId`。
+- Feign、MQ、异步线程必须传递 traceId。
+- 日志、响应、MQ event envelope 使用同一个 traceId。

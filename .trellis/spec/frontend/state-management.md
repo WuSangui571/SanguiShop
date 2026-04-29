@@ -1,51 +1,20 @@
-# State Management
+# State Management Guidelines
 
-> How state is managed in this project.
+## Store Boundaries
 
----
+推荐使用 Pinia。
 
-## Overview
+| Store | 内容 | 禁止 |
+| --- | --- | --- |
+| `authStore` | token、用户摘要、角色 | 保存密码、完整 JWT payload 到日志 |
+| `cartStore` | 购物车本地草稿/服务端同步状态 | 作为最终价格来源 |
+| `productStore` | 商品列表筛选条件、轻量缓存 | 存整站商品全集 |
+| `orderStore` | 当前订单流程状态 | 绕过后端订单状态机 |
+| `seckillStore` | 活动状态、token、排队状态 | 客户端自行扣库存 |
+| `aiChatStore` | session、消息列表、sources | 存敏感 prompt 或 secret |
 
-<!--
-Document your project's state management conventions here.
+## Server State vs Client State
 
-Questions to answer:
-- What state management solution do you use?
-- How is local vs global state decided?
-- How do you handle server state?
-- What are the patterns for derived state?
--->
-
-(To be filled by the team)
-
----
-
-## State Categories
-
-<!-- Local state, global state, server state, URL state -->
-
-(To be filled by the team)
-
----
-
-## When to Use Global State
-
-<!-- Criteria for promoting state to global -->
-
-(To be filled by the team)
-
----
-
-## Server State
-
-<!-- How server data is cached and synchronized -->
-
-(To be filled by the team)
-
----
-
-## Common Mistakes
-
-<!-- State management mistakes your team has made -->
-
-(To be filled by the team)
+- 价格、库存、支付状态、订单状态属于服务端事实。
+- 展开/折叠、当前 tab、表单草稿属于客户端状态。
+- 秒杀库存展示可缓存，但提交时以后端结果为准。

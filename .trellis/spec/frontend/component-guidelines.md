@@ -1,59 +1,34 @@
 # Component Guidelines
 
-> How components are built in this project.
+## Component Boundaries
 
----
+- 页面组件负责路由参数、页面级布局、调用 composable。
+- 业务组件负责明确业务 UI，如 SKU 选择、秒杀按钮、订单状态。
+- 基础组件不包含业务 API 调用。
 
-## Overview
+## Props and Emits
 
-<!--
-Document your project's component conventions here.
+- Props 使用明确类型，避免 `any`。
+- Emits 命名使用动词过去式或命令式：`submitted`, `cancelled`, `retry`。
+- 子组件不得直接修改父组件传入对象。
 
-Questions to answer:
-- What component patterns do you use?
-- How are props defined?
-- How do you handle composition?
-- What accessibility standards apply?
--->
+```ts
+interface SeckillButtonProps {
+  activityId: string
+  skuId: string
+  serverTime: string
+  startsAt: string
+  endsAt: string
+  disabled?: boolean
+}
+```
 
-(To be filled by the team)
+## UI States
 
----
+每个异步组件至少处理 idle、loading、success、empty、error、retrying / queued。
 
-## Component Structure
+## E-commerce UI Rules
 
-<!-- Standard structure of a component file -->
-
-(To be filled by the team)
-
----
-
-## Props Conventions
-
-<!-- How props should be defined and typed -->
-
-(To be filled by the team)
-
----
-
-## Styling Patterns
-
-<!-- How styles are applied (CSS modules, styled-components, Tailwind, etc.) -->
-
-(To be filled by the team)
-
----
-
-## Accessibility
-
-<!-- A11y requirements and patterns -->
-
-(To be filled by the team)
-
----
-
-## Common Mistakes
-
-<!-- Component-related mistakes your team has made -->
-
-(To be filled by the team)
+- 金额展示统一使用 `formatMoney(cents)`。
+- 库存、秒杀状态、支付状态必须来自后端或服务端时间判断。
+- 商品详情、评论、AI 问答引用来源要可见。

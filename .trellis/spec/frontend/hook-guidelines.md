@@ -1,51 +1,26 @@
-# Hook Guidelines
+# Hook / Composable Guidelines
 
-> How hooks are used in this project.
+## Composable Rules
 
----
-
-## Overview
-
-<!--
-Document your project's hook conventions here.
-
-Questions to answer:
-- What custom hooks do you have?
-- How do you handle data fetching?
-- What are the naming conventions?
-- How do you share stateful logic?
--->
-
-(To be filled by the team)
-
----
-
-## Custom Hook Patterns
-
-<!-- How to create and structure custom hooks -->
-
-(To be filled by the team)
-
----
+- 命名使用 `useXxx`。
+- composable 返回状态、动作和错误，不直接渲染 UI。
+- 请求类 composable 必须支持 loading/error/retry。
+- 需要清理 timer、interval、SSE、WebSocket 时必须在 `onScopeDispose` 中清理。
 
 ## Data Fetching
 
-<!-- How data fetching is handled (React Query, SWR, etc.) -->
+- 所有 HTTP 请求走统一 `httpClient`。
+- 业务 API 封装在 `services/*Api.ts`，composable 调用 service。
+- 不在组件中拼接 URL。
 
-(To be filled by the team)
+## Seckill Countdown
 
----
+- 倒计时基于服务端时间校准。
+- 页面切后台再回来时重新校准。
+- 到点只允许触发 UI 状态变化，不自动替用户提交下单。
 
-## Naming Conventions
+## Polling Rules
 
-<!-- Hook naming rules (use*, etc.) -->
-
-(To be filled by the team)
-
----
-
-## Common Mistakes
-
-<!-- Hook-related mistakes your team has made -->
-
-(To be filled by the team)
+- 订单支付状态、秒杀排队状态可以轮询，但必须有最大次数和退避。
+- 页面卸载时停止轮询。
+- 轮询错误不可无限弹窗。

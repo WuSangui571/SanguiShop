@@ -1,94 +1,26 @@
 # Cross-Layer Thinking Guide
 
-> **Purpose**: Think through data flow across layers before implementing.
+## Use This When
 
----
+- 一个需求同时触达前端、Gateway、微服务、数据库、Redis、MQ、AI 或部署配置。
+- 新增/修改 API、DTO、MQ Event、数据库字段、Redis Key。
+- 改动订单、支付、库存、秒杀等关键交易链路。
 
-## The Problem
+## Questions Before Coding
 
-**Most bugs happen at layer boundaries**, not within layers.
+- [ ] 这个字段在前端、API、DTO、DB、MQ 中名字是否一致？
+- [ ] 是否需要 `shopId`？默认单商家是否被硬编码？
+- [ ] 写操作的幂等键是什么？重复请求会发生什么？
+- [ ] 失败后能否重试？重试是否会重复扣库存/重复支付/重复发货？
+- [ ] 需要强一致还是最终一致？是否有补偿任务？
+- [ ] 哪些状态需要进入日志、指标、trace？
+- [ ] 前端是否处理 loading、queued、retry、final failure？
+- [ ] 配置和 secret 是否进入 Nacos/Vault/K8s Secret，而不是代码？
 
-Common cross-layer bugs:
-- API returns format A, frontend expects format B
-- Database stores X, service transforms to Y, but loses data
-- Multiple layers implement the same logic differently
+## Common Risk Areas
 
----
-
-## Before Implementing Cross-Layer Features
-
-### Step 1: Map the Data Flow
-
-Draw out how data moves:
-
-```
-Source → Transform → Store → Retrieve → Transform → Display
-```
-
-For each arrow, ask:
-- What format is the data in?
-- What could go wrong?
-- Who is responsible for validation?
-
-### Step 2: Identify Boundaries
-
-| Boundary | Common Issues |
-|----------|---------------|
-| API ↔ Service | Type mismatches, missing fields |
-| Service ↔ Database | Format conversions, null handling |
-| Backend ↔ Frontend | Serialization, date formats |
-| Component ↔ Component | Props shape changes |
-
-### Step 3: Define Contracts
-
-For each boundary:
-- What is the exact input format?
-- What is the exact output format?
-- What errors can occur?
-
----
-
-## Common Cross-Layer Mistakes
-
-### Mistake 1: Implicit Format Assumptions
-
-**Bad**: Assuming date format without checking
-
-**Good**: Explicit format conversion at boundaries
-
-### Mistake 2: Scattered Validation
-
-**Bad**: Validating the same thing in multiple layers
-
-**Good**: Validate once at the entry point
-
-### Mistake 3: Leaky Abstractions
-
-**Bad**: Component knows about database schema
-
-**Good**: Each layer only knows its neighbors
-
----
-
-## Checklist for Cross-Layer Features
-
-Before implementation:
-- [ ] Mapped the complete data flow
-- [ ] Identified all layer boundaries
-- [ ] Defined format at each boundary
-- [ ] Decided where validation happens
-
-After implementation:
-- [ ] Tested with edge cases (null, empty, invalid)
-- [ ] Verified error handling at each boundary
-- [ ] Checked data survives round-trip
-
----
-
-## When to Create Flow Documentation
-
-Create detailed flow docs when:
-- Feature spans 3+ layers
-- Multiple teams are involved
-- Data format is complex
-- Feature has caused bugs before
+- 前端使用本地时间判断秒杀开始，服务端使用另一套时间。
+- 后端新增 enum 状态，前端没有 unknown fallback。
+- MQ 事件新增字段后旧消费者反序列化失败。
+- 支付回调重复触发导致订单重复状态迁移。
+- Redis 预扣成功但 DB/MQ 失败，无补偿。
