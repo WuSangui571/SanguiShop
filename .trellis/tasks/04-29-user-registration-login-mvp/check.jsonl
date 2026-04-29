@@ -1,0 +1,7 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Verify REST envelope, DTO, validation, and API contract behavior"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Verify tests and backend done criteria"}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "Verify validation/auth/business error mapping"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Check API/DB/auth cross-layer risks"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Verify JWT claims, public auth endpoint behavior, and secret handling"}

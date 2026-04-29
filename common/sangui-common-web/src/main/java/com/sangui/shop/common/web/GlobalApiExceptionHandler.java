@@ -19,7 +19,7 @@ public class GlobalApiExceptionHandler {
             SanguiException exception,
             HttpServletRequest request
     ) {
-        return ResponseEntity.badRequest()
+        return ResponseEntity.status(exception.httpStatus())
                 .body(ApiResult.failure(
                         exception.errorCode().code(),
                         exception.getMessage(),

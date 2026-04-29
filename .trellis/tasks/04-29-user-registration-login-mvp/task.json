@@ -1,7 +1,7 @@
 {
-  "id": "phase-2-persistence-foundation",
-  "name": "phase-2-persistence-foundation",
-  "title": "Phase 2 Persistence Foundation",
+  "id": "user-registration-login-mvp",
+  "name": "user-registration-login-mvp",
+  "title": "User Registration Login MVP",
   "description": "",
   "status": "planning",
   "dev_type": "backend",

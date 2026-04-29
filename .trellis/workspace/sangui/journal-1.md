@@ -120,3 +120,48 @@ Built the first-phase SanguiShop foundation scaffold with Maven multi-module str
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Phase 2 Persistence Foundation
+
+**Date**: 2026-04-29
+**Task**: Phase 2 Persistence Foundation
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Flyway | Added user-service Flyway runtime baseline with JDBC/MySQL dependencies and environment-driven datasource/Flyway configuration. |
+| User Schema | Added `V1__create_user_identity_tables.sql` for `ums_user`, including platform columns, account identity fields, unique username/mobile indexes, and logical-delete/status indexes. |
+| Tests | Added `UserMigrationContractTest` to verify migration resource naming, required columns, and required indexes without live MySQL. Kept user smoke test independent from live datasource/Flyway. |
+| Spec Sync | Updated backend database and quality guidelines with executable migration contract, validation commands, Good/Base/Bad cases, and repository test strategy. |
+| Docs/Config | Added `docs/phase-2-persistence-foundation.md` and documented user schema/Flyway env placeholders in `deploy/.env.example`. |
+| Verification | Static checks, XML parse, Docker Compose config validation, and Trellis task validation passed. Maven test was attempted but blocked in the agent sandbox by network dependency resolution; human tested and committed locally. |
+
+**Commit**: `c32d916 feat:Persistence Foundation`
+
+**Archived Task**: `.trellis/tasks/archive/2026-04/04-29-phase-2-persistence-foundation`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c32d916` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

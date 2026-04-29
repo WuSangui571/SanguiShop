@@ -39,6 +39,10 @@ sangui:
     domain: user
   shop:
     default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
+  security:
+    jwt:
+      secret: ${SANGUI_JWT_SECRET:}
+      ttl-seconds: ${SANGUI_JWT_TTL_SECONDS:7200}
   infrastructure:
     nacos:
       server-addr: ${NACOS_SERVER_ADDR:localhost:8848}

@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis\\spec\\backend\\directory-structure.md", "reason": "User-service package layering and DTO/controller/service boundaries"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "REST envelope, DTO, validation, and contract-test rules"}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "Validation/auth/business error mapping"}
+{"file": ".trellis\\spec\\backend\\database-guidelines.md", "reason": "User table ownership and persistence constraints"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Public auth endpoints, JWT claims, and secret-handling rules"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Required WebMvc/service tests and finish criteria"}
