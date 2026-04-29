@@ -2,10 +2,12 @@ package com.sangui.shop.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sangui.shop.user.domain.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 
 @SpringBootTest(
@@ -24,6 +26,9 @@ class SanguiUserApplicationSmokeTest {
 
     @Autowired
     private ApplicationContext applicationContext;
+
+    @MockBean
+    private UserRepository userRepository;
 
     @Test
     void startupClassExists() {
