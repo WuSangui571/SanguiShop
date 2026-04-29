@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-04-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~167 | Active |
+| `journal-1.md` | ~213 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-04-29 | User Registration Login MVP | `855c5ae` | `main` |
 | 4 | 2026-04-29 | Phase 2 Persistence Foundation | `c32d916` | `main` |
 | 3 | 2026-04-29 | Phase 1 Quality Closure | `c955df4` | `main` |
 | 2 | 2026-04-29 | 补 Maven Wrapper | `ce2b520` | `main` |

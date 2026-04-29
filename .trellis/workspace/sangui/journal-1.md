@@ -165,3 +165,49 @@ Built the first-phase SanguiShop foundation scaffold with Maven multi-module str
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: User Registration Login MVP
+
+**Date**: 2026-04-29
+**Task**: User Registration Login MVP
+**Branch**: `main`
+
+### Summary
+
+Implemented and tested user registration/login API with validation, password hashing, JWT issuance, ApiResult errors, and WebMvc/service coverage.
+
+### Main Changes
+
+Implemented and human-tested the User Registration/Login MVP.
+
+| Area | Summary |
+| --- | --- |
+| API | Added public `POST /api/users/register` and `POST /api/users/login` endpoints returning the standard `ApiResult` envelope. |
+| DTO/Validation | Added validated request/response DTOs for registration and login without exposing persistence entities. |
+| Security | Added BCrypt password hashing and HS256 JWT issuance with required Sangui claims: `sub`, `shop_id`, `roles`, `permissions`, `iat`, `exp`, and `jti`. |
+| Error Handling | Extended `SanguiException` with HTTP status support and mapped duplicate/credential/config failures to stable error codes. |
+| Persistence | Added a JDBC repository adapter over `ums_user` with shop-scoped username/mobile lookups and login timestamp updates. |
+| Tests | Added WebMvc, service, and JWT issuer tests covering happy path, validation, duplicates, invalid credentials, password hashing, and token claims. |
+| Spec Sync | Added `.trellis/spec/backend/authentication-contracts.md` with executable endpoint, JWT, error, and test contracts. |
+
+Human verification completed before recording. Code was committed as `855c5ae feat:User Registration/Login MVP`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `855c5ae` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
