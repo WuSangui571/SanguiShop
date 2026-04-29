@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,7 @@ public class HmacJwtUserTokenIssuer implements UserTokenIssuer {
     private final String secret;
     private final long ttlSeconds;
 
+    @Autowired
     public HmacJwtUserTokenIssuer(
             ObjectMapper objectMapper,
             @Value("${sangui.security.jwt.secret:}") String secret,
