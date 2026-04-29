@@ -3,7 +3,7 @@
   "name": "phase-1-foundation",
   "title": "SanguiShop 第一阶段基础框架构建",
   "description": "搭建 SanguiShop 可持续扩展的 Maven 多模块基础工程骨架，不实现完整业务。",
-  "status": "review",
+  "status": "completed",
   "dev_type": "fullstack",
   "scope": "foundation",
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "sangui",
   "assignee": "sangui",
   "createdAt": "2026-04-29",
-  "completedAt": null,
+  "completedAt": "2026-04-29",
   "branch": null,
   "base_branch": "main",
   "worktree_path": null,
@@ -30,7 +30,7 @@
       "action": "finish-work"
     }
   ],
-  "commit": null,
+  "commit": "2d4df65",
   "pr_url": null,
   "subtasks": [],
   "children": [],

@@ -27,7 +27,7 @@ workspace/
 
 | Developer | Last Active | Sessions | Active File |
 |-----------|-------------|----------|-------------|
-| (none yet) | - | - | - |
+| sangui | 2026-04-29 | 1 | `journal-1.md` |
 
 ---
 
