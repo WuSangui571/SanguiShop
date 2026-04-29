@@ -10,6 +10,50 @@
 - 每个服务必须能通过环境变量覆盖数据库、Redis、Nacos、MQ、JWT、AI 配置。
 - `.env.example` 只包含变量名和示例占位值，不包含真实 secret。
 
+### Phase 1 Local Env Contract
+
+本地依赖配置入口：
+
+- `deploy/.env.example`：环境变量示例，只能使用占位值。
+- `deploy/docker-compose.yml`：MySQL、Redis、Nacos、RocketMQ 本地依赖。
+- `services/*/src/main/resources/application.yml`：服务配置模板，必须优先读取环境变量。
+
+第一阶段必须保留并使用以下环境变量名：
+
+| Area | Environment Variables |
+| --- | --- |
+| 基础 | `SANGUI_ENV`, `SANGUI_DEFAULT_SHOP_ID` |
+| MySQL | `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USERNAME`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` |
+| Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` |
+| Nacos | `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_GROUP` |
+| RocketMQ | `ROCKETMQ_NAME_SERVER` |
+| Gateway | `SANGUI_GATEWAY_PORT`, `SANGUI_CORS_ALLOWED_ORIGINS`, `SANGUI_GATEWAY_RATE_LIMIT_ENABLED` |
+| Service Ports | `SANGUI_USER_PORT`, `SANGUI_PRODUCT_PORT`, `SANGUI_SECKILL_PORT`, `SANGUI_ORDER_PORT`, `SANGUI_PAYMENT_PORT`, `SANGUI_LOGISTICS_PORT`, `SANGUI_REVIEW_PORT`, `SANGUI_MARKETING_PORT`, `SANGUI_SEARCH_REC_PORT`, `SANGUI_AI_PORT` |
+| Secret References | `SANGUI_JWT_PUBLIC_KEY_LOCATION`, `SANGUI_PAYMENT_CALLBACK_SECRET_REF`, `SANGUI_AI_MODEL_API_KEY_REF` |
+
+Good:
+
+```yaml
+password: ${MYSQL_PASSWORD:}
+api-key-ref: ${SANGUI_AI_MODEL_API_KEY_REF:}
+```
+
+Bad:
+
+```yaml
+password: my-real-password
+api-key: sk-real-token
+```
+
+Required checks:
+
+```bash
+mvn -q -DskipTests compile
+mvn -q test
+```
+
+如果 Windows PowerShell 执行 npm `.ps1` shim 被策略拦截，前端命令使用 `cmd /c npm ...`。
+
 ## Kubernetes Rules
 
 - 每个服务使用 Deployment + Service。

@@ -1,0 +1,51 @@
+server:
+  port: ${SANGUI_AI_PORT:8110}
+
+spring:
+  application:
+    name: sangui-ai
+  config:
+    import: optional:nacos:${spring.application.name}.yml
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+
+sangui:
+  service:
+    domain: ai
+  shop:
+    default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
+  infrastructure:
+    mysql:
+      schema: ${SANGUI_AI_MYSQL_SCHEMA:sangui_ai}
+      host: ${MYSQL_HOST:localhost}
+      port: ${MYSQL_PORT:3306}
+      username: ${MYSQL_USERNAME:sangui_app}
+      password: ${MYSQL_PASSWORD:}
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+    mq:
+      name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+      topics:
+        ai-knowledge-imported: sangui.ai.knowledge.imported
+    model:
+      api-key-ref: ${SANGUI_AI_MODEL_API_KEY_REF:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

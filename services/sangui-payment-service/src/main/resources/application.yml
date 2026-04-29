@@ -1,0 +1,48 @@
+server:
+  port: ${SANGUI_PAYMENT_PORT:8105}
+
+spring:
+  application:
+    name: sangui-payment
+  config:
+    import: optional:nacos:${spring.application.name}.yml
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+
+sangui:
+  service:
+    domain: payment
+  shop:
+    default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
+  infrastructure:
+    mysql:
+      schema: ${SANGUI_PAYMENT_MYSQL_SCHEMA:sangui_payment}
+      host: ${MYSQL_HOST:localhost}
+      port: ${MYSQL_PORT:3306}
+      username: ${MYSQL_USERNAME:sangui_app}
+      password: ${MYSQL_PASSWORD:}
+    mq:
+      name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+      topics:
+        order-created: sangui.order.created
+        payment-paid: sangui.payment.paid
+  payment:
+    callback-signing-secret-ref: ${SANGUI_PAYMENT_CALLBACK_SECRET_REF:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

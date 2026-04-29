@@ -1,0 +1,87 @@
+server:
+  port: ${SANGUI_GATEWAY_PORT:8080}
+
+spring:
+  application:
+    name: sangui-gateway
+  config:
+    import: optional:nacos:${spring.application.name}.yml
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+    gateway:
+      default-filters:
+        - PreserveHostHeader
+      routes:
+        - id: sangui-user
+          uri: lb://sangui-user
+          predicates:
+            - Path=/api/users/**
+        - id: sangui-product
+          uri: lb://sangui-product
+          predicates:
+            - Path=/api/products/**
+        - id: sangui-seckill
+          uri: lb://sangui-seckill
+          predicates:
+            - Path=/api/seckill/**
+        - id: sangui-order
+          uri: lb://sangui-order
+          predicates:
+            - Path=/api/orders/**
+        - id: sangui-payment
+          uri: lb://sangui-payment
+          predicates:
+            - Path=/api/payments/**
+        - id: sangui-logistics
+          uri: lb://sangui-logistics
+          predicates:
+            - Path=/api/logistics/**
+        - id: sangui-review
+          uri: lb://sangui-review
+          predicates:
+            - Path=/api/reviews/**
+        - id: sangui-marketing
+          uri: lb://sangui-marketing
+          predicates:
+            - Path=/api/marketing/**
+        - id: sangui-search-rec
+          uri: lb://sangui-search-rec
+          predicates:
+            - Path=/api/search/**,/api/recommendations/**
+        - id: sangui-ai
+          uri: lb://sangui-ai
+          predicates:
+            - Path=/api/ai/**
+
+sangui:
+  security:
+    jwt:
+      public-key-location: ${SANGUI_JWT_PUBLIC_KEY_LOCATION:}
+      issuer: ${SANGUI_JWT_ISSUER:sanguishop}
+  gateway:
+    cors:
+      allowed-origins: ${SANGUI_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    rate-limit:
+      enabled: ${SANGUI_GATEWAY_RATE_LIMIT_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

@@ -1,0 +1,2 @@
+{"path":".trellis/spec/backend/quality-guidelines.md","reason":"Use if Maven compile/test exposes quality or structure problems."}
+{"path":".trellis/spec/backend/observability-devops.md","reason":"Use if deploy or env placeholder validation fails."}

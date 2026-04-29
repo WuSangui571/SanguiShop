@@ -1,0 +1,41 @@
+{
+  "id": "phase-1-foundation",
+  "name": "phase-1-foundation",
+  "title": "SanguiShop 第一阶段基础框架构建",
+  "description": "搭建 SanguiShop 可持续扩展的 Maven 多模块基础工程骨架，不实现完整业务。",
+  "status": "review",
+  "dev_type": "fullstack",
+  "scope": "foundation",
+  "package": null,
+  "priority": "P1",
+  "creator": "sangui",
+  "assignee": "sangui",
+  "createdAt": "2026-04-29",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 5,
+  "next_action": [
+    {
+      "phase": 3,
+      "action": "implement"
+    },
+    {
+      "phase": 4,
+      "action": "check"
+    },
+    {
+      "phase": 5,
+      "action": "finish-work"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "Trellis Python scripts require Python >=3.8 because they import typing.TypedDict; current shell python is 3.7, so this task was created manually. Maven compile passes. Maven test/package were blocked by sandbox access to C:\\Users\\CodexSandboxOffline\\.m2\\repository and escalation auto-review failure.",
+  "meta": {}
+}

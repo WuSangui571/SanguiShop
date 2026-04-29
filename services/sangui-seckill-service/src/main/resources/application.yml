@@ -1,0 +1,50 @@
+server:
+  port: ${SANGUI_SECKILL_PORT:8103}
+
+spring:
+  application:
+    name: sangui-seckill
+  config:
+    import: optional:nacos:${spring.application.name}.yml
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+
+sangui:
+  service:
+    domain: seckill
+  shop:
+    default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
+  infrastructure:
+    mysql:
+      schema: ${SANGUI_SECKILL_MYSQL_SCHEMA:sangui_seckill}
+      host: ${MYSQL_HOST:localhost}
+      port: ${MYSQL_PORT:3306}
+      username: ${MYSQL_USERNAME:sangui_app}
+      password: ${MYSQL_PASSWORD:}
+    redis:
+      key-prefix: sangui:${SANGUI_ENV:local}:seckill
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+    mq:
+      name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+      topics:
+        seckill-order-requested: sangui.seckill.order.requested
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

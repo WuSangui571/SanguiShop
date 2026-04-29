@@ -1,0 +1,92 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: sangui-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-local-root}
+      MYSQL_USER: ${MYSQL_USERNAME:-sangui_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-me-local-app}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - sangui-mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4
+    container_name: sangui-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - sangui-redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: sangui-nacos
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+      JVM_XMN: 128m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    volumes:
+      - sangui-nacos-data:/home/nacos/data
+      - sangui-nacos-logs:/home/nacos/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.2.0
+    container_name: sangui-rocketmq-namesrv
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+    volumes:
+      - sangui-rocketmq-namesrv-logs:/home/rocketmq/logs
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.2.0
+    container_name: sangui-rocketmq-broker
+    depends_on:
+      - rocketmq-namesrv
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+    command: sh mqbroker -c /home/rocketmq/rocketmq-5.2.0/conf/broker.conf
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+      - "10912:10912"
+    volumes:
+      - ./rocketmq/broker.conf:/home/rocketmq/rocketmq-5.2.0/conf/broker.conf:ro
+      - sangui-rocketmq-broker-store:/home/rocketmq/store
+      - sangui-rocketmq-broker-logs:/home/rocketmq/logs
+
+volumes:
+  sangui-mysql-data:
+  sangui-redis-data:
+  sangui-nacos-data:
+  sangui-nacos-logs:
+  sangui-rocketmq-namesrv-logs:
+  sangui-rocketmq-broker-store:
+  sangui-rocketmq-broker-logs:

@@ -1,0 +1,41 @@
+server:
+  port: ${SANGUI_REVIEW_PORT:8107}
+
+spring:
+  application:
+    name: sangui-review
+  config:
+    import: optional:nacos:${spring.application.name}.yml
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yml
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:localhost:8858}
+
+sangui:
+  service:
+    domain: review
+  shop:
+    default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
+  infrastructure:
+    mysql:
+      schema: ${SANGUI_REVIEW_MYSQL_SCHEMA:sangui_review}
+      host: ${MYSQL_HOST:localhost}
+      port: ${MYSQL_PORT:3306}
+      username: ${MYSQL_USERNAME:sangui_app}
+      password: ${MYSQL_PASSWORD:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

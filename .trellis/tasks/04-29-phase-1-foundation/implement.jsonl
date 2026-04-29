@@ -1,0 +1,14 @@
+{"path":".trellis/spec/backend/index.md","reason":"Backend service boundaries, pre-development checklist, and quality requirements."}
+{"path":".trellis/spec/backend/directory-structure.md","reason":"Required Maven module, service, common, and package layout."}
+{"path":".trellis/spec/backend/microservice-contracts.md","reason":"Result envelope, shopId, requestId, MQ event envelope, and validation matrix."}
+{"path":".trellis/spec/backend/gateway-security.md","reason":"Gateway responsibilities, JWT claim placeholders, public/protected API classification, and secret rules."}
+{"path":".trellis/spec/backend/database-guidelines.md","reason":"MySQL ownership, required columns, schema placeholder, and secret-safe DB config."}
+{"path":".trellis/spec/backend/messaging-cache-guidelines.md","reason":"Redis key format, MQ topic naming, and common Redis/MQ placeholder boundaries."}
+{"path":".trellis/spec/backend/observability-devops.md","reason":"Docker Compose, env overrides, actuator, metrics, and deploy conventions."}
+{"path":".trellis/spec/backend/quality-guidelines.md","reason":"Definition of done and forbidden backend patterns."}
+{"path":".trellis/spec/frontend/index.md","reason":"Frontend scope and Gateway-only API rule."}
+{"path":".trellis/spec/frontend/directory-structure.md","reason":"Frontend directory placeholder rules."}
+{"path":".trellis/spec/frontend/api-contracts.md","reason":"Frontend ApiResult/requestId/Gateway contract placeholder rules."}
+{"path":".trellis/spec/guides/architecture-review-checklist.md","reason":"Architecture review order for service boundaries, contracts, consistency, security, and ops."}
+{"path":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Cross-layer env/API/cache/MQ thinking checklist."}
+{"path":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Common module reuse boundary and anti-abstraction guidance."}
