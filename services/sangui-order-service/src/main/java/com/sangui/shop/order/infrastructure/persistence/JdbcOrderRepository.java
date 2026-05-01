@@ -49,6 +49,21 @@ public class JdbcOrderRepository implements OrderRepository {
     }
 
     @Override
+    public Optional<OrderRecord> findById(Long shopId, Long orderId) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, user_id, order_no, request_id, status, total_amount_cent, trace_id
+                        FROM oms_order
+                        WHERE shop_id = ? AND id = ? AND deleted = 0
+                        LIMIT 1
+                        """,
+                ORDER_ROW_MAPPER,
+                shopId,
+                orderId
+        ).stream().findFirst();
+    }
+
+    @Override
     public Optional<OrderSnapshot> findByRequestId(Long shopId, String userId, String requestId) {
         return jdbcTemplate.query(
                 """
@@ -92,6 +107,21 @@ public class JdbcOrderRepository implements OrderRepository {
         Long orderId = key.longValue();
         insertItems(shopId, orderId, draft.items());
         return orderId;
+    }
+
+    @Override
+    public int updateStatus(Long shopId, Long orderId, OrderStatus currentStatus, OrderStatus nextStatus) {
+        return jdbcTemplate.update(
+                """
+                        UPDATE oms_order
+                        SET status = ?
+                        WHERE shop_id = ? AND id = ? AND status = ? AND deleted = 0
+                        """,
+                nextStatus.value(),
+                shopId,
+                orderId,
+                currentStatus.value()
+        );
     }
 
     private OrderSnapshot toSnapshot(OrderRecord order) {

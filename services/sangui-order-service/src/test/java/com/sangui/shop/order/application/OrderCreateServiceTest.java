@@ -169,6 +169,14 @@ class OrderCreateServiceTest {
         }
 
         @Override
+        public Optional<OrderRecord> findById(Long shopId, Long orderId) {
+            return snapshotsByRequestKey.values().stream()
+                    .map(OrderSnapshot::order)
+                    .filter(order -> java.util.Objects.equals(order.shopId(), shopId) && java.util.Objects.equals(order.id(), orderId))
+                    .findFirst();
+        }
+
+        @Override
         public Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft) {
             createCalls++;
             lastCreatedShopId = shopId;
@@ -193,6 +201,11 @@ class OrderCreateServiceTest {
             );
             snapshotsByRequestKey.put(key(shopId, userId, draft.requestId()), snapshot);
             return orderId;
+        }
+
+        @Override
+        public int updateStatus(Long shopId, Long orderId, OrderStatus currentStatus, OrderStatus nextStatus) {
+            return 0;
         }
 
         private String key(Long shopId, String userId, String requestId) {

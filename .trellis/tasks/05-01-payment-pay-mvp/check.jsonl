@@ -1,0 +1,6 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "verify migration and index rules"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "verify contract/idempotency/error compliance"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "required test coverage and forbidden patterns"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "verify stable error mapping"}

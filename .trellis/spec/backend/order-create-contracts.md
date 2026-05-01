@@ -137,7 +137,7 @@ MVP transitions:
 | --- | --- | --- | --- |
 | none | create | `created` | Implemented in this MVP. |
 | `created` | cancel | `cancelled` | Reserved for future API/workflow. |
-| `created` | pay | `paid` | Reserved for payment callback or payment-service flow. |
+| `created` | pay | `paid` | Implemented through payment-service internal confirmation contract. |
 | `paid` | cancel | invalid | Future business rule; not implemented in this MVP. |
 
 ## Database Contract
@@ -201,6 +201,11 @@ Idempotency behavior:
 ```powershell
 mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service" -am "-Dtest=ProductCatalogServiceTest,InternalProductSnapshotControllerTest,OrderMigrationContractTest,OrderCreateServiceTest,OrderControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
+
+Payment linkage note:
+
+- order-service now exposes `POST /internal/orders/payment-snapshot` and `POST /internal/orders/payment-confirmations` for payment-service only.
+- these internal APIs preserve the same owner scope and state-machine rules documented above.
 
 ## Good / Base / Bad Cases
 

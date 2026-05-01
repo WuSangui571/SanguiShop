@@ -3,6 +3,9 @@ package com.sangui.shop.order.domain;
 import com.sangui.shop.common.core.error.ErrorCode;
 
 public enum OrderErrorCode implements ErrorCode {
+    ORDER_NOT_FOUND("ORDER_NOT_FOUND", "Order does not exist in the current shop scope"),
+    ORDER_STATUS_INVALID("ORDER_STATUS_INVALID", "Order status does not allow this operation"),
+    ORDER_PAYMENT_AMOUNT_MISMATCH("ORDER_PAYMENT_AMOUNT_MISMATCH", "Payment amount does not match order total"),
     ORDER_SKU_NOT_FOUND("ORDER_SKU_NOT_FOUND", "Order contains unknown or unavailable SKU"),
     ORDER_SKU_DUPLICATED("ORDER_SKU_DUPLICATED", "Order request contains duplicate SKU");
 

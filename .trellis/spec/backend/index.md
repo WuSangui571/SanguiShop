@@ -21,6 +21,7 @@ SanguiShop is a single-merchant ecommerce platform, but all core business tables
 | [Logging Guidelines](./logging-guidelines.md) | Before key-path logging or audit changes | JSON logs, trace IDs, sensitive data boundaries |
 | [Observability & DevOps](./observability-devops.md) | Before deploy / monitoring / CI-CD changes | Docker, K8s, Prometheus, ELK, backup |
 | [Order Create Contracts](./order-create-contracts.md) | Before order create / order-service schema changes | Order create API, principal scope, product snapshot, idempotency |
+| [Payment Pay Contracts](./payment-pay-contracts.md) | Before payment API / payment-service / order pay status changes | Payment API, internal order pay contract, idempotency, schema |
 | [Quality Guidelines](./quality-guidelines.md) | Before review or completion | Tests, review habits, forbidden patterns |
 
 ## Pre-Development Checklist

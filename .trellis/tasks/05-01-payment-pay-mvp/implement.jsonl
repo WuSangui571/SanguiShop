@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "payment api, internal order contract, idempotency and error mapping"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "payment and order backend package layout"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "payment schema, Flyway migration, idempotent indexes"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "payment and downstream error mapping"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "cross-service order payment flow risks"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "existing order status and response contract constraints"}
