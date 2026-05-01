@@ -553,3 +553,47 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: Inventory Reserve MVP
+
+**Date**: 2026-05-01
+**Task**: Inventory Reserve MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Product Service | Added sellable inventory fields to SKU data, introduced inventory reservation persistence, and exposed internal reserve / confirm / release APIs with reservation idempotency keyed by `(shopId, reservationNo)`. |
+| Order Service | Changed order creation to reserve inventory before persisting orders, stored `reservationNo` on orders, exposed reservation-aware payment snapshots, and added order cancellation that releases reserved inventory. |
+| Payment Service | Extended payment records with `reservationNo` and updated the pay path to confirm inventory reservations alongside order payment confirmation under idempotent replay. |
+| Database & Contracts | Added V2 Flyway migrations for product, order, and payment services and synchronized backend executable specs for inventory reserve, order create, payment pay, and product catalog contracts. |
+| Testing | Added targeted application, controller, and migration contract tests for reserve / confirm / release, order cancel, reservation-aware payment flow, and replay safety. |
+
+**Verification**:
+- Human committed `fe3ac1c feat(inventory): implement reserve mvp` after testing.
+- Verified in agent with targeted Maven test suites for product/order/payment inventory reservation and payment replay coverage.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fe3ac1c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
