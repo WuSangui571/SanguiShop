@@ -507,3 +507,49 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Payment Pay MVP
+
+**Date**: 2026-05-01
+**Task**: Payment Pay MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Payment Service | Implemented `services/sangui-payment-service` as the first payment write-path service with JDBC, Flyway, payment idempotency on `paymentNo`, and synchronous order pay orchestration. |
+| Payment API | Added authenticated `POST /api/payments` using `SanguiPrincipal`, principal-derived shop/user scope, and stable `PAYMENT_PAID` response envelope. |
+| Order Integration | Added internal order-service payment snapshot and payment confirmation APIs so payment-service can move orders from `created` to `paid` without direct database access. |
+| Persistence | Added `V1__create_payment_tables.sql` for `pay_payment_order` and `pay_callback_log`, plus payment repository support and status persistence. |
+| Tests | Added payment smoke, migration contract, application service, and controller tests, plus order-side payment service/controller tests for the cross-service contract. |
+| Spec Sync | Added `.trellis/spec/backend/payment-pay-contracts.md`, updated backend spec index, and extended order create contract docs with executable payment linkage notes. |
+
+**Verification**:
+- Human started the full local flow successfully after initializing the `sangui_payment` schema and permissions.
+- Human committed `cf4536c feat(payment): implement payment pay mvp`.
+- Verified in agent with module compile and targeted Maven test suites for order/payment.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cf4536c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
