@@ -372,3 +372,50 @@ Commit recorded: `a7328d3 feat: add downstream auth context`.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Product Catalog MVP
+
+**Date**: 2026-05-01
+**Task**: Product Catalog MVP
+**Branch**: `main`
+
+### Summary
+
+Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, SanguiPrincipal-enforced writes, tests, and backend contract documentation.
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Product Service | Added the first real product business service implementation on top of the completed auth chain in `services/sangui-product-service`. |
+| Persistence | Added JDBC + Flyway runtime wiring, `SANGUI_PRODUCT_MYSQL_SCHEMA` / `SANGUI_PRODUCT_FLYWAY_ENABLED` env contracts, and `V1__create_product_catalog_tables.sql` for `pms_product` and `pms_sku`. |
+| Product APIs | Added anonymous `GET /api/products` and `GET /api/products/{productId}` plus admin write APIs for create, update, and publish. |
+| Auth Context | Admin write controllers consume `SanguiPrincipal`; write flows derive `shopId` and operator identity from trusted principal instead of request body `shopId` / `userId`. |
+| Business Rules | Added product status machine with `draft`, `active`, `inactive`, and MVP publish transition `draft -> active`. |
+| Public Scope | Fixed public product reads to derive shop scope from `sangui.shop.default-shop-id` instead of scanning across shops. |
+| Tests | Added smoke, migration contract, application service, and WebMvc coverage for product catalog behavior and auth-context assertions. |
+| Spec Sync | Added executable backend contract doc `.trellis/spec/backend/product-catalog-contracts.md` for API/database/error/test expectations. |
+
+**Verification**:
+- Human tested locally and committed `58683bc feat(product): implement product catalog mvp`.
+- Verified in agent with product-service Maven test suite and module compile.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `58683bc` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
