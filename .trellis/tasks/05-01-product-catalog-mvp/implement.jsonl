@@ -1,0 +1,11 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Keep product service layering aligned with existing backend service structure."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Define Product Catalog API DTOs and responses before implementation."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "New product and sku schema plus Flyway contract must follow backend DB rules."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Product read/admin APIs must respect public vs protected/admin gateway expectations."}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Admin write APIs must consume SanguiPrincipal and ignore DTO identity fields."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Use stable ApiResult error mapping for validation and business failures."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Product MVP needs service, WebMvc, and migration contract tests."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "This task spans service API, auth context, and database contracts."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Prefer existing common/web/security patterns over new abstractions."}

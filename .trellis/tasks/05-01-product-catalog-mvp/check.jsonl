@@ -1,0 +1,8 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Review API DTO and response contracts."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Review schema, index, and Flyway contract coverage."}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Review SanguiPrincipal-based admin write enforcement."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Review stable error mapping and validation handling."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review test shape and forbidden patterns."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review cross-layer risks after implementation."}
