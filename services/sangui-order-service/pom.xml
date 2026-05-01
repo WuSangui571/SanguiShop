@@ -11,7 +11,6 @@
         <dependency><groupId>com.sangui.shop</groupId><artifactId>sangui-common-web</artifactId><version>${project.version}</version></dependency>
         <dependency><groupId>com.sangui.shop</groupId><artifactId>sangui-common-security</artifactId><version>${project.version}</version></dependency>
         <dependency><groupId>com.sangui.shop</groupId><artifactId>sangui-common-observability</artifactId><version>${project.version}</version></dependency>
-        <dependency><groupId>com.sangui.shop</groupId><artifactId>sangui-product-service</artifactId><version>${project.version}</version></dependency>
         <dependency><groupId>com.alibaba.cloud</groupId><artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId></dependency>
         <dependency><groupId>com.alibaba.cloud</groupId><artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId></dependency>
         <dependency><groupId>com.alibaba.cloud</groupId><artifactId>spring-cloud-starter-alibaba-sentinel</artifactId></dependency>
