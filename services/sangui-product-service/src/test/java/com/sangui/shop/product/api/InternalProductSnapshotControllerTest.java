@@ -38,7 +38,7 @@ class InternalProductSnapshotControllerTest {
     void listSkuSnapshotsReturnsStableEnvelope() throws Exception {
         org.mockito.Mockito.when(productCatalogService.listActiveSkuSnapshots(eq(1L), any()))
                 .thenReturn(List.of(
-                        new ProductSkuRecord(401L, 301L, "shoe-42", "Sneaker 42", 59900L)
+                        new ProductSkuRecord(401L, 301L, "shoe-42", "Sneaker 42", 59900L, 20L, 1L)
                 ));
 
         mockMvc.perform(post("/internal/products/skus/snapshot")

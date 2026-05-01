@@ -12,6 +12,8 @@ import com.sangui.shop.product.api.dto.ProductDetailResponse;
 import com.sangui.shop.product.api.dto.UpdateProductRequest;
 import com.sangui.shop.product.api.dto.UpsertProductSkuRequest;
 import com.sangui.shop.product.domain.ProductDraft;
+import com.sangui.shop.product.domain.ProductInventoryReservationRecord;
+import com.sangui.shop.product.domain.ProductInventoryReservationStatus;
 import com.sangui.shop.product.domain.ProductListItem;
 import com.sangui.shop.product.domain.ProductRecord;
 import com.sangui.shop.product.domain.ProductRepository;
@@ -56,14 +58,14 @@ class ProductCatalogServiceTest {
                         "spoof-user",
                         "Winter Coat",
                         "Warm and waterproof",
-                        List.of(
-                                new UpsertProductSkuRequest("coat-black-m", "Black M", 129900L)
-                        )
+                        List.of(new UpsertProductSkuRequest("coat-black-m", "Black M", 129900L, 20L))
                 )
         );
 
         assertThat(response.productId()).isEqualTo(10001L);
         assertThat(response.status()).isEqualTo("draft");
+        assertThat(response.skus().getFirst().availableStock()).isEqualTo(20L);
+        assertThat(response.skus().getFirst().reservedStock()).isEqualTo(0L);
         assertThat(productRepository.lastCreatedShopId).isEqualTo(1L);
         assertThat(productRepository.lastOperatorUserId).isEqualTo("10001");
         assertThat(productRepository.productsById.get(response.productId()).shopId()).isEqualTo(1L);
@@ -72,10 +74,10 @@ class ProductCatalogServiceTest {
     @Test
     void listProductsReturnsOnlyActiveItems() {
         productRepository.seedProduct(1L, "10001", "Draft Product", ProductStatus.DRAFT, List.of(
-                new ProductSkuDraft("draft-sku", "Draft SKU", 1000L)
+                new ProductSkuDraft("draft-sku", "Draft SKU", 1000L, 5L)
         ));
         productRepository.seedProduct(1L, "10001", "Active Product", ProductStatus.ACTIVE, List.of(
-                new ProductSkuDraft("active-sku", "Active SKU", 2000L)
+                new ProductSkuDraft("active-sku", "Active SKU", 2000L, 8L)
         ));
 
         PageResponse<?> response = productCatalogService.listProducts(new PageRequest(1, 20));
@@ -87,7 +89,7 @@ class ProductCatalogServiceTest {
     @Test
     void publishProductTransitionsDraftToActive() {
         Long productId = productRepository.seedProduct(1L, "10001", "Sneaker", ProductStatus.DRAFT, List.of(
-                new ProductSkuDraft("shoe-42", "42", 59900L)
+                new ProductSkuDraft("shoe-42", "42", 59900L, 10L)
         ));
 
         ProductDetailResponse response = productCatalogService.publishProduct(ADMIN_PRINCIPAL, productId);
@@ -100,7 +102,7 @@ class ProductCatalogServiceTest {
     @Test
     void publishRejectsInvalidState() {
         Long productId = productRepository.seedProduct(1L, "10001", "Sneaker", ProductStatus.ACTIVE, List.of(
-                new ProductSkuDraft("shoe-42", "42", 59900L)
+                new ProductSkuDraft("shoe-42", "42", 59900L, 10L)
         ));
 
         assertThatThrownBy(() -> productCatalogService.publishProduct(ADMIN_PRINCIPAL, productId))
@@ -113,10 +115,10 @@ class ProductCatalogServiceTest {
     @Test
     void listActiveSkuSnapshotsOnlyReturnsActiveProductSkus() {
         Long draftProductId = productRepository.seedProduct(1L, "10001", "Draft Product", ProductStatus.DRAFT, List.of(
-                new ProductSkuDraft("draft-sku", "Draft SKU", 1000L)
+                new ProductSkuDraft("draft-sku", "Draft SKU", 1000L, 5L)
         ));
         Long activeProductId = productRepository.seedProduct(1L, "10001", "Active Product", ProductStatus.ACTIVE, List.of(
-                new ProductSkuDraft("active-sku", "Active SKU", 2000L)
+                new ProductSkuDraft("active-sku", "Active SKU", 2000L, 8L)
         ));
 
         List<ProductSkuRecord> snapshots = productCatalogService.listActiveSkuSnapshots(1L, List.of(
@@ -139,7 +141,7 @@ class ProductCatalogServiceTest {
                         "10002",
                         "T-Shirt",
                         "Soft cotton",
-                        List.of(new UpsertProductSkuRequest("tee-s", "Small", 9900L))
+                        List.of(new UpsertProductSkuRequest("tee-s", "Small", 9900L, 3L))
                 )
         ))
                 .isInstanceOfSatisfying(SanguiException.class, exception -> {
@@ -151,7 +153,7 @@ class ProductCatalogServiceTest {
     @Test
     void updateReplacesSkuSet() {
         Long productId = productRepository.seedProduct(1L, "10001", "Sneaker", ProductStatus.DRAFT, List.of(
-                new ProductSkuDraft("shoe-42", "42", 59900L)
+                new ProductSkuDraft("shoe-42", "42", 59900L, 10L)
         ));
 
         ProductDetailResponse response = productCatalogService.updateProduct(
@@ -163,8 +165,8 @@ class ProductCatalogServiceTest {
                         "Sneaker Pro",
                         "Updated model",
                         List.of(
-                                new UpsertProductSkuRequest("shoe-43", "43", 69900L),
-                                new UpsertProductSkuRequest("shoe-44", "44", 69900L)
+                                new UpsertProductSkuRequest("shoe-43", "43", 69900L, 15L),
+                                new UpsertProductSkuRequest("shoe-44", "44", 69900L, 12L)
                         )
                 )
         );
@@ -224,6 +226,57 @@ class ProductCatalogServiceTest {
         }
 
         @Override
+        public List<ProductSkuRecord> findActiveSkus(Long shopId, List<Long> skuIds) {
+            return productsById.values().stream()
+                    .filter(product -> product.shopId().equals(shopId))
+                    .filter(product -> product.status() == ProductStatus.ACTIVE)
+                    .flatMap(product -> skusByProductId.getOrDefault(product.id(), List.of()).stream())
+                    .filter(sku -> skuIds.contains(sku.id()))
+                    .toList();
+        }
+
+        @Override
+        public List<ProductInventoryReservationRecord> findReservationRecords(Long shopId, String reservationNo) {
+            return List.of();
+        }
+
+        @Override
+        public int reserveSkuStock(Long shopId, Long skuId, int quantity) {
+            return 1;
+        }
+
+        @Override
+        public int confirmReservedSkuStock(Long shopId, Long skuId, int quantity) {
+            return 1;
+        }
+
+        @Override
+        public int releaseReservedSkuStock(Long shopId, Long skuId, int quantity) {
+            return 1;
+        }
+
+        @Override
+        public int updateReservationStatus(
+                Long shopId,
+                String reservationNo,
+                ProductInventoryReservationStatus currentStatus,
+                ProductInventoryReservationStatus nextStatus,
+                String traceId
+        ) {
+            return 0;
+        }
+
+        @Override
+        public void createReservationRecords(
+                Long shopId,
+                String reservationNo,
+                List<ProductInventoryReservationRecord> records,
+                ProductInventoryReservationStatus status,
+                String traceId
+        ) {
+        }
+
+        @Override
         public Long createProduct(Long shopId, String operatorUserId, ProductDraft draft, ProductStatus status) {
             lastCreatedShopId = shopId;
             lastOperatorUserId = operatorUserId;
@@ -276,16 +329,6 @@ class ProductCatalogServiceTest {
             return createProduct(shopId, operatorUserId, new ProductDraft(productName, productName + " description", skus), status);
         }
 
-        @Override
-        public List<ProductSkuRecord> findActiveSkus(Long shopId, List<Long> skuIds) {
-            return productsById.values().stream()
-                    .filter(product -> product.shopId().equals(shopId))
-                    .filter(product -> product.status() == ProductStatus.ACTIVE)
-                    .flatMap(product -> skusByProductId.getOrDefault(product.id(), List.of()).stream())
-                    .filter(sku -> skuIds.contains(sku.id()))
-                    .toList();
-        }
-
         private Long firstSkuId(Long productId) {
             return skusByProductId.getOrDefault(productId, List.of()).getFirst().id();
         }
@@ -298,7 +341,9 @@ class ProductCatalogServiceTest {
                         productId,
                         sku.skuCode(),
                         sku.skuName(),
-                        sku.priceCent()
+                        sku.priceCent(),
+                        sku.availableStock(),
+                        0L
                 ));
             }
             return result;

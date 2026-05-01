@@ -4,6 +4,7 @@ import java.util.List;
 
 public record OrderCreateDraft(
         String requestId,
+        String reservationNo,
         List<OrderItemDraft> items
 ) {
     public long totalAmountCent() {

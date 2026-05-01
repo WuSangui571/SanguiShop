@@ -35,7 +35,7 @@ class OrderPaymentServiceTest {
 
     @Test
     void getPayableOrderReturnsCreatedOrderForMatchingUser() {
-        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", OrderStatus.CREATED, 59900L);
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", "ord:10001:req-001", OrderStatus.CREATED, 59900L);
 
         OrderPaymentSnapshotResponse response = orderPaymentService.getPayableOrder(
                 new OrderPaymentSnapshotRequest(1L, "10001", orderId)
@@ -43,13 +43,14 @@ class OrderPaymentServiceTest {
 
         assertThat(response.orderId()).isEqualTo(orderId);
         assertThat(response.orderNo()).isEqualTo("ORD-001");
+        assertThat(response.reservationNo()).isEqualTo("ord:10001:req-001");
         assertThat(response.status()).isEqualTo("created");
         assertThat(response.totalAmountCent()).isEqualTo(59900L);
     }
 
     @Test
     void confirmPaidUpdatesCreatedOrderToPaid() {
-        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", OrderStatus.CREATED, 59900L);
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", "ord:10001:req-001", OrderStatus.CREATED, 59900L);
 
         OrderPaymentSnapshotResponse response = orderPaymentService.confirmPaid(
                 new ConfirmOrderPaymentRequest(1L, "10001", orderId, "PAY-001", 59900L)
@@ -61,7 +62,7 @@ class OrderPaymentServiceTest {
 
     @Test
     void confirmPaidIsIdempotentForAlreadyPaidOrder() {
-        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", OrderStatus.PAID, 59900L);
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", "ord:10001:req-001", OrderStatus.PAID, 59900L);
 
         OrderPaymentSnapshotResponse response = orderPaymentService.confirmPaid(
                 new ConfirmOrderPaymentRequest(1L, "10001", orderId, "PAY-001", 59900L)
@@ -72,7 +73,7 @@ class OrderPaymentServiceTest {
 
     @Test
     void confirmPaidRejectsAmountMismatch() {
-        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", OrderStatus.CREATED, 59900L);
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", "ord:10001:req-001", OrderStatus.CREATED, 59900L);
 
         assertThatThrownBy(() -> orderPaymentService.confirmPaid(
                 new ConfirmOrderPaymentRequest(1L, "10001", orderId, "PAY-001", 60000L)
@@ -84,7 +85,7 @@ class OrderPaymentServiceTest {
 
     @Test
     void getPayableOrderRejectsWrongOwner() {
-        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", OrderStatus.CREATED, 59900L);
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", "ord:10001:req-001", OrderStatus.CREATED, 59900L);
 
         assertThatThrownBy(() -> orderPaymentService.getPayableOrder(
                 new OrderPaymentSnapshotRequest(1L, "10002", orderId)
@@ -104,12 +105,13 @@ class OrderPaymentServiceTest {
                 String userId,
                 String orderNo,
                 String requestId,
+                String reservationNo,
                 OrderStatus status,
                 Long totalAmountCent
         ) {
             Long orderId = nextOrderId.incrementAndGet();
             snapshotsById.put(orderId, new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, requestId, status, totalAmountCent, "trace-seed"),
+                    new OrderRecord(orderId, shopId, userId, orderNo, requestId, reservationNo, status, totalAmountCent, "trace-seed"),
                     List.of(new com.sangui.shop.order.domain.OrderItemRecord(
                             1L,
                             orderId,
@@ -131,6 +133,15 @@ class OrderPaymentServiceTest {
                 return Optional.empty();
             }
             return Optional.of(snapshot.order());
+        }
+
+        @Override
+        public Optional<OrderSnapshot> findSnapshotById(Long shopId, Long orderId) {
+            OrderSnapshot snapshot = snapshotsById.get(orderId);
+            if (snapshot == null || !java.util.Objects.equals(snapshot.order().shopId(), shopId)) {
+                return Optional.empty();
+            }
+            return Optional.of(snapshot);
         }
 
         @Override
@@ -158,7 +169,7 @@ class OrderPaymentServiceTest {
                     ))
                     .toList();
             snapshotsById.put(orderId, new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, draft.requestId(), status, draft.totalAmountCent(), traceId),
+                    new OrderRecord(orderId, shopId, userId, orderNo, draft.requestId(), draft.reservationNo(), status, draft.totalAmountCent(), traceId),
                     items
             ));
             return orderId;
@@ -180,6 +191,7 @@ class OrderPaymentServiceTest {
                             snapshot.order().userId(),
                             snapshot.order().orderNo(),
                             snapshot.order().requestId(),
+                            snapshot.order().reservationNo(),
                             nextStatus,
                             snapshot.order().totalAmountCent(),
                             snapshot.order().traceId()

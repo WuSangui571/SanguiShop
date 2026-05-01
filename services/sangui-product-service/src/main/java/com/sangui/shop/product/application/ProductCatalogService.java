@@ -147,7 +147,8 @@ public class ProductCatalogService {
                 .map(sku -> new ProductSkuDraft(
                         sku.skuCode().trim(),
                         sku.skuName().trim(),
-                        sku.priceCent()
+                        sku.priceCent(),
+                        normalizeAvailableStock(sku.availableStock())
                 ))
                 .toList();
         return new ProductDraft(productName.trim(), trimToNull(productDescription), skus);
@@ -170,7 +171,9 @@ public class ProductCatalogService {
                         sku.id(),
                         sku.skuCode(),
                         sku.skuName(),
-                        sku.priceCent()
+                        sku.priceCent(),
+                        sku.availableStock(),
+                        sku.reservedStock()
                 ))
                 .collect(Collectors.toList());
         return new ProductDetailResponse(
@@ -188,5 +191,9 @@ public class ProductCatalogService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Long normalizeAvailableStock(Long availableStock) {
+        return availableStock == null ? 0L : availableStock;
     }
 }

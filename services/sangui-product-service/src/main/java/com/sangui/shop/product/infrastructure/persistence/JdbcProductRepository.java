@@ -3,6 +3,8 @@ package com.sangui.shop.product.infrastructure.persistence;
 import com.sangui.shop.common.core.api.PageRequest;
 import com.sangui.shop.common.core.api.PageResponse;
 import com.sangui.shop.product.domain.ProductDraft;
+import com.sangui.shop.product.domain.ProductInventoryReservationRecord;
+import com.sangui.shop.product.domain.ProductInventoryReservationStatus;
 import com.sangui.shop.product.domain.ProductListItem;
 import com.sangui.shop.product.domain.ProductRecord;
 import com.sangui.shop.product.domain.ProductRepository;
@@ -39,7 +41,22 @@ public class JdbcProductRepository implements ProductRepository {
             rs.getLong("product_id"),
             rs.getString("sku_code"),
             rs.getString("sku_name"),
-            rs.getLong("sale_price_cent")
+            rs.getLong("sale_price_cent"),
+            rs.getLong("available_stock"),
+            rs.getLong("reserved_stock")
+    );
+
+    private static final RowMapper<ProductInventoryReservationRecord> RESERVATION_ROW_MAPPER = (rs, rowNum) -> new ProductInventoryReservationRecord(
+            rs.getLong("shop_id"),
+            rs.getString("reservation_no"),
+            rs.getLong("product_id"),
+            rs.getLong("sku_id"),
+            rs.getString("sku_code"),
+            rs.getString("sku_name"),
+            rs.getLong("price_cent"),
+            rs.getInt("quantity"),
+            ProductInventoryReservationStatus.fromValue(rs.getString("status")),
+            rs.getString("trace_id")
     );
 
     private static final RowMapper<ProductListItem> PRODUCT_LIST_ROW_MAPPER = (rs, rowNum) -> new ProductListItem(
@@ -134,7 +151,7 @@ public class JdbcProductRepository implements ProductRepository {
         }
         return jdbcTemplate.query(
                 """
-                        SELECT s.id, s.product_id, s.sku_code, s.sku_name, s.sale_price_cent
+                        SELECT s.id, s.product_id, s.sku_code, s.sku_name, s.sale_price_cent, s.available_stock, s.reserved_stock
                         FROM pms_sku s
                         JOIN pms_product p
                           ON p.id = s.product_id
@@ -148,6 +165,123 @@ public class JdbcProductRepository implements ProductRepository {
                         """.formatted(placeholders),
                 SKU_ROW_MAPPER,
                 args
+        );
+    }
+
+    @Override
+    public List<ProductInventoryReservationRecord> findReservationRecords(Long shopId, String reservationNo) {
+        return jdbcTemplate.query(
+                """
+                        SELECT shop_id, reservation_no, product_id, sku_id, sku_code, sku_name, price_cent, quantity, status, trace_id
+                        FROM pms_inventory_reservation
+                        WHERE shop_id = ? AND reservation_no = ? AND deleted = 0
+                        ORDER BY sku_id ASC
+                        """,
+                RESERVATION_ROW_MAPPER,
+                shopId,
+                reservationNo
+        );
+    }
+
+    @Override
+    public int reserveSkuStock(Long shopId, Long skuId, int quantity) {
+        return jdbcTemplate.update(
+                """
+                        UPDATE pms_sku
+                        SET available_stock = available_stock - ?,
+                            reserved_stock = reserved_stock + ?
+                        WHERE shop_id = ? AND id = ? AND deleted = 0 AND available_stock >= ?
+                        """,
+                quantity,
+                quantity,
+                shopId,
+                skuId,
+                quantity
+        );
+    }
+
+    @Override
+    public int confirmReservedSkuStock(Long shopId, Long skuId, int quantity) {
+        return jdbcTemplate.update(
+                """
+                        UPDATE pms_sku
+                        SET reserved_stock = reserved_stock - ?
+                        WHERE shop_id = ? AND id = ? AND deleted = 0 AND reserved_stock >= ?
+                        """,
+                quantity,
+                shopId,
+                skuId,
+                quantity
+        );
+    }
+
+    @Override
+    public int releaseReservedSkuStock(Long shopId, Long skuId, int quantity) {
+        return jdbcTemplate.update(
+                """
+                        UPDATE pms_sku
+                        SET available_stock = available_stock + ?,
+                            reserved_stock = reserved_stock - ?
+                        WHERE shop_id = ? AND id = ? AND deleted = 0 AND reserved_stock >= ?
+                        """,
+                quantity,
+                quantity,
+                shopId,
+                skuId,
+                quantity
+        );
+    }
+
+    @Override
+    public int updateReservationStatus(
+            Long shopId,
+            String reservationNo,
+            ProductInventoryReservationStatus currentStatus,
+            ProductInventoryReservationStatus nextStatus,
+            String traceId
+    ) {
+        return jdbcTemplate.update(
+                """
+                        UPDATE pms_inventory_reservation
+                        SET status = ?, trace_id = COALESCE(?, trace_id)
+                        WHERE shop_id = ? AND reservation_no = ? AND status = ? AND deleted = 0
+                        """,
+                nextStatus.value(),
+                traceId,
+                shopId,
+                reservationNo,
+                currentStatus.value()
+        );
+    }
+
+    @Override
+    public void createReservationRecords(
+            Long shopId,
+            String reservationNo,
+            List<ProductInventoryReservationRecord> records,
+            ProductInventoryReservationStatus status,
+            String traceId
+    ) {
+        jdbcTemplate.batchUpdate(
+                """
+                        INSERT INTO pms_inventory_reservation (
+                            shop_id, reservation_no, product_id, sku_id, sku_code, sku_name, price_cent, quantity, status, trace_id
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                records,
+                records.size(),
+                (PreparedStatement statement, ProductInventoryReservationRecord record) -> {
+                    statement.setLong(1, shopId);
+                    statement.setString(2, reservationNo);
+                    statement.setLong(3, record.productId());
+                    statement.setLong(4, record.skuId());
+                    statement.setString(5, record.skuCode());
+                    statement.setString(6, record.skuName());
+                    statement.setLong(7, record.priceCent());
+                    statement.setInt(8, record.quantity());
+                    statement.setString(9, status.value());
+                    statement.setString(10, traceId);
+                }
         );
     }
 
@@ -224,7 +358,7 @@ public class JdbcProductRepository implements ProductRepository {
                         product,
                         jdbcTemplate.query(
                                 """
-                                        SELECT id, product_id, sku_code, sku_name, sale_price_cent
+                                        SELECT id, product_id, sku_code, sku_name, sale_price_cent, available_stock, reserved_stock
                                         FROM pms_sku
                                         WHERE shop_id = ? AND product_id = ? AND deleted = 0
                                         ORDER BY id ASC
@@ -240,8 +374,8 @@ public class JdbcProductRepository implements ProductRepository {
         jdbcTemplate.batchUpdate(
                 """
                         INSERT INTO pms_sku (
-                            shop_id, product_id, sku_code, sku_name, sale_price_cent, created_by, updated_by
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            shop_id, product_id, sku_code, sku_name, sale_price_cent, available_stock, reserved_stock, created_by, updated_by
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                 skus,
                 skus.size(),
@@ -251,8 +385,10 @@ public class JdbcProductRepository implements ProductRepository {
                     statement.setString(3, sku.skuCode());
                     statement.setString(4, sku.skuName());
                     statement.setLong(5, sku.priceCent());
-                    statement.setString(6, operatorUserId);
-                    statement.setString(7, operatorUserId);
+                    statement.setLong(6, sku.availableStock());
+                    statement.setLong(7, 0L);
+                    statement.setString(8, operatorUserId);
+                    statement.setString(9, operatorUserId);
                 }
         );
     }

@@ -5,10 +5,12 @@ import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.CreateOrderRequest;
 import com.sangui.shop.order.api.dto.OrderResponse;
+import com.sangui.shop.order.application.OrderCancelService;
 import com.sangui.shop.order.application.OrderCreateService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,9 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     private final OrderCreateService orderCreateService;
+    private final OrderCancelService orderCancelService;
 
-    public OrderController(OrderCreateService orderCreateService) {
+    public OrderController(OrderCreateService orderCreateService, OrderCancelService orderCancelService) {
         this.orderCreateService = orderCreateService;
+        this.orderCancelService = orderCancelService;
     }
 
     @PostMapping
@@ -34,6 +38,17 @@ public class OrderController {
         String traceId = traceId(httpRequest);
         OrderResponse response = orderCreateService.createOrder(principal, request, traceId);
         return ApiResult.ok("ORDER_CREATED", response, traceId);
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public ApiResult<OrderResponse> cancelOrder(
+            SanguiPrincipal principal,
+            @PathVariable Long orderId,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = traceId(httpRequest);
+        OrderResponse response = orderCancelService.cancelOrder(principal, orderId, traceId);
+        return ApiResult.ok("ORDER_CANCELLED", response, traceId);
     }
 
     private String traceId(HttpServletRequest request) {

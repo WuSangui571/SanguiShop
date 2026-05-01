@@ -42,6 +42,10 @@ sangui:
       base-url: ${SANGUI_ORDER_BASE_URL:http://localhost:8104}
       connect-timeout-ms: ${SANGUI_ORDER_CONNECT_TIMEOUT_MS:2000}
       read-timeout-ms: ${SANGUI_ORDER_READ_TIMEOUT_MS:3000}
+    product:
+      base-url: ${SANGUI_PRODUCT_BASE_URL:http://localhost:8102}
+      connect-timeout-ms: ${SANGUI_PRODUCT_CONNECT_TIMEOUT_MS:2000}
+      read-timeout-ms: ${SANGUI_PRODUCT_READ_TIMEOUT_MS:3000}
   shop:
     default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
   infrastructure:

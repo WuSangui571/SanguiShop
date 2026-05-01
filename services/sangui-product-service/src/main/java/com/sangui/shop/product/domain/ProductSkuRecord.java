@@ -5,6 +5,8 @@ public record ProductSkuRecord(
         Long productId,
         String skuCode,
         String skuName,
-        Long priceCent
+        Long priceCent,
+        Long availableStock,
+        Long reservedStock
 ) {
 }

@@ -26,6 +26,7 @@ public class JdbcOrderRepository implements OrderRepository {
             rs.getString("user_id"),
             rs.getString("order_no"),
             rs.getString("request_id"),
+            rs.getString("reservation_no"),
             OrderStatus.fromValue(rs.getString("status")),
             rs.getLong("total_amount_cent"),
             rs.getString("trace_id")
@@ -52,7 +53,7 @@ public class JdbcOrderRepository implements OrderRepository {
     public Optional<OrderRecord> findById(Long shopId, Long orderId) {
         return jdbcTemplate.query(
                 """
-                        SELECT id, shop_id, user_id, order_no, request_id, status, total_amount_cent, trace_id
+                        SELECT id, shop_id, user_id, order_no, request_id, reservation_no, status, total_amount_cent, trace_id
                         FROM oms_order
                         WHERE shop_id = ? AND id = ? AND deleted = 0
                         LIMIT 1
@@ -64,10 +65,15 @@ public class JdbcOrderRepository implements OrderRepository {
     }
 
     @Override
+    public Optional<OrderSnapshot> findSnapshotById(Long shopId, Long orderId) {
+        return findById(shopId, orderId).map(this::toSnapshot);
+    }
+
+    @Override
     public Optional<OrderSnapshot> findByRequestId(Long shopId, String userId, String requestId) {
         return jdbcTemplate.query(
                 """
-                        SELECT id, shop_id, user_id, order_no, request_id, status, total_amount_cent, trace_id
+                        SELECT id, shop_id, user_id, order_no, request_id, reservation_no, status, total_amount_cent, trace_id
                         FROM oms_order
                         WHERE shop_id = ? AND user_id = ? AND request_id = ? AND deleted = 0
                         LIMIT 1
@@ -86,8 +92,8 @@ public class JdbcOrderRepository implements OrderRepository {
             PreparedStatement statement = connection.prepareStatement(
                     """
                             INSERT INTO oms_order (
-                                shop_id, order_no, user_id, request_id, trace_id, status, total_amount_cent
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                                shop_id, order_no, user_id, request_id, reservation_no, trace_id, status, total_amount_cent
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                             """,
                     Statement.RETURN_GENERATED_KEYS
             );
@@ -95,9 +101,10 @@ public class JdbcOrderRepository implements OrderRepository {
             statement.setString(2, orderNo);
             statement.setString(3, userId);
             statement.setString(4, draft.requestId());
-            statement.setString(5, traceId);
-            statement.setString(6, status.value());
-            statement.setLong(7, draft.totalAmountCent());
+            statement.setString(5, draft.reservationNo());
+            statement.setString(6, traceId);
+            statement.setString(7, status.value());
+            statement.setLong(8, draft.totalAmountCent());
             return statement;
         }, keyHolder);
         Number key = keyHolder.getKey();

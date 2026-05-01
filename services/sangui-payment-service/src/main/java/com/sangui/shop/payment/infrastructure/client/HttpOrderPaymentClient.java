@@ -95,6 +95,7 @@ public class HttpOrderPaymentClient implements OrderPaymentClient {
                 data.orderNo(),
                 data.shopId(),
                 data.userId(),
+                data.reservationNo(),
                 data.status(),
                 data.totalAmountCent()
         );

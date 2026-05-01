@@ -4,61 +4,39 @@
 
 Product Catalog MVP for `services/sangui-product-service`.
 
-This MVP is the first real business domain running on the completed auth chain:
+This document covers public catalog read APIs and admin product maintenance. Inventory reservation write paths are documented in [Inventory Reserve Contracts](./inventory-reserve-contracts.md).
 
-- user-service issues JWT
-- gateway validates JWT and forwards trusted `X-Sangui-*` headers
-- product-service consumes `SanguiPrincipal` through `sangui-common-web`
+## Public Read APIs
 
-## API Contracts
+| API | Auth | Success code | Response |
+| --- | --- | --- | --- |
+| `GET /api/products?page=1&size=20` | anonymous allowed | `PRODUCT_LISTED` | `PageResponse<ProductSummaryResponse>` |
+| `GET /api/products/{productId}` | anonymous allowed | `PRODUCT_FETCHED` | `ProductDetailResponse` |
 
-### Public Read APIs
+Rules:
 
-| API | Auth | Request | Success code | Response data |
-| --- | --- | --- | --- | --- |
-| `GET /api/products?page=1&size=20` | optional/anonymous | query: `page`, `size` | `PRODUCT_LISTED` | `PageResponse<ProductSummaryResponse>` |
-| `GET /api/products/{productId}` | optional/anonymous | path: `productId` | `PRODUCT_FETCHED` | `ProductDetailResponse` |
+- public read derives shop scope from `sangui.shop.default-shop-id`
+- only `active` products are visible
+- public responses never expose persistence entities or audit fields
 
-Public read behavior:
+## Admin Write APIs
 
-- Anonymous browsing is allowed.
-- Public read derives shop scope from `sangui.shop.default-shop-id` and must not scan across all shops.
-- Public read only returns products in `active` status.
-- Public responses never expose persistence entities or internal audit fields such as `created_by` / `updated_by`.
+| API | Auth | Success code | Response |
+| --- | --- | --- | --- |
+| `POST /api/admin/products` | `ADMIN` principal required | `PRODUCT_CREATED` | `ProductDetailResponse` |
+| `PUT /api/admin/products/{productId}` | `ADMIN` principal required | `PRODUCT_UPDATED` | `ProductDetailResponse` |
+| `POST /api/admin/products/{productId}/publish` | `ADMIN` principal required | `PRODUCT_PUBLISHED` | `ProductDetailResponse` |
 
-### Admin Write APIs
+Security rules:
 
-| API | Auth | Request | Success code | Response data |
-| --- | --- | --- | --- | --- |
-| `POST /api/admin/products` | `SanguiPrincipal` required + `ADMIN` role | `CreateProductRequest` | `PRODUCT_CREATED` | `ProductDetailResponse` |
-| `PUT /api/admin/products/{productId}` | `SanguiPrincipal` required + `ADMIN` role | `UpdateProductRequest` | `PRODUCT_UPDATED` | `ProductDetailResponse` |
-| `POST /api/admin/products/{productId}/publish` | `SanguiPrincipal` required + `ADMIN` role | no body | `PRODUCT_PUBLISHED` | `ProductDetailResponse` |
-
-Security rule:
-
-- Controller parameters must use `SanguiPrincipal principal`.
-- `shopId` for writes must come from `principal.shopId()`, not from request body or query params.
-- Authenticated operator identity must come from `principal.userId()`, not from request body `userId`.
-- Missing principal must fail through `SanguiPrincipalArgumentResolver` with `AUTH_TOKEN_MISSING`.
-- Non-admin principal must fail with `AUTH_FORBIDDEN`.
-
-### Internal Snapshot API
-
-| API | Auth | Request | Success code | Response data |
-| --- | --- | --- | --- | --- |
-| `POST /internal/products/skus/snapshot` | internal service-to-service | `ProductSkuSnapshotRequest` | `PRODUCT_SKU_SNAPSHOTS_FETCHED` | `ProductSkuSnapshotResponse` |
-
-Internal snapshot behavior:
-
-- `shopId` is required.
-- `skuIds` must be non-empty positive longs.
-- Only SKUs whose parent product is `active` are returned.
-- The response item contract is stable for downstream order creation and includes `productId`, `skuId`, `skuCode`, `skuName`, and `priceCent`.
-- The endpoint is read-only and must not expose persistence-only audit fields.
+- controller parameters must use `SanguiPrincipal`
+- effective `shopId` and operator identity come from principal only
+- missing principal -> `AUTH_TOKEN_MISSING`
+- non-admin principal -> `AUTH_FORBIDDEN`
 
 ## Request / Response Shapes
 
-### `CreateProductRequest`
+### `CreateProductRequest` / `UpdateProductRequest`
 
 ```json
 {
@@ -70,35 +48,19 @@ Internal snapshot behavior:
     {
       "skuCode": "shoe-42",
       "skuName": "42",
-      "priceCent": 59900
+      "priceCent": 59900,
+      "availableStock": 20
     }
   ]
 }
 ```
 
-Notes:
+Rules:
 
-- `shopId` and `userId` may appear in request bodies for malicious or legacy callers, but they are never trusted for authenticated scope.
-- `productName` max length: `128`
-- `productDescription` max length: `2048`
-- `skus` must be non-empty
+- `priceCent` must be positive integer cents
+- `availableStock` is optional for compatibility and defaults to `0`
 - `skuCode` pattern: `^[A-Za-z0-9_-]+$`
-- `priceCent` must be a positive integer in cents
-
-`UpdateProductRequest` has the same field contract as `CreateProductRequest`.
-
-### `ProductSummaryResponse`
-
-```json
-{
-  "productId": 101,
-  "productName": "Sneaker",
-  "productDescription": "Daily trainer",
-  "minPriceCent": 59900,
-  "maxPriceCent": 69900,
-  "status": "active"
-}
-```
+- duplicate `skuCode` values in one request are rejected
 
 ### `ProductDetailResponse`
 
@@ -113,48 +75,55 @@ Notes:
       "skuId": 201,
       "skuCode": "shoe-42",
       "skuName": "42",
-      "priceCent": 59900
+      "priceCent": 59900,
+      "availableStock": 20,
+      "reservedStock": 0
     }
   ]
 }
 ```
 
-## State Machine
+Rules:
 
-Persisted status values:
+- `reservedStock` is response-only
+- public and admin detail both use stable DTOs instead of persistence entities
 
-- `draft`
-- `active`
-- `inactive`
+## Internal Snapshot API
 
-MVP transitions:
+### `POST /internal/products/skus/snapshot`
 
-| Current | Operation | Next | Notes |
-| --- | --- | --- | --- |
-| none | create | `draft` | New products are always created as draft. |
-| `draft` | update | `draft` | Update does not change status in MVP. |
-| `draft` | publish | `active` | Supported publish path. |
-| `active` | update | `active` | Content updates are allowed without status change. |
-| `active` | publish | invalid | Return `PRODUCT_STATUS_INVALID`. |
-| `inactive` | publish | invalid | Return `PRODUCT_STATUS_INVALID`. |
+Request:
 
-`inactive` is reserved in the persisted contract so future shelf-management flows can reuse the same enum without schema churn.
+```json
+{
+  "shopId": 1,
+  "skuIds": [401, 402]
+}
+```
+
+Response items remain:
+
+- `productId`
+- `skuId`
+- `skuCode`
+- `skuName`
+- `priceCent`
+
+Rules:
+
+- only active product SKUs are returned
+- endpoint is read-only
+- no audit fields or stock mutation details leak through this API
 
 ## Database Contract
 
-Schema env and migration:
+Schema env and migrations:
 
-| Service | Schema Env | Default Schema | Migration |
+| Service | Schema Env | Default Schema | Migrations |
 | --- | --- | --- | --- |
-| `services/sangui-product-service` | `SANGUI_PRODUCT_MYSQL_SCHEMA` | `sangui_product` | `db/migration/V1__create_product_catalog_tables.sql` |
+| `services/sangui-product-service` | `SANGUI_PRODUCT_MYSQL_SCHEMA` | `sangui_product` | `db/migration/V1__create_product_catalog_tables.sql`, `db/migration/V2__add_inventory_reservation_support.sql` |
 
 ### `pms_product`
-
-Required columns:
-
-- platform columns: `id`, `shop_id`, `created_at`, `updated_at`, `deleted`, `version`
-- business columns: `product_name`, `product_description`, `status`
-- audit columns: `created_by`, `updated_by`
 
 Required indexes:
 
@@ -165,20 +134,20 @@ Required indexes:
 
 Required columns:
 
-- platform columns: `id`, `shop_id`, `created_at`, `updated_at`, `deleted`, `version`
-- business columns: `product_id`, `sku_code`, `sku_name`, `sale_price_cent`
-- audit columns: `created_by`, `updated_by`
+- `product_id`
+- `sku_code`
+- `sku_name`
+- `sale_price_cent`
+- `available_stock`
+- `reserved_stock`
+- `created_by`
+- `updated_by`
 
 Required constraints / indexes:
 
 - `uk_pms_sku_shop_code (shop_id, sku_code)`
 - `idx_pms_sku_shop_product (shop_id, product_id)`
 - FK `product_id -> pms_product.id`
-
-Money rule:
-
-- All prices use integer cents in `BIGINT`.
-- `double` / `float` are forbidden for prices.
 
 ## Validation and Error Matrix
 
@@ -187,23 +156,22 @@ Money rule:
 | Missing principal on admin write API | 401 | `AUTH_TOKEN_MISSING` |
 | Non-admin principal on admin write API | 403 | `AUTH_FORBIDDEN` |
 | DTO validation failure | 400 | `VALIDATION_FAILED` |
-| Product does not exist in principal shop scope | 404 | `PRODUCT_NOT_FOUND` |
+| Product missing in principal shop scope | 404 | `PRODUCT_NOT_FOUND` |
 | Publish on non-draft product | 409 | `PRODUCT_STATUS_INVALID` |
 | Duplicate `skuCode` in request or DB uniqueness conflict | 409 | `PRODUCT_SKU_CODE_EXISTS` |
 
 ## Required Tests
 
 ```powershell
-mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service" -am "-Dtest=ProductMigrationContractTest,ProductCatalogServiceTest,ProductCatalogControllerTest,InternalProductSnapshotControllerTest,SanguiProductApplicationSmokeTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service" -am "-Dtest=ProductCatalogServiceTest,ProductInventoryServiceTest,ProductCatalogControllerTest,InternalProductSnapshotControllerTest,InternalProductInventoryControllerTest,ProductMigrationContractTest,ProductInventoryMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 ## Good / Base / Bad Cases
 
-- Good: anonymous `GET /api/products` returns only active products in `ApiResult<PageResponse<...>>`.
-- Good: admin create/update/publish derive `shopId` and operator from `SanguiPrincipal`, even if body contains `shopId` / `userId`.
-- Good: publish moves `draft -> active`.
-- Base: `inactive` remains reserved in schema and response contract even before a dedicated unpublish endpoint exists.
-- Bad: product write handlers trust request body `shopId` or `userId`.
+- Good: admin create/update/publish derive `shopId` and operator from principal.
+- Good: SKU detail includes `availableStock` and `reservedStock`.
+- Good: public read still exposes only active products.
+- Base: omitted `availableStock` defaults to `0`.
 - Bad: public read exposes draft products or audit fields.
-- Bad: price uses floating-point types or response fields.
-- Bad: internal snapshot API returns inactive product SKUs.
+- Bad: price uses floating-point types.
+- Bad: admin write trusts body `shopId` or `userId`.

@@ -15,6 +15,30 @@ public interface ProductRepository {
 
     List<ProductSkuRecord> findActiveSkus(Long shopId, List<Long> skuIds);
 
+    List<ProductInventoryReservationRecord> findReservationRecords(Long shopId, String reservationNo);
+
+    int reserveSkuStock(Long shopId, Long skuId, int quantity);
+
+    int confirmReservedSkuStock(Long shopId, Long skuId, int quantity);
+
+    int releaseReservedSkuStock(Long shopId, Long skuId, int quantity);
+
+    int updateReservationStatus(
+            Long shopId,
+            String reservationNo,
+            ProductInventoryReservationStatus currentStatus,
+            ProductInventoryReservationStatus nextStatus,
+            String traceId
+    );
+
+    void createReservationRecords(
+            Long shopId,
+            String reservationNo,
+            List<ProductInventoryReservationRecord> records,
+            ProductInventoryReservationStatus status,
+            String traceId
+    );
+
     Long createProduct(Long shopId, String operatorUserId, ProductDraft draft, ProductStatus status);
 
     void updateProduct(Long shopId, Long productId, String operatorUserId, ProductDraft draft);

@@ -9,6 +9,7 @@ import com.sangui.shop.payment.api.dto.CreatePaymentRequest;
 import com.sangui.shop.payment.api.dto.PaymentResponse;
 import com.sangui.shop.payment.client.OrderPaymentClient;
 import com.sangui.shop.payment.client.OrderPaymentSnapshot;
+import com.sangui.shop.payment.client.ProductInventoryClient;
 import com.sangui.shop.payment.domain.PaymentCreateDraft;
 import com.sangui.shop.payment.domain.PaymentOrderRecord;
 import com.sangui.shop.payment.domain.PaymentRepository;
@@ -32,18 +33,20 @@ class PaymentPayServiceTest {
 
     private InMemoryPaymentRepository paymentRepository;
     private StubOrderPaymentClient orderPaymentClient;
+    private StubProductInventoryClient productInventoryClient;
     private PaymentPayService paymentPayService;
 
     @BeforeEach
     void setUp() {
         paymentRepository = new InMemoryPaymentRepository();
         orderPaymentClient = new StubOrderPaymentClient();
-        paymentPayService = new PaymentPayService(paymentRepository, orderPaymentClient);
+        productInventoryClient = new StubProductInventoryClient();
+        paymentPayService = new PaymentPayService(paymentRepository, orderPaymentClient, productInventoryClient);
     }
 
     @Test
     void payCreatesPaymentAndMarksOrderPaid() {
-        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "created", 59900L));
+        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
 
         PaymentResponse response = paymentPayService.pay(
                 USER_PRINCIPAL,
@@ -58,12 +61,13 @@ class PaymentPayServiceTest {
         assertThat(response.userId()).isEqualTo("10001");
         assertThat(response.status()).isEqualTo("paid");
         assertThat(orderPaymentClient.confirmCalls).isEqualTo(1);
+        assertThat(productInventoryClient.confirmCalls).isEqualTo(1);
         assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.PAID);
     }
 
     @Test
     void payReturnsExistingPaidPaymentForSamePaymentNo() {
-        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "created", 59900L));
+        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
 
         PaymentResponse first = paymentPayService.pay(
                 USER_PRINCIPAL,
@@ -79,6 +83,7 @@ class PaymentPayServiceTest {
         assertThat(second.paymentId()).isEqualTo(first.paymentId());
         assertThat(second.status()).isEqualTo("paid");
         assertThat(orderPaymentClient.confirmCalls).isEqualTo(1);
+        assertThat(productInventoryClient.confirmCalls).isEqualTo(1);
     }
 
     @Test
@@ -89,13 +94,14 @@ class PaymentPayServiceTest {
                 101L,
                 "ORD-001",
                 "10001",
+                "ord:10001:req-001",
                 "PAY-001",
                 "mock",
                 59900L,
                 PaymentStatus.CREATED,
                 "trace-created"
         ));
-        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "created", 59900L));
+        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
 
         PaymentResponse response = paymentPayService.pay(
                 USER_PRINCIPAL,
@@ -105,6 +111,7 @@ class PaymentPayServiceTest {
 
         assertThat(response.status()).isEqualTo("paid");
         assertThat(orderPaymentClient.confirmCalls).isEqualTo(1);
+        assertThat(productInventoryClient.confirmCalls).isEqualTo(1);
         assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.PAID);
     }
 
@@ -116,6 +123,7 @@ class PaymentPayServiceTest {
                 101L,
                 "ORD-001",
                 "10001",
+                "ord:10001:req-001",
                 "PAY-001",
                 "mock",
                 59900L,
@@ -152,6 +160,7 @@ class PaymentPayServiceTest {
                     draft.orderId(),
                     draft.orderNo(),
                     draft.userId(),
+                    draft.reservationNo(),
                     draft.paymentNo(),
                     draft.channel(),
                     draft.amountCent(),
@@ -206,6 +215,7 @@ class PaymentPayServiceTest {
                     snapshot.orderNo(),
                     snapshot.shopId(),
                     snapshot.userId(),
+                    snapshot.reservationNo(),
                     "paid",
                     snapshot.totalAmountCent()
             );
@@ -213,6 +223,16 @@ class PaymentPayServiceTest {
 
         private void seedSnapshot(OrderPaymentSnapshot snapshot) {
             snapshotsByOrderId.put(snapshot.orderId(), snapshot);
+        }
+    }
+
+    private static final class StubProductInventoryClient implements ProductInventoryClient {
+
+        private int confirmCalls;
+
+        @Override
+        public void confirmReservation(Long shopId, String reservationNo, String traceId) {
+            confirmCalls++;
         }
     }
 }

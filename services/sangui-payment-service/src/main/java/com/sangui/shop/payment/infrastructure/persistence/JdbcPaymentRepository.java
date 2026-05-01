@@ -22,6 +22,7 @@ public class JdbcPaymentRepository implements PaymentRepository {
             rs.getLong("order_id"),
             rs.getString("order_no"),
             rs.getString("user_id"),
+            rs.getString("reservation_no"),
             rs.getString("payment_no"),
             rs.getString("channel"),
             rs.getLong("amount_cent"),
@@ -39,7 +40,7 @@ public class JdbcPaymentRepository implements PaymentRepository {
     public Optional<PaymentOrderRecord> findByPaymentNo(Long shopId, String paymentNo) {
         return jdbcTemplate.query(
                 """
-                        SELECT id, shop_id, order_id, order_no, user_id, payment_no, channel, amount_cent, status, trace_id
+                        SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id
                         FROM pay_payment_order
                         WHERE shop_id = ? AND payment_no = ? AND deleted = 0
                         LIMIT 1
@@ -57,8 +58,8 @@ public class JdbcPaymentRepository implements PaymentRepository {
             PreparedStatement statement = connection.prepareStatement(
                     """
                             INSERT INTO pay_payment_order (
-                                shop_id, order_id, order_no, user_id, payment_no, channel, amount_cent, trace_id, status
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, trace_id, status
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
                     Statement.RETURN_GENERATED_KEYS
             );
@@ -66,11 +67,12 @@ public class JdbcPaymentRepository implements PaymentRepository {
             statement.setLong(2, draft.orderId());
             statement.setString(3, draft.orderNo());
             statement.setString(4, draft.userId());
-            statement.setString(5, draft.paymentNo());
-            statement.setString(6, draft.channel());
-            statement.setLong(7, draft.amountCent());
-            statement.setString(8, draft.traceId());
-            statement.setString(9, status.value());
+            statement.setString(5, draft.reservationNo());
+            statement.setString(6, draft.paymentNo());
+            statement.setString(7, draft.channel());
+            statement.setLong(8, draft.amountCent());
+            statement.setString(9, draft.traceId());
+            statement.setString(10, status.value());
             return statement;
         }, keyHolder);
         Number key = keyHolder.getKey();

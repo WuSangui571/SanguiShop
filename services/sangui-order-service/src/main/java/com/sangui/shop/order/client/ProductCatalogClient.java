@@ -4,5 +4,12 @@ import java.util.List;
 
 public interface ProductCatalogClient {
 
-    List<ProductSkuSnapshot> listActiveSkuSnapshots(Long shopId, List<Long> skuIds);
+    InventoryReservationSnapshot reserveInventory(
+            Long shopId,
+            String reservationNo,
+            List<InventoryReserveItemSnapshot> items,
+            String traceId
+    );
+
+    InventoryReservationSnapshot releaseInventory(Long shopId, String reservationNo, String traceId);
 }

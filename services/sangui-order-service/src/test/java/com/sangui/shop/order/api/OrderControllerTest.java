@@ -17,6 +17,7 @@ import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.order.api.dto.CreateOrderRequest;
 import com.sangui.shop.order.api.dto.OrderItemResponse;
 import com.sangui.shop.order.api.dto.OrderResponse;
+import com.sangui.shop.order.application.OrderCancelService;
 import com.sangui.shop.order.application.OrderCreateService;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,9 @@ class OrderControllerTest {
 
     @MockBean
     private OrderCreateService orderCreateService;
+
+    @MockBean
+    private OrderCancelService orderCancelService;
 
     @Test
     void createOrderUsesPrincipalParameterInsteadOfBodyIdentity() throws Exception {

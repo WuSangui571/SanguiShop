@@ -7,6 +7,7 @@ import com.sangui.shop.payment.api.dto.CreatePaymentRequest;
 import com.sangui.shop.payment.api.dto.PaymentResponse;
 import com.sangui.shop.payment.client.OrderPaymentClient;
 import com.sangui.shop.payment.client.OrderPaymentSnapshot;
+import com.sangui.shop.payment.client.ProductInventoryClient;
 import com.sangui.shop.payment.domain.PaymentCreateDraft;
 import com.sangui.shop.payment.domain.PaymentOrderRecord;
 import com.sangui.shop.payment.domain.PaymentRepository;
@@ -21,10 +22,16 @@ public class PaymentPayService {
 
     private final PaymentRepository paymentRepository;
     private final OrderPaymentClient orderPaymentClient;
+    private final ProductInventoryClient productInventoryClient;
 
-    public PaymentPayService(PaymentRepository paymentRepository, OrderPaymentClient orderPaymentClient) {
+    public PaymentPayService(
+            PaymentRepository paymentRepository,
+            OrderPaymentClient orderPaymentClient,
+            ProductInventoryClient productInventoryClient
+    ) {
         this.paymentRepository = paymentRepository;
         this.orderPaymentClient = orderPaymentClient;
+        this.productInventoryClient = productInventoryClient;
     }
 
     public PaymentResponse pay(SanguiPrincipal principal, CreatePaymentRequest request, String traceId) {
@@ -42,6 +49,7 @@ public class PaymentPayService {
                 order.orderId(),
                 order.orderNo(),
                 principal.userId(),
+                order.reservationNo(),
                 paymentNo,
                 channel,
                 order.totalAmountCent(),
@@ -92,6 +100,11 @@ public class PaymentPayService {
                 payment.amountCent(),
                 normalizeOptional(traceId)
         );
+        productInventoryClient.confirmReservation(
+                payment.shopId(),
+                payment.reservationNo(),
+                normalizeOptional(traceId)
+        );
         updatePaymentStatus(payment.shopId(), payment.id(), PaymentStatus.PAID);
         return toResponse(payment.withStatus(PaymentStatus.PAID));
     }
@@ -113,6 +126,7 @@ public class PaymentPayService {
                 draft.orderId(),
                 draft.orderNo(),
                 draft.userId(),
+                draft.reservationNo(),
                 draft.paymentNo(),
                 draft.channel(),
                 draft.amountCent(),

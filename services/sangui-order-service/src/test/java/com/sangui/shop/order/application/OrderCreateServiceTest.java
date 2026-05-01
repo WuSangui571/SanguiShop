@@ -8,9 +8,13 @@ import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.CreateOrderItemRequest;
 import com.sangui.shop.order.api.dto.CreateOrderRequest;
 import com.sangui.shop.order.api.dto.OrderResponse;
+import com.sangui.shop.order.client.InventoryReservationItemSnapshot;
+import com.sangui.shop.order.client.InventoryReservationSnapshot;
+import com.sangui.shop.order.client.InventoryReserveItemSnapshot;
 import com.sangui.shop.order.client.ProductCatalogClient;
 import com.sangui.shop.order.client.ProductSkuSnapshot;
 import com.sangui.shop.order.domain.OrderCreateDraft;
+import com.sangui.shop.order.domain.OrderErrorCode;
 import com.sangui.shop.order.domain.OrderItemRecord;
 import com.sangui.shop.order.domain.OrderNumberGenerator;
 import com.sangui.shop.order.domain.OrderRecord;
@@ -77,6 +81,8 @@ class OrderCreateServiceTest {
         assertThat(orderRepository.lastCreatedShopId).isEqualTo(1L);
         assertThat(orderRepository.lastCreatedUserId).isEqualTo("10001");
         assertThat(orderRepository.lastTraceId).isEqualTo("trace-order-create");
+        assertThat(orderRepository.lastReservationNo).isEqualTo("ord:10001:req-001");
+        assertThat(productCatalogClient.reserveCalls).isEqualTo(1);
     }
 
     @Test
@@ -95,6 +101,7 @@ class OrderCreateServiceTest {
         assertThat(second.orderId()).isEqualTo(first.orderId());
         assertThat(second.orderNo()).isEqualTo(first.orderNo());
         assertThat(orderRepository.createCalls).isEqualTo(1);
+        assertThat(productCatalogClient.reserveCalls).isEqualTo(1);
     }
 
     @Test
@@ -161,12 +168,8 @@ class OrderCreateServiceTest {
         private Long lastCreatedShopId;
         private String lastCreatedUserId;
         private String lastTraceId;
+        private String lastReservationNo;
         private int createCalls;
-
-        @Override
-        public Optional<OrderSnapshot> findByRequestId(Long shopId, String userId, String requestId) {
-            return Optional.ofNullable(snapshotsByRequestKey.get(key(shopId, userId, requestId)));
-        }
 
         @Override
         public Optional<OrderRecord> findById(Long shopId, Long orderId) {
@@ -177,11 +180,25 @@ class OrderCreateServiceTest {
         }
 
         @Override
+        public Optional<OrderSnapshot> findSnapshotById(Long shopId, Long orderId) {
+            return snapshotsByRequestKey.values().stream()
+                    .filter(snapshot -> java.util.Objects.equals(snapshot.order().shopId(), shopId))
+                    .filter(snapshot -> java.util.Objects.equals(snapshot.order().id(), orderId))
+                    .findFirst();
+        }
+
+        @Override
+        public Optional<OrderSnapshot> findByRequestId(Long shopId, String userId, String requestId) {
+            return Optional.ofNullable(snapshotsByRequestKey.get(key(shopId, userId, requestId)));
+        }
+
+        @Override
         public Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft) {
             createCalls++;
             lastCreatedShopId = shopId;
             lastCreatedUserId = userId;
             lastTraceId = traceId;
+            lastReservationNo = draft.reservationNo();
             Long orderId = nextOrderId.incrementAndGet();
             List<OrderItemRecord> items = draft.items().stream()
                     .map(item -> new OrderItemRecord(
@@ -196,7 +213,7 @@ class OrderCreateServiceTest {
                     ))
                     .toList();
             OrderSnapshot snapshot = new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, draft.requestId(), status, draft.totalAmountCent(), traceId),
+                    new OrderRecord(orderId, shopId, userId, orderNo, draft.requestId(), draft.reservationNo(), status, draft.totalAmountCent(), traceId),
                     items
             );
             snapshotsByRequestKey.put(key(shopId, userId, draft.requestId()), snapshot);
@@ -216,13 +233,38 @@ class OrderCreateServiceTest {
     private static final class StubProductCatalogClient implements ProductCatalogClient {
 
         private final Map<Long, ProductSkuSnapshot> snapshotsBySkuId = new LinkedHashMap<>();
+        private int reserveCalls;
 
         @Override
-        public List<ProductSkuSnapshot> listActiveSkuSnapshots(Long shopId, List<Long> skuIds) {
-            return skuIds.stream()
-                    .map(snapshotsBySkuId::get)
-                    .filter(java.util.Objects::nonNull)
+        public InventoryReservationSnapshot reserveInventory(
+                Long shopId,
+                String reservationNo,
+                List<InventoryReserveItemSnapshot> items,
+                String traceId
+        ) {
+            reserveCalls++;
+            List<InventoryReservationItemSnapshot> reservedItems = items.stream()
+                    .map(item -> {
+                        ProductSkuSnapshot snapshot = snapshotsBySkuId.get(item.skuId());
+                        if (snapshot == null) {
+                            throw new SanguiException(OrderErrorCode.ORDER_SKU_NOT_FOUND, 404);
+                        }
+                        return new InventoryReservationItemSnapshot(
+                                snapshot.productId(),
+                                snapshot.skuId(),
+                                snapshot.skuCode(),
+                                snapshot.skuName(),
+                                snapshot.priceCent(),
+                                item.quantity()
+                        );
+                    })
                     .toList();
+            return new InventoryReservationSnapshot(reservationNo, "reserved", reservedItems);
+        }
+
+        @Override
+        public InventoryReservationSnapshot releaseInventory(Long shopId, String reservationNo, String traceId) {
+            return new InventoryReservationSnapshot(reservationNo, "released", List.of());
         }
 
         private void seed(ProductSkuSnapshot... snapshots) {

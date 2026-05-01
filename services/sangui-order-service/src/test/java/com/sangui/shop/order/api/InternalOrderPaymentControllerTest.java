@@ -38,7 +38,7 @@ class InternalOrderPaymentControllerTest {
     @Test
     void getPayableOrderReturnsSnapshotEnvelope() throws Exception {
         when(orderPaymentService.getPayableOrder(any()))
-                .thenReturn(new OrderPaymentSnapshotResponse(101L, "ORD-001", 1L, "10001", "created", 59900L));
+                .thenReturn(new OrderPaymentSnapshotResponse(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
 
         mockMvc.perform(post("/internal/orders/payment-snapshot")
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-order-payment-snapshot")

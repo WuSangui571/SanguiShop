@@ -5,6 +5,7 @@ public record OrderPaymentSnapshot(
         String orderNo,
         Long shopId,
         String userId,
+        String reservationNo,
         String status,
         Long totalAmountCent
 ) {

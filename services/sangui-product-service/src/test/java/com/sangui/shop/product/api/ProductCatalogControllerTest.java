@@ -78,7 +78,7 @@ class ProductCatalogControllerTest {
                         "Sneaker",
                         "Daily trainer",
                         "active",
-                        List.of(new ProductSkuResponse(201L, "shoe-42", "42", 59900L))
+                        List.of(new ProductSkuResponse(201L, "shoe-42", "42", 59900L, 20L, 0L))
                 ));
 
         mockMvc.perform(get("/api/products/101")
@@ -98,7 +98,7 @@ class ProductCatalogControllerTest {
                         "Sneaker",
                         "Daily trainer",
                         "draft",
-                        List.of(new ProductSkuResponse(201L, "shoe-42", "42", 59900L))
+                        List.of(new ProductSkuResponse(201L, "shoe-42", "42", 59900L, 20L, 0L))
                 ));
 
         SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("ADMIN"), java.util.Set.of(), "jwt-1");

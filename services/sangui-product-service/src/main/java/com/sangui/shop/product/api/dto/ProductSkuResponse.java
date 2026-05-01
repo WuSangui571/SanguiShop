@@ -4,6 +4,8 @@ public record ProductSkuResponse(
         Long skuId,
         String skuCode,
         String skuName,
-        Long priceCent
+        Long priceCent,
+        Long availableStock,
+        Long reservedStock
 ) {
 }

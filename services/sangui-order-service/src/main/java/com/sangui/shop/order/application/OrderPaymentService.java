@@ -77,6 +77,7 @@ public class OrderPaymentService {
                 order.orderNo(),
                 order.shopId(),
                 order.userId(),
+                order.reservationNo(),
                 order.status().value(),
                 order.totalAmountCent()
         );

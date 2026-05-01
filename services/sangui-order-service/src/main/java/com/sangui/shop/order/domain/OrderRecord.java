@@ -6,6 +6,7 @@ public record OrderRecord(
         String userId,
         String orderNo,
         String requestId,
+        String reservationNo,
         OrderStatus status,
         Long totalAmountCent,
         String traceId

@@ -5,10 +5,11 @@ import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.CreateOrderItemRequest;
 import com.sangui.shop.order.api.dto.CreateOrderRequest;
+import com.sangui.shop.order.client.InventoryReservationSnapshot;
+import com.sangui.shop.order.client.InventoryReserveItemSnapshot;
 import com.sangui.shop.order.api.dto.OrderItemResponse;
 import com.sangui.shop.order.api.dto.OrderResponse;
 import com.sangui.shop.order.client.ProductCatalogClient;
-import com.sangui.shop.order.client.ProductSkuSnapshot;
 import com.sangui.shop.order.domain.OrderCreateDraft;
 import com.sangui.shop.order.domain.OrderErrorCode;
 import com.sangui.shop.order.domain.OrderItemDraft;
@@ -53,7 +54,8 @@ public class OrderCreateService {
         }
 
         rejectDuplicateSkuIds(request.items());
-        OrderCreateDraft draft = buildDraft(principal.shopId(), request);
+        String reservationNo = buildReservationNo(principal.userId(), request.requestId());
+        OrderCreateDraft draft = buildDraft(principal.shopId(), reservationNo, request, traceId);
         String orderNo = orderNumberGenerator.nextOrderNo();
 
         try {
@@ -99,28 +101,27 @@ public class OrderCreateService {
         return true;
     }
 
-    private OrderCreateDraft buildDraft(Long shopId, CreateOrderRequest request) {
-        List<Long> skuIds = request.items().stream()
-                .map(CreateOrderItemRequest::skuId)
+    private OrderCreateDraft buildDraft(Long shopId, String reservationNo, CreateOrderRequest request, String traceId) {
+        InventoryReservationSnapshot reservation = productCatalogClient.reserveInventory(
+                shopId,
+                reservationNo,
+                request.items().stream()
+                        .map(item -> new InventoryReserveItemSnapshot(item.skuId(), item.quantity()))
+                        .toList(),
+                normalizeTraceId(traceId)
+        );
+        Map<Long, Integer> quantitiesBySkuId = request.items().stream()
+                .collect(java.util.stream.Collectors.toMap(CreateOrderItemRequest::skuId, CreateOrderItemRequest::quantity));
+        List<OrderItemDraft> items = reservation.items().stream()
+                .map(item -> new OrderItemDraft(
+                        item.productId(),
+                        item.skuId(),
+                        item.skuName(),
+                        item.priceCent(),
+                        quantitiesBySkuId.getOrDefault(item.skuId(), item.quantity())
+                ))
                 .toList();
-        Map<Long, ProductSkuSnapshot> snapshotsBySkuId = productCatalogClient.listActiveSkuSnapshots(shopId, skuIds).stream()
-                .collect(java.util.stream.Collectors.toMap(ProductSkuSnapshot::skuId, snapshot -> snapshot));
-        List<OrderItemDraft> items = request.items().stream()
-                .map(item -> {
-                    ProductSkuSnapshot snapshot = snapshotsBySkuId.get(item.skuId());
-                    if (snapshot == null) {
-                        throw new SanguiException(OrderErrorCode.ORDER_SKU_NOT_FOUND, 404);
-                    }
-                    return new OrderItemDraft(
-                            snapshot.productId(),
-                            snapshot.skuId(),
-                            snapshot.skuName(),
-                            snapshot.priceCent(),
-                            item.quantity()
-                    );
-                })
-                .toList();
-        return new OrderCreateDraft(request.requestId().trim(), items);
+        return new OrderCreateDraft(request.requestId().trim(), reservation.reservationNo(), items);
     }
 
     private void rejectDuplicateSkuIds(List<CreateOrderItemRequest> items) {
@@ -183,6 +184,10 @@ public class OrderCreateService {
                 draft.totalAmountCent(),
                 items
         );
+    }
+
+    private String buildReservationNo(String userId, String requestId) {
+        return "ord:" + userId + ":" + requestId.trim();
     }
 
     private String normalizeTraceId(String traceId) {

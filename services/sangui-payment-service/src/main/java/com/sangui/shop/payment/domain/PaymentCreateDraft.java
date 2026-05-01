@@ -5,6 +5,7 @@ public record PaymentCreateDraft(
         Long orderId,
         String orderNo,
         String userId,
+        String reservationNo,
         String paymentNo,
         String channel,
         Long amountCent,
