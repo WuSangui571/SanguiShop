@@ -183,3 +183,75 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 - Bad: order-service writes order rows before inventory reserve succeeds.
 - Bad: order-service trusts body `shopId` or `userId`.
 - Bad: cancel path marks order `cancelled` without releasing inventory.
+
+## Timeout Cancellation Addendum
+
+### `POST /internal/orders/timeout-cancellations`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "timeoutMinutes": 15,
+  "limit": 100
+}
+```
+
+Response:
+
+```json
+{
+  "shopId": 1,
+  "scannedCount": 2,
+  "cancelledCount": 1,
+  "skippedCount": 1
+}
+```
+
+Response code: `ORDER_TIMEOUT_CANCELLED`.
+
+Rules:
+
+- `shopId` is required; single-merchant defaults must not be hardcoded in business logic.
+- `timeoutMinutes` and `limit` are optional positive values.
+- Default timeout is 15 minutes; default limit is 100; maximum limit is 500.
+- Query candidates from `oms_order` where `shop_id = ?`, `status = created`, and `created_at <= now - timeoutMinutes`.
+- Each cancellation must release inventory reservation before transitioning `created -> cancelled`.
+- Repeated timeout cancellation is idempotent because already `cancelled` or `paid` orders are no longer selected.
+- This MVP uses a synchronous internal endpoint/job-style service; delayed MQ can call the same service later.
+
+Additional state transitions:
+
+| Current | Operation | Next | Notes |
+| --- | --- | --- | --- |
+| `created` | timeout cancel + release reserve | `cancelled` | owned by order-service |
+| `paid` | timeout cancel | `paid` | skipped |
+| `cancelled` | timeout cancel replay | `cancelled` | skipped |
+
+Database addendum:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V3__add_order_timeout_lookup_index.sql`
+- Required index: `idx_oms_order_shop_status_created (shop_id, status, created_at)`.
+
+Validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Timeout cancellation missing `shopId` | 400 | `VALIDATION_FAILED` |
+| `timeoutMinutes <= 0` or `limit <= 0` | 400 | `VALIDATION_FAILED` |
+| Inventory release downstream failure | 503 | `DOWNSTREAM_TIMEOUT` |
+
+Additional required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service" -am "-Dtest=OrderCreateServiceTest,OrderCancelServiceTest,OrderTimeoutCancelServiceTest,OrderPaymentServiceTest,InternalOrderTimeoutControllerTest,OrderMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: timeout cancellation releases inventory and returns cancelled/skipped counts.
+- Good: duplicate timeout cancellation does not release inventory twice.
+- Good: paid order is skipped when payment callback wins before timeout.
+- Base: timeout selection uses `created_at` cutoff until a dedicated payment deadline field is introduced.
+- Bad: timeout cancellation selects paid orders or hardcodes shop id.

@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Payment callback/order timeout APIs and DTO contracts"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Payment callback and compensation error mapping"}
+ behavior"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Payment callback log and order timeout migration rules"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order created/paid/cancelled state and timeout cancellation"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Payment pay, callback log, replay and compensation matrix"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer order/payment/inventory compensation risk checklist"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality and required tests"}

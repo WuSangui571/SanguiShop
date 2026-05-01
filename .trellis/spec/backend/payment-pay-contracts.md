@@ -164,3 +164,89 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 - Bad: payment-service trusts body `shopId` or `userId`.
 - Bad: payment-service reads `oms_*` or `pms_*` tables directly.
 - Bad: replaying the same `paymentNo` double-confirms inventory or creates another payment row.
+
+## Payment Callback / Timeout Compensation Addendum
+
+### `GET /api/payments/{paymentNo}`
+
+Response code: `PAYMENT_STATUS`.
+
+Rules:
+
+- Controller uses trusted `SanguiPrincipal`.
+- Effective `shopId` / `userId` come from principal only.
+- Missing payment or wrong owner returns `PAYMENT_NOT_FOUND`.
+
+### `POST /api/payments/callbacks/mock`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "paymentNo": "PAY-20260501-0001",
+  "channel": "mock",
+  "channelTradeNo": "MOCK-TXN-0001",
+  "tradeStatus": "SUCCESS",
+  "paidAmountCent": 119800,
+  "callbackType": "payment",
+  "eventTime": "2026-05-01T21:30:00+08:00",
+  "rawPayload": "{\"provider\":\"mock\"}"
+}
+```
+
+Response code: `PAYMENT_CALLBACK_PROCESSED`.
+
+Rules:
+
+- This is the MVP mock async callback path; real provider signature verification is out of scope until provider integration.
+- Required fields: `shopId`, `paymentNo`, `channel`, `channelTradeNo`, `tradeStatus`, and `paidAmountCent`.
+- Callback idempotency is `UNIQUE(channel, channel_trade_no)` in `pay_callback_log`.
+- Every accepted callback is written to `pay_callback_log` before mutating payment/order/inventory state.
+- `SUCCESS`, `PAID`, and `TRADE_SUCCESS` settle a created payment.
+- `FAILED`, `FAIL`, `CLOSED`, and `TRADE_CLOSED` mark a non-paid payment `failed`.
+- Success callback validates payment existence, channel, and paid amount before settlement.
+- Failure callback never downgrades a `paid` payment.
+
+Additional persisted payment status:
+
+- `failed`
+
+Additional `pay_callback_log` contract:
+
+- Required business columns: `payment_no`, `channel`, `channel_trade_no`, `callback_type`, `payload_json`, `process_status`, `trace_id`.
+- Required constraints and indexes: `uk_pay_callback_log_channel_trade_no (channel, channel_trade_no)`, `idx_pay_callback_log_shop_payment_no (shop_id, payment_no)`.
+
+Compensation matrix:
+
+| Scenario | Expected Result |
+| --- | --- |
+| Duplicate success callback | One callback identity, one payment settlement, one order confirm, one inventory confirm. |
+| Failure callback for created payment | Payment becomes `failed`; order/inventory are not mutated by payment-service. |
+| Failure callback after paid | Payment remains `paid`; callback is marked `ignored`. |
+| Success callback after timeout cancellation | Callback is logged as `failed`; payment remains not paid; order is not revived; inventory is not confirmed. |
+| Payment status polling by wrong user | Returns `PAYMENT_NOT_FOUND`. |
+
+Additional validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Payment missing on status query or callback | 404 | `PAYMENT_NOT_FOUND` |
+| Callback channel differs from payment channel | 409 | `PAYMENT_CALLBACK_CHANNEL_MISMATCH` |
+| Callback paid amount mismatch | 409 | `PAYMENT_AMOUNT_MISMATCH` |
+| Success callback after order timeout cancellation | 409 | `PAYMENT_ORDER_STATUS_INVALID` |
+| Unknown callback `tradeStatus` | 400 | `VALIDATION_FAILED` |
+
+Additional required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-payment-service" -am "-Dtest=PaymentPayServiceTest,PaymentCallbackServiceTest,PaymentControllerTest,OrderPaymentServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: duplicate success callback writes or reuses one callback log identity and does not reconfirm order/inventory.
+- Good: failure callback marks a created payment `failed` without releasing inventory directly.
+- Good: polling returns current payment status only for the owning principal.
+- Base: callback path is mock/provider-neutral and does not verify real third-party signatures.
+- Bad: late success callback after timeout cancellation revives a cancelled order or confirms released inventory.

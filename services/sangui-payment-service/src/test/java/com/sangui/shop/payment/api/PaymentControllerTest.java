@@ -3,6 +3,7 @@ package com.sangui.shop.payment.api;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,7 +16,9 @@ import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.payment.api.dto.CreatePaymentRequest;
+import com.sangui.shop.payment.api.dto.PaymentCallbackResponse;
 import com.sangui.shop.payment.api.dto.PaymentResponse;
+import com.sangui.shop.payment.application.PaymentCallbackService;
 import com.sangui.shop.payment.application.PaymentPayService;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +47,9 @@ class PaymentControllerTest {
 
     @MockBean
     private PaymentPayService paymentPayService;
+
+    @MockBean
+    private PaymentCallbackService paymentCallbackService;
 
     @Test
     void createPaymentUsesPrincipalInsteadOfBodyIdentity() throws Exception {
@@ -135,6 +141,57 @@ class PaymentControllerTest {
                         ))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PAYMENT_ORDER_STATUS_INVALID"));
+    }
+
+    @Test
+    void getPaymentReturnsCurrentStatusForPrincipal() throws Exception {
+        when(paymentPayService.getPayment(any(), any()))
+                .thenReturn(new PaymentResponse(
+                        201L,
+                        "PAY-001",
+                        101L,
+                        "ORD-001",
+                        1L,
+                        "10001",
+                        "mock",
+                        "paid",
+                        59900L
+                ));
+
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt-1");
+        mockMvc.perform(get("/api/payments/PAY-001")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-payment-status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("PAYMENT_STATUS"))
+                .andExpect(jsonPath("$.data.status").value("paid"));
+    }
+
+    @Test
+    void mockCallbackRecordsAndProcessesProviderEvent() throws Exception {
+        when(paymentCallbackService.handleCallback(any(), any()))
+                .thenReturn(new PaymentCallbackResponse(
+                        "PAY-001",
+                        "mock",
+                        "MOCK-TXN-001",
+                        "paid",
+                        "processed"
+                ));
+
+        mockMvc.perform(post("/api/payments/callbacks/mock")
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-payment-callback")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "paymentNo", "PAY-001",
+                                "channel", "mock",
+                                "channelTradeNo", "MOCK-TXN-001",
+                                "tradeStatus", "SUCCESS",
+                                "paidAmountCent", 59900
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("PAYMENT_CALLBACK_PROCESSED"))
+                .andExpect(jsonPath("$.data.processStatus").value("processed"));
     }
 
     @TestConfiguration

@@ -1,5 +1,7 @@
 package com.sangui.shop.payment.infrastructure.persistence;
 
+import com.sangui.shop.payment.domain.PaymentCallbackLogDraft;
+import com.sangui.shop.payment.domain.PaymentCallbackLogRecord;
 import com.sangui.shop.payment.domain.PaymentCreateDraft;
 import com.sangui.shop.payment.domain.PaymentOrderRecord;
 import com.sangui.shop.payment.domain.PaymentRepository;
@@ -30,6 +32,17 @@ public class JdbcPaymentRepository implements PaymentRepository {
             rs.getString("trace_id")
     );
 
+    private static final RowMapper<PaymentCallbackLogRecord> CALLBACK_LOG_ROW_MAPPER = (rs, rowNum) -> new PaymentCallbackLogRecord(
+            rs.getLong("id"),
+            rs.getLong("shop_id"),
+            rs.getString("payment_no"),
+            rs.getString("channel"),
+            rs.getString("channel_trade_no"),
+            rs.getString("callback_type"),
+            rs.getString("process_status"),
+            rs.getString("trace_id")
+    );
+
     private final JdbcTemplate jdbcTemplate;
 
     public JdbcPaymentRepository(JdbcTemplate jdbcTemplate) {
@@ -48,6 +61,21 @@ public class JdbcPaymentRepository implements PaymentRepository {
                 PAYMENT_ROW_MAPPER,
                 shopId,
                 paymentNo
+        ).stream().findFirst();
+    }
+
+    @Override
+    public Optional<PaymentCallbackLogRecord> findCallbackLog(String channel, String channelTradeNo) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, payment_no, channel, channel_trade_no, callback_type, process_status, trace_id
+                        FROM pay_callback_log
+                        WHERE channel = ? AND channel_trade_no = ? AND deleted = 0
+                        LIMIT 1
+                        """,
+                CALLBACK_LOG_ROW_MAPPER,
+                channel,
+                channelTradeNo
         ).stream().findFirst();
     }
 
@@ -83,6 +111,34 @@ public class JdbcPaymentRepository implements PaymentRepository {
     }
 
     @Override
+    public Long createCallbackLog(PaymentCallbackLogDraft draft) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement statement = connection.prepareStatement(
+                    """
+                            INSERT INTO pay_callback_log (
+                                shop_id, payment_no, channel, channel_trade_no, callback_type, payload_json, trace_id
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            """,
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            statement.setLong(1, draft.shopId());
+            statement.setString(2, draft.paymentNo());
+            statement.setString(3, draft.channel());
+            statement.setString(4, draft.channelTradeNo());
+            statement.setString(5, draft.callbackType());
+            statement.setString(6, draft.payloadJson());
+            statement.setString(7, draft.traceId());
+            return statement;
+        }, keyHolder);
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new IllegalStateException("Payment callback insert did not return a generated id");
+        }
+        return key.longValue();
+    }
+
+    @Override
     public void updatePaymentStatus(Long shopId, Long paymentId, PaymentStatus status) {
         jdbcTemplate.update(
                 """
@@ -93,6 +149,19 @@ public class JdbcPaymentRepository implements PaymentRepository {
                 status.value(),
                 shopId,
                 paymentId
+        );
+    }
+
+    @Override
+    public void updateCallbackProcessStatus(Long callbackLogId, String processStatus) {
+        jdbcTemplate.update(
+                """
+                        UPDATE pay_callback_log
+                        SET process_status = ?
+                        WHERE id = ? AND deleted = 0
+                        """,
+                processStatus,
+                callbackLogId
         );
     }
 }

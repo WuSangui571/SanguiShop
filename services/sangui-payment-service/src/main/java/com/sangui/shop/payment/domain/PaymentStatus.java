@@ -2,7 +2,8 @@ package com.sangui.shop.payment.domain;
 
 public enum PaymentStatus {
     CREATED("created"),
-    PAID("paid");
+    PAID("paid"),
+    FAILED("failed");
 
     private final String value;
 

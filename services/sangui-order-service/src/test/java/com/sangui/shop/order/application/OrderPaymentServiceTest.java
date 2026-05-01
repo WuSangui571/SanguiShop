@@ -14,6 +14,7 @@ import com.sangui.shop.order.domain.OrderRecord;
 import com.sangui.shop.order.domain.OrderRepository;
 import com.sangui.shop.order.domain.OrderSnapshot;
 import com.sangui.shop.order.domain.OrderStatus;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,6 +152,11 @@ class OrderPaymentServiceTest {
                     .filter(snapshot -> java.util.Objects.equals(snapshot.order().userId(), userId))
                     .filter(snapshot -> java.util.Objects.equals(snapshot.order().requestId(), requestId))
                     .findFirst();
+        }
+
+        @Override
+        public List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit) {
+            return List.of();
         }
 
         @Override

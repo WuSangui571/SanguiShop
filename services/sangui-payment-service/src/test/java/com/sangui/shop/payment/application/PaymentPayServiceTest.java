@@ -10,6 +10,8 @@ import com.sangui.shop.payment.api.dto.PaymentResponse;
 import com.sangui.shop.payment.client.OrderPaymentClient;
 import com.sangui.shop.payment.client.OrderPaymentSnapshot;
 import com.sangui.shop.payment.client.ProductInventoryClient;
+import com.sangui.shop.payment.domain.PaymentCallbackLogDraft;
+import com.sangui.shop.payment.domain.PaymentCallbackLogRecord;
 import com.sangui.shop.payment.domain.PaymentCreateDraft;
 import com.sangui.shop.payment.domain.PaymentOrderRecord;
 import com.sangui.shop.payment.domain.PaymentRepository;
@@ -152,6 +154,11 @@ class PaymentPayServiceTest {
         }
 
         @Override
+        public Optional<PaymentCallbackLogRecord> findCallbackLog(String channel, String channelTradeNo) {
+            return Optional.empty();
+        }
+
+        @Override
         public Long createPaymentOrder(PaymentCreateDraft draft, PaymentStatus status) {
             Long paymentId = nextPaymentId.incrementAndGet();
             recordsByKey.put(key(draft.shopId(), draft.paymentNo()), new PaymentOrderRecord(
@@ -171,6 +178,11 @@ class PaymentPayServiceTest {
         }
 
         @Override
+        public Long createCallbackLog(PaymentCallbackLogDraft draft) {
+            return 1L;
+        }
+
+        @Override
         public void updatePaymentStatus(Long shopId, Long paymentId, PaymentStatus status) {
             recordsByKey.replaceAll((key, value) -> {
                 if (java.util.Objects.equals(value.shopId(), shopId) && java.util.Objects.equals(value.id(), paymentId)) {
@@ -178,6 +190,10 @@ class PaymentPayServiceTest {
                 }
                 return value;
             });
+        }
+
+        @Override
+        public void updateCallbackProcessStatus(Long callbackLogId, String processStatus) {
         }
 
         private void seed(PaymentOrderRecord record) {

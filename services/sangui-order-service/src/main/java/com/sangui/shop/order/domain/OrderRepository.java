@@ -1,5 +1,7 @@
 package com.sangui.shop.order.domain;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository {
@@ -9,6 +11,8 @@ public interface OrderRepository {
     Optional<OrderSnapshot> findSnapshotById(Long shopId, Long orderId);
 
     Optional<OrderSnapshot> findByRequestId(Long shopId, String userId, String requestId);
+
+    List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit);
 
     Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft);
 

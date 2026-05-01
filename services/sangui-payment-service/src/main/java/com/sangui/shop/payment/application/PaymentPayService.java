@@ -68,6 +68,25 @@ public class PaymentPayService {
         return completePayment(toCreatedRecord(paymentId, draft));
     }
 
+    public PaymentResponse getPayment(SanguiPrincipal principal, String paymentNo) {
+        PaymentOrderRecord payment = paymentRepository.findByPaymentNo(principal.shopId(), normalizeRequired(paymentNo))
+                .orElseThrow(() -> new SanguiException(com.sangui.shop.payment.domain.PaymentErrorCode.PAYMENT_NOT_FOUND, 404));
+        if (!Objects.equals(payment.userId(), principal.userId())) {
+            throw new SanguiException(com.sangui.shop.payment.domain.PaymentErrorCode.PAYMENT_NOT_FOUND, 404);
+        }
+        return toResponse(payment);
+    }
+
+    public PaymentResponse settlePayment(PaymentOrderRecord payment, String traceId) {
+        if (payment.status() == PaymentStatus.PAID) {
+            return toResponse(payment);
+        }
+        if (payment.status() != PaymentStatus.CREATED) {
+            throw new SanguiException(com.sangui.shop.payment.domain.PaymentErrorCode.PAYMENT_STATUS_INVALID, 409);
+        }
+        return completePayment(payment.withStatus(PaymentStatus.CREATED), traceId);
+    }
+
     private PaymentResponse replayExistingPayment(
             PaymentOrderRecord existing,
             SanguiPrincipal principal,
@@ -84,7 +103,7 @@ public class PaymentPayService {
         if (existing.status() == PaymentStatus.PAID) {
             return toResponse(existing);
         }
-        return completePayment(existing.withStatus(PaymentStatus.CREATED), traceId);
+        return settlePayment(existing, traceId);
     }
 
     private PaymentResponse completePayment(PaymentOrderRecord payment) {

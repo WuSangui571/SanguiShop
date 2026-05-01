@@ -9,6 +9,7 @@ import com.sangui.shop.order.domain.OrderSnapshot;
 import com.sangui.shop.order.domain.OrderStatus;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -83,6 +84,24 @@ public class JdbcOrderRepository implements OrderRepository {
                 userId,
                 requestId
         ).stream().findFirst().map(this::toSnapshot);
+    }
+
+    @Override
+    public List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, user_id, order_no, request_id, reservation_no, status, total_amount_cent, trace_id
+                        FROM oms_order
+                        WHERE shop_id = ? AND status = ? AND created_at <= ? AND deleted = 0
+                        ORDER BY id ASC
+                        LIMIT ?
+                        """,
+                ORDER_ROW_MAPPER,
+                shopId,
+                OrderStatus.CREATED.value(),
+                createdBefore,
+                limit
+        );
     }
 
     @Override

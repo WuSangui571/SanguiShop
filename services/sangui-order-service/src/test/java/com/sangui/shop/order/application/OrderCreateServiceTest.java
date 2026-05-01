@@ -21,6 +21,7 @@ import com.sangui.shop.order.domain.OrderRecord;
 import com.sangui.shop.order.domain.OrderRepository;
 import com.sangui.shop.order.domain.OrderSnapshot;
 import com.sangui.shop.order.domain.OrderStatus;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -190,6 +191,11 @@ class OrderCreateServiceTest {
         @Override
         public Optional<OrderSnapshot> findByRequestId(Long shopId, String userId, String requestId) {
             return Optional.ofNullable(snapshotsByRequestKey.get(key(shopId, userId, requestId)));
+        }
+
+        @Override
+        public List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit) {
+            return List.of();
         }
 
         @Override

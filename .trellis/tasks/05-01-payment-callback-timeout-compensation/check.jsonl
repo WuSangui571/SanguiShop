@@ -1,0 +1,10 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Verify API/DTO/idempotency contracts"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify Flyway/schema/index changes"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Verify order timeout/cancel contract"}
+
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify cross-layer compensation matrix"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify compensation error handling"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify backend DoD and tests"}
+{"file": ".trellis/spec/backend/inventory-reserve-contracts.md", "reason": "Verify inventory compensation ownership"}

@@ -13,6 +13,8 @@ This contract makes product-service the single owner of sellable stock and inven
 - Payment success finalizes inventory through internal confirm API only.
 - Order cancel or payment-failure compensation releases inventory through internal release API only.
 - Reservation idempotency is owned by `(shopId, reservationNo)`.
+- Payment failure callbacks do not release inventory directly; order cancellation or timeout cancellation owns release.
+- Late payment success after timeout cancellation must not confirm a released reservation.
 
 ## Internal Inventory APIs
 
@@ -208,3 +210,4 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 - Bad: order-service or payment-service reads `pms_sku` directly.
 - Bad: duplicate reserve with same key deducts stock twice.
 - Bad: release or confirm succeeds from an impossible prior status.
+- Bad: payment callback confirms inventory after order timeout already released the reservation.

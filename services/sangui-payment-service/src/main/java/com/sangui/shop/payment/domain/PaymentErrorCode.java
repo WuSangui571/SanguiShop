@@ -3,9 +3,12 @@ package com.sangui.shop.payment.domain;
 import com.sangui.shop.common.core.error.ErrorCode;
 
 public enum PaymentErrorCode implements ErrorCode {
+    PAYMENT_NOT_FOUND("PAYMENT_NOT_FOUND", "Payment does not exist"),
     PAYMENT_ORDER_NOT_FOUND("PAYMENT_ORDER_NOT_FOUND", "Order does not exist or cannot be paid"),
     PAYMENT_ORDER_STATUS_INVALID("PAYMENT_ORDER_STATUS_INVALID", "Order status does not allow payment"),
-    PAYMENT_AMOUNT_MISMATCH("PAYMENT_AMOUNT_MISMATCH", "Payment amount does not match the order total");
+    PAYMENT_AMOUNT_MISMATCH("PAYMENT_AMOUNT_MISMATCH", "Payment amount does not match the order total"),
+    PAYMENT_STATUS_INVALID("PAYMENT_STATUS_INVALID", "Payment status does not allow this operation"),
+    PAYMENT_CALLBACK_CHANNEL_MISMATCH("PAYMENT_CALLBACK_CHANNEL_MISMATCH", "Payment callback channel does not match");
 
     private final String code;
     private final String defaultMessage;

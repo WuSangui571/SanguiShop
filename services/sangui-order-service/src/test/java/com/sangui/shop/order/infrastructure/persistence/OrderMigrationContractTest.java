@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 class OrderMigrationContractTest {
 
     private static final String MIGRATION_RESOURCE = "db/migration/V1__create_order_tables.sql";
+    private static final String TIMEOUT_MIGRATION_RESOURCE = "db/migration/V3__add_order_timeout_lookup_index.sql";
 
     @Test
     void orderMigrationUsesFlywayNamingAndCreatesOrderTablesContract() throws IOException {
@@ -42,5 +43,22 @@ class OrderMigrationContractTest {
         assertThat(sql).contains("idx_oms_order_item_shop_order");
         assertThat(sql).contains("idx_oms_order_item_shop_sku");
         assertThat(sql).contains("foreign key (order_id) references oms_order (id)");
+    }
+
+    @Test
+    void timeoutMigrationAddsCreatedOrderLookupIndex() throws IOException {
+        URL migration = Thread.currentThread().getContextClassLoader().getResource(TIMEOUT_MIGRATION_RESOURCE);
+
+        assertThat(migration)
+                .as("Timeout lookup migration must be available from classpath:db/migration")
+                .isNotNull();
+
+        String sql;
+        try (InputStream input = migration.openStream()) {
+            sql = new String(input.readAllBytes(), StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+        }
+
+        assertThat(sql).contains("idx_oms_order_shop_status_created");
+        assertThat(sql).contains("shop_id, status, created_at");
     }
 }

@@ -105,6 +105,28 @@ java -jar services\sangui-user-service\target\sangui-user-service-0.1.0-SNAPSHOT
 - 订单/支付/秒杀表必须有并发幂等测试。
 - 迁移脚本至少在本地 Docker MySQL 执行一次。
 
+## Order Timeout Compensation Index
+
+`services/sangui-order-service/src/main/resources/db/migration/V3__add_order_timeout_lookup_index.sql` supports unpaid order timeout cancellation.
+
+Required index:
+
+```sql
+CREATE INDEX idx_oms_order_shop_status_created ON oms_order (shop_id, status, created_at);
+```
+
+Executable validation:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=OrderMigrationContractTest,OrderTimeoutCancelServiceTest,InternalOrderTimeoutControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: timeout compensation queries `shop_id`, `status = created`, and `created_at <= cutoff`.
+- Base: `created_at` is the timeout basis until a dedicated payment deadline column is introduced.
+- Bad: timeout compensation scans all orders without `shop_id` and `status` predicates.
+
 Repository test strategy:
 
 | Case | 断言重点 |
