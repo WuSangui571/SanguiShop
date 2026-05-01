@@ -6,6 +6,7 @@ public record SanguiPrincipal(
         String userId,
         Long shopId,
         Set<String> roles,
-        Set<String> permissions
+        Set<String> permissions,
+        String jwtId
 ) {
 }

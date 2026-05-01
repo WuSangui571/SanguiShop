@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Downstream identity header and principal contract"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Trusted header security boundary"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Downstream service identity contract avoids DTO-derived user/shop"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Common module and package placement"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Gateway to downstream context flow"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Required resolver rejection and auth error mapping"}

@@ -111,3 +111,73 @@ Good/Base/Bad cases:
 - Base: RBAC route authorization remains service-owned or future gateway policy work; this MVP only authenticates.
 - Bad: Gateway forwards user-supplied Sangui identity headers.
 - Bad: Gateway logs JWT values or accepts blank JWT secret.
+
+## Downstream Auth Context MVP
+
+Scope: `common/sangui-common-security` and `common/sangui-common-web`.
+
+Purpose:
+
+- Downstream servlet services must consume trusted Gateway identity headers through shared common code.
+- Business services must not parse `X-Sangui-*` headers by hand.
+- Business services must not trust `userId` or `shopId` from external DTO fields, query parameters, or request bodies as the authenticated identity.
+
+Trusted input headers:
+
+| Header | Required for principal | Target field |
+| --- | --- | --- |
+| `X-Sangui-User-Id` | yes | `SanguiPrincipal.userId()` |
+| `X-Sangui-Shop-Id` | yes | `SanguiPrincipal.shopId()` |
+| `X-Sangui-Roles` | no | `SanguiPrincipal.roles()` |
+| `X-Sangui-Permissions` | no | `SanguiPrincipal.permissions()` |
+| `X-Sangui-Jwt-Id` | no | `SanguiPrincipal.jwtId()` |
+
+Executable contracts:
+
+| Class | Contract |
+| --- | --- |
+| `common/sangui-common-security/src/main/java/com/sangui/shop/common/security/SanguiPrincipal.java` | Immutable principal fields: `userId`, `shopId`, `roles`, `permissions`, `jwtId`. |
+| `common/sangui-common-security/src/main/java/com/sangui/shop/common/security/SanguiPrincipalHeaderParser.java` | Parses a `Function<String, String>` header lookup into `Optional<SanguiPrincipal>`. |
+| `common/sangui-common-security/src/main/java/com/sangui/shop/common/security/SanguiSecurityContext.java` | Provides `currentPrincipal()`, `setPrincipal(...)`, and `clear()` around request-local ThreadLocal state. |
+| `common/sangui-common-web/src/main/java/com/sangui/shop/common/web/SanguiAuthenticationContextFilter.java` | Servlet `OncePerRequestFilter` that reads trusted headers, sets request attribute `com.sangui.shop.common.security.SanguiPrincipal`, binds context during the filter chain, and clears it in `finally`. |
+| `common/sangui-common-web/src/main/java/com/sangui/shop/common/web/SanguiPrincipalArgumentResolver.java` | Resolves controller parameters of type `SanguiPrincipal` and `Optional<SanguiPrincipal>`. |
+| `common/sangui-common-web/src/main/java/com/sangui/shop/common/web/SanguiWebAutoConfiguration.java` | Registers `TraceIdFilter`, `SanguiAuthenticationContextFilter`, `GlobalApiExceptionHandler`, and the MVC argument resolver. |
+
+Parsing behavior:
+
+- `X-Sangui-Shop-Id` accepts only integral long values.
+- Missing or blank `X-Sangui-User-Id` returns `Optional.empty()`.
+- Missing, blank, or non-numeric `X-Sangui-Shop-Id` returns `Optional.empty()`.
+- `X-Sangui-Roles` and `X-Sangui-Permissions` are comma-separated; blank segments are ignored.
+- Parsed role and permission sets are immutable.
+- Missing roles or permissions become empty immutable sets.
+- Missing `X-Sangui-Jwt-Id` is allowed for optional/public contexts, but Gateway protected traffic should provide it.
+- Parser input is header-only; it must not inspect request body, query parameters, form fields, or DTOs.
+
+Validation and error matrix:
+
+| Case | Result |
+| --- | --- |
+| Complete trusted headers | Filter binds `SanguiPrincipal` to request attribute and `SanguiSecurityContext` during request processing. |
+| No trusted identity headers | `SanguiSecurityContext.currentPrincipal()` returns empty; optional controller parameter resolves to `Optional.empty()`. |
+| Missing `X-Sangui-User-Id` | No principal is bound. |
+| Missing or invalid `X-Sangui-Shop-Id` | No principal is bound. |
+| Required controller parameter `SanguiPrincipal` with no bound principal | Throw `SanguiException(CommonErrorCode.AUTH_TOKEN_MISSING, 401)` and return standard `ApiResult` auth failure through `GlobalApiExceptionHandler`. |
+| DTO/query/body contains `userId` or `shopId` without trusted headers | No principal is bound; required resolver rejects. |
+| Request completes or throws | `SanguiSecurityContext.clear()` must run in `finally`. |
+
+Required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=common/sangui-common-security,common/sangui-common-web" -am "-Dtest=SanguiPrincipalHeaderParserTest,SanguiAuthenticationContextFilterTest,SanguiPrincipalArgumentResolverTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: request with all five trusted headers binds principal and lets a controller receive `SanguiPrincipal`.
+- Good: comma-separated roles and permissions parse into immutable sets.
+- Good: `Optional<SanguiPrincipal>` resolves empty for public handlers with no trusted identity headers.
+- Base: services may use `SanguiSecurityContext.currentPrincipal()` for optional identity and `SanguiPrincipal` controller parameters for required identity.
+- Bad: service code parses `X-Sangui-*` headers directly instead of using common code.
+- Bad: service code treats DTO/query/body `userId` or `shopId` as authenticated identity.
+- Bad: ThreadLocal principal leaks after request completion.
