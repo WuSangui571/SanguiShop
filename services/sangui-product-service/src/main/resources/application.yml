@@ -6,7 +6,7 @@ spring:
     name: sangui-product
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${SANGUI_PRODUCT_MYSQL_SCHEMA:sangui_product}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${SANGUI_PRODUCT_MYSQL_SCHEMA:sangui_product}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: ${MYSQL_USERNAME:sangui_app}
     password: ${MYSQL_PASSWORD:}
   flyway:
