@@ -318,3 +318,57 @@ Commit recorded: `cc5b2ff feat:Gateway JWT Authentication MVP`.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Downstream Auth Context MVP
+
+**Date**: 2026-05-01
+**Task**: Downstream Auth Context MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Downstream Auth Context | Added common downstream authentication context support so servlet business services consume trusted Gateway identity headers through shared code instead of parsing headers by hand. |
+| Common Security | Extended `SanguiPrincipal` with `jwtId`, added `SanguiPrincipalHeaderParser`, and added `SanguiSecurityContext` for request-local principal access. |
+| Common Web | Added `SanguiAuthenticationContextFilter`, `SanguiPrincipalArgumentResolver`, and auto-configuration wiring for the filter and MVC resolver. |
+| Security Contract | Required identity comes only from trusted `X-Sangui-*` headers; DTO/query/body `userId` and `shopId` are not treated as authenticated identity. |
+| Spec Sync | Updated `.trellis/spec/backend/authentication-contracts.md` with executable downstream auth context contract, validation matrix, Good/Base/Bad cases, and test command. |
+| Tests | Added parser, servlet filter, and argument resolver tests covering full headers, missing/invalid user/shop, optional principal, required rejection, DTO/query/body ignore behavior, and ThreadLocal cleanup. |
+
+Human committed implementation before recording.
+
+Verification reported during implementation:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=common/sangui-common-security,common/sangui-common-web" -am "-Dtest=SanguiPrincipalHeaderParserTest,SanguiAuthenticationContextFilterTest,SanguiPrincipalArgumentResolverTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=common/sangui-common-security,common/sangui-common-web" -am test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=common/sangui-common-security,common/sangui-common-web,services/sangui-gateway" -am -DskipTests compile
+git diff --check
+```
+
+Commit recorded: `a7328d3 feat: add downstream auth context`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a7328d3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
