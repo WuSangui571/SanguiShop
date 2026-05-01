@@ -20,6 +20,7 @@ class CommonErrorCodeTest {
                 "VALIDATION_FAILED",
                 "AUTH_TOKEN_MISSING",
                 "AUTH_TOKEN_EXPIRED",
+                "SIGNATURE_INVALID",
                 "AUTH_FORBIDDEN",
                 "RATE_LIMITED",
                 "CONFIG_SECRET_MISSING",

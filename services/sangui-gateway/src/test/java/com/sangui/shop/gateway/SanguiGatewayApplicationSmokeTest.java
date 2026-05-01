@@ -13,7 +13,8 @@ import org.springframework.context.ApplicationContext;
         properties = {
                 "spring.cloud.nacos.discovery.enabled=false",
                 "spring.cloud.nacos.config.enabled=false",
-                "spring.cloud.sentinel.enabled=false"
+                "spring.cloud.sentinel.enabled=false",
+                "sangui.security.jwt.secret=test-secret-with-enough-entropy"
         }
 )
 class SanguiGatewayApplicationSmokeTest {

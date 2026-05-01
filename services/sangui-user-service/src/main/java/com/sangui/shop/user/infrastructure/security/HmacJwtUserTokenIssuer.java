@@ -30,24 +30,40 @@ public class HmacJwtUserTokenIssuer implements UserTokenIssuer {
     private final Clock clock;
     private final String secret;
     private final long ttlSeconds;
+    private final String issuer;
 
     @Autowired
     public HmacJwtUserTokenIssuer(
             ObjectMapper objectMapper,
             @Value("${sangui.security.jwt.secret:}") String secret,
-            @Value("${sangui.security.jwt.ttl-seconds:7200}") long ttlSeconds
+            @Value("${sangui.security.jwt.ttl-seconds:7200}") long ttlSeconds,
+            @Value("${sangui.security.jwt.issuer:sanguishop}") String issuer
     ) {
-        this(objectMapper, Clock.systemUTC(), secret, ttlSeconds);
+        this(objectMapper, Clock.systemUTC(), secret, ttlSeconds, issuer);
     }
 
     public HmacJwtUserTokenIssuer(ObjectMapper objectMapper, Clock clock, String secret, long ttlSeconds) {
+        this(objectMapper, clock, secret, ttlSeconds, "sanguishop");
+    }
+
+    public HmacJwtUserTokenIssuer(
+            ObjectMapper objectMapper,
+            Clock clock,
+            String secret,
+            long ttlSeconds,
+            String issuer
+    ) {
         if (secret == null || secret.isBlank()) {
+            throw new SanguiException(CommonErrorCode.CONFIG_SECRET_MISSING, 500);
+        }
+        if (issuer == null || issuer.isBlank()) {
             throw new SanguiException(CommonErrorCode.CONFIG_SECRET_MISSING, 500);
         }
         this.objectMapper = objectMapper;
         this.clock = clock;
         this.secret = secret;
         this.ttlSeconds = ttlSeconds;
+        this.issuer = issuer;
     }
 
     @Override
@@ -61,6 +77,7 @@ public class HmacJwtUserTokenIssuer implements UserTokenIssuer {
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put(JwtClaimConstants.SUBJECT, String.valueOf(userId));
+        payload.put(JwtClaimConstants.ISSUER, issuer);
         payload.put(JwtClaimConstants.SHOP_ID, shopId);
         payload.put(JwtClaimConstants.ROLES, roles);
         payload.put(JwtClaimConstants.PERMISSIONS, permissions);

@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Gateway package layout and common module boundaries"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "JWT authentication and gateway security rules"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Gateway error envelope and cross-service header contract"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Authentication error code mapping"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Security logging without token leakage"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "User-service JWT issuance contract to validate"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "JWT claims to downstream context propagation"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Shared JWT helpers and header constants"}

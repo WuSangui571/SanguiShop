@@ -43,6 +43,7 @@ sangui:
     jwt:
       secret: ${SANGUI_JWT_SECRET:}
       ttl-seconds: ${SANGUI_JWT_TTL_SECONDS:7200}
+      issuer: ${SANGUI_JWT_ISSUER:sanguishop}
   infrastructure:
     nacos:
       server-addr: ${NACOS_SERVER_ADDR:localhost:8848}

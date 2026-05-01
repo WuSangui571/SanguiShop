@@ -42,6 +42,7 @@ class HmacJwtUserTokenIssuerTest {
         assertThat(header.get("alg").asText()).isEqualTo("HS256");
         assertThat(header.get("typ").asText()).isEqualTo("JWT");
         assertThat(payload.get(JwtClaimConstants.SUBJECT).asText()).isEqualTo("10001");
+        assertThat(payload.get(JwtClaimConstants.ISSUER).asText()).isEqualTo("sanguishop");
         assertThat(payload.get(JwtClaimConstants.SHOP_ID).asLong()).isEqualTo(1L);
         assertThat(payload.get(JwtClaimConstants.ROLES).get(0).asText()).isEqualTo("USER");
         assertThat(payload.get(JwtClaimConstants.PERMISSIONS).isEmpty()).isTrue();
@@ -53,6 +54,21 @@ class HmacJwtUserTokenIssuerTest {
     @Test
     void rejectsBlankSecretInsteadOfIssuingUnsignedToken() {
         assertThatThrownBy(() -> new HmacJwtUserTokenIssuer(objectMapper, fixedClock, "", 7200))
+                .isInstanceOfSatisfying(SanguiException.class, exception -> {
+                    assertThat(exception.errorCode().code()).isEqualTo("CONFIG_SECRET_MISSING");
+                    assertThat(exception.httpStatus()).isEqualTo(500);
+                });
+    }
+
+    @Test
+    void rejectsBlankIssuerInsteadOfIssuingUnverifiableToken() {
+        assertThatThrownBy(() -> new HmacJwtUserTokenIssuer(
+                objectMapper,
+                fixedClock,
+                "test-secret-with-enough-entropy",
+                7200,
+                ""
+        ))
                 .isInstanceOfSatisfying(SanguiException.class, exception -> {
                     assertThat(exception.errorCode().code()).isEqualTo("CONFIG_SECRET_MISSING");
                     assertThat(exception.httpStatus()).isEqualTo(500);

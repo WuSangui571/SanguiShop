@@ -5,6 +5,7 @@ public enum CommonErrorCode implements ErrorCode {
     VALIDATION_FAILED("VALIDATION_FAILED", "Request validation failed"),
     AUTH_TOKEN_MISSING("AUTH_TOKEN_MISSING", "Authentication token is missing"),
     AUTH_TOKEN_EXPIRED("AUTH_TOKEN_EXPIRED", "Authentication token has expired"),
+    SIGNATURE_INVALID("SIGNATURE_INVALID", "Authentication token signature is invalid"),
     AUTH_FORBIDDEN("AUTH_FORBIDDEN", "Access is forbidden"),
     RATE_LIMITED("RATE_LIMITED", "Too many requests"),
     CONFIG_SECRET_MISSING("CONFIG_SECRET_MISSING", "Required secret configuration is missing"),

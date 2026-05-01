@@ -68,8 +68,9 @@ spring:
 sangui:
   security:
     jwt:
-      public-key-location: ${SANGUI_JWT_PUBLIC_KEY_LOCATION:}
+      secret: ${SANGUI_JWT_SECRET:}
       issuer: ${SANGUI_JWT_ISSUER:sanguishop}
+      allowed-clock-skew-seconds: ${SANGUI_JWT_ALLOWED_CLOCK_SKEW_SECONDS:60}
   gateway:
     cors:
       allowed-origins: ${SANGUI_CORS_ALLOWED_ORIGINS:http://localhost:5173}

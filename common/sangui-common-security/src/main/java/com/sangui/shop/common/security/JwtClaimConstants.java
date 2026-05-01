@@ -3,6 +3,7 @@ package com.sangui.shop.common.security;
 public final class JwtClaimConstants {
 
     public static final String SUBJECT = "sub";
+    public static final String ISSUER = "iss";
     public static final String SHOP_ID = "shop_id";
     public static final String ROLES = "roles";
     public static final String PERMISSIONS = "permissions";
