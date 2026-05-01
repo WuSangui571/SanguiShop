@@ -211,3 +211,55 @@ Human verification completed before recording. Code was committed as `855c5ae fe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Local User Service Startup Validation
+
+**Date**: 2026-05-01
+**Task**: Local User Service Startup Validation
+**Branch**: `main`
+
+### Summary
+
+Verified local User Service startup and committed MySQL/Flyway startup fixes.
+
+### Main Changes
+
+Recorded local startup validation for the User Service auth MVP after human testing and commit.
+
+| Area | Summary |
+| --- | --- |
+| Local Runtime | Human verified local startup with Docker Desktop, MySQL, Nacos, PowerShell environment variables, Maven install, and `spring-boot:run`. |
+| Manual API Check | Human verified `POST /api/users/register` returns `USER_REGISTERED` and `POST /api/users/login` returns `USER_LOGGED_IN` with a Bearer JWT. |
+| MySQL Runtime | Adjusted local Compose MySQL image from `mysql:8.4` to `mysql:8.0` for the verified local environment. |
+| Flyway Runtime | Added `org.flywaydb:flyway-mysql` to `services/sangui-user-service` so Flyway can run MySQL migrations at application startup. |
+| Scope Decision | Kept `flyway-mysql` limited to user-service because it is currently the only service with real `spring.datasource`, `spring.flyway`, migrations, and repository code. Other service modules only keep MySQL placeholders for future work. |
+
+Commit recorded: `54c0c2c fix: support local MySQL Flyway startup`.
+
+Useful verified startup outline:
+1. Start Docker Desktop.
+2. Run `docker compose --env-file deploy\.env -f deploy\docker-compose.yml up -d mysql nacos`.
+3. Set PowerShell env vars for MySQL, Nacos, `SANGUI_JWT_SECRET`, `SANGUI_JWT_TTL_SECONDS`, and `SPRING_DATASOURCE_URL` with `allowPublicKeyRetrieval=true`.
+4. Run `.\mvnw.cmd "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -pl services\sangui-user-service -am -DskipTests install`.
+5. Run `.\mvnw.cmd "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -pl services\sangui-user-service spring-boot:run`.
+6. Test register/login at `http://localhost:8101/api/users/register` and `http://localhost:8101/api/users/login`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `54c0c2c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
