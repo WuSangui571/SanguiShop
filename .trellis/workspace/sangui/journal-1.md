@@ -263,3 +263,58 @@ Useful verified startup outline:
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Gateway JWT Authentication MVP
+
+**Date**: 2026-05-01
+**Task**: Gateway JWT Authentication MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Gateway Auth | Added Gateway JWT Authentication MVP using a reactive global filter for `/api/**`, with public pass-through for `POST /api/users/register` and `POST /api/users/login`. |
+| JWT Validation | Gateway validates HS256 signature, issuer, `iat`/`exp`, required claims, and returns standard `ApiResult` auth failures. |
+| Downstream Context | Gateway strips spoofed Sangui identity headers and forwards trusted `X-Sangui-User-Id`, `X-Sangui-Shop-Id`, `X-Sangui-Roles`, `X-Sangui-Permissions`, and `X-Sangui-Jwt-Id`. |
+| User Service Compatibility | User-service JWT issuer now includes `iss` and shares the configurable `SANGUI_JWT_ISSUER` contract with gateway. |
+| Shared Contracts | Added `SIGNATURE_INVALID`, shared JWT issuer claim, and shared Sangui identity header names. |
+| Tests | Added gateway JWT filter tests and extended JWT issuer tests for issuer behavior. |
+| Spec Sync | Updated `.trellis/spec/backend/authentication-contracts.md` with executable Gateway JWT contract, headers, error matrix, and required test commands. |
+
+Human verification completed before recording. The following commands were reported passing:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-user-service" -am "-Dtest=HmacJwtUserTokenIssuerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=common/sangui-common-core,common/sangui-common-security,services/sangui-gateway,services/sangui-user-service" -am -DskipTests compile
+```
+
+Manual API checks reported:
+- Existing `alice` login succeeded at `POST http://localhost:8101/api/users/login`, returning a Bearer JWT containing `iss=sanguishop`.
+- New `bob` registration succeeded at `POST http://localhost:8101/api/users/register` with `USER_REGISTERED`.
+
+Commit recorded: `cc5b2ff feat:Gateway JWT Authentication MVP`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cc5b2ff` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
