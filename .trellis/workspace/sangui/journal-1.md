@@ -419,3 +419,49 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Order Create MVP
+
+**Date**: 2026-05-01
+**Task**: Order Create MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Order Service | Implemented the first order creation business flow in `services/sangui-order-service` with JDBC persistence, Flyway schema, `POST /api/orders`, principal-derived identity, request-id idempotency, and order item SKU snapshot storage. |
+| Product Snapshot Integration | Added internal product snapshot API `POST /internal/products/skus/snapshot` so order creation reads active SKU snapshot data through service contracts instead of cross-service database access. |
+| Runtime Dependency Fix | Removed the accidental runtime dependency from order-service to product-service and localized snapshot DTOs in order-service, fixing Flyway classpath pollution and duplicate migration loading. |
+| Testing | Added and verified migration contract, application service, WebMvc controller, and internal product snapshot controller tests for the new order and product integration contracts. |
+| Spec Sync | Added `.trellis/spec/backend/order-create-contracts.md`, updated backend spec index, and extended product catalog contract documentation with the internal snapshot API. |
+
+**Verification**:
+- Human tested Maven test suite and compile commands locally.
+- Human reproduced and validated the startup issue caused by product-service runtime dependency, then committed the dependency fix.
+- Verified in agent with module test suite and compile after the fix.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `befcf39` | (see git log) |
+| `c852047` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
