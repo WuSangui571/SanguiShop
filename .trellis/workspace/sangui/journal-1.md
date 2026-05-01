@@ -597,3 +597,54 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: Payment Callback Timeout Compensation MVP
+
+**Date**: 2026-05-01
+**Task**: Payment Callback Timeout Compensation MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Payment Callback | Added mock async callback handling through `POST /api/payments/callbacks/mock`, recording provider notifications in `pay_callback_log` before state mutation. |
+| Payment Polling | Added `GET /api/payments/{paymentNo}` so clients can poll current payment status by trusted principal scope. |
+| Payment State | Extended payment status with `failed`; success callbacks settle payment/order/inventory, while failure callbacks do not release inventory directly. |
+| Order Timeout | Added internal timeout cancellation through `POST /internal/orders/timeout-cancellations`, scanning expired `created` orders and releasing inventory before cancelling. |
+| Database | Added order timeout lookup migration `V3__add_order_timeout_lookup_index.sql` with `idx_oms_order_shop_status_created(shop_id, status, created_at)`. |
+| Compensation Matrix | Covered duplicate success callback, duplicate timeout cancellation, cancel-before-callback, callback-before-cancel, and failure callback cases. |
+| Spec Sync | Updated backend payment, order, inventory, and database specs with concrete APIs, fields, indexes, validation matrix, and required tests. |
+
+**Verification**:
+- Human tested targeted order/payment Maven suite successfully after implementation.
+- Agent also verified affected modules with `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-payment-service" -am test`.
+- Commit recorded: `d83ff6c feat(payment): implement callback timeout compensation mvp`.
+
+**Next Notes**:
+- The payment/order/inventory consistency loop now handles the major async and timeout disorder cases without introducing MQ yet.
+- Future work can either deepen compensation infrastructure with scheduled jobs/MQ, or move upward into user-visible order/payment lifecycle behavior.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d83ff6c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
