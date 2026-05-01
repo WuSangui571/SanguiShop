@@ -11,6 +11,7 @@ import com.sangui.shop.order.domain.OrderStatus;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ public class OrderTimeoutCancelService {
     private final ProductCatalogClient productCatalogClient;
     private final Clock clock;
 
+    @Autowired
     public OrderTimeoutCancelService(OrderRepository orderRepository, ProductCatalogClient productCatalogClient) {
         this(orderRepository, productCatalogClient, Clock.systemDefaultZone());
     }
