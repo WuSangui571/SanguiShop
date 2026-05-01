@@ -111,6 +111,24 @@ class ProductCatalogServiceTest {
     }
 
     @Test
+    void listActiveSkuSnapshotsOnlyReturnsActiveProductSkus() {
+        Long draftProductId = productRepository.seedProduct(1L, "10001", "Draft Product", ProductStatus.DRAFT, List.of(
+                new ProductSkuDraft("draft-sku", "Draft SKU", 1000L)
+        ));
+        Long activeProductId = productRepository.seedProduct(1L, "10001", "Active Product", ProductStatus.ACTIVE, List.of(
+                new ProductSkuDraft("active-sku", "Active SKU", 2000L)
+        ));
+
+        List<ProductSkuRecord> snapshots = productCatalogService.listActiveSkuSnapshots(1L, List.of(
+                productRepository.firstSkuId(draftProductId),
+                productRepository.firstSkuId(activeProductId)
+        ));
+
+        assertThat(snapshots).hasSize(1);
+        assertThat(snapshots.getFirst().skuCode()).isEqualTo("active-sku");
+    }
+
+    @Test
     void createRejectsNonAdminPrincipal() {
         SanguiPrincipal nonAdmin = new SanguiPrincipal("10002", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt");
 
@@ -256,6 +274,20 @@ class ProductCatalogServiceTest {
 
         private Long seedProduct(Long shopId, String operatorUserId, String productName, ProductStatus status, List<ProductSkuDraft> skus) {
             return createProduct(shopId, operatorUserId, new ProductDraft(productName, productName + " description", skus), status);
+        }
+
+        @Override
+        public List<ProductSkuRecord> findActiveSkus(Long shopId, List<Long> skuIds) {
+            return productsById.values().stream()
+                    .filter(product -> product.shopId().equals(shopId))
+                    .filter(product -> product.status() == ProductStatus.ACTIVE)
+                    .flatMap(product -> skusByProductId.getOrDefault(product.id(), List.of()).stream())
+                    .filter(sku -> skuIds.contains(sku.id()))
+                    .toList();
+        }
+
+        private Long firstSkuId(Long productId) {
+            return skusByProductId.getOrDefault(productId, List.of()).getFirst().id();
         }
 
         private List<ProductSkuRecord> createSkuRecords(Long productId, List<ProductSkuDraft> skus) {

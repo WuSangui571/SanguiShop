@@ -1,0 +1,11 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Review order service package layout and layer boundaries"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Review trusted principal usage and body identity rejection"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review auth, API, DB, and product snapshot cross-layer flow"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Review stable error mapping for order create"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Review order schema columns, indexes, and migration contract"}
+{"file": ".trellis/spec/backend/seckill-contracts.md", "reason": "Review future seckill compatibility for order state and idempotency"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review test coverage and forbidden backend patterns"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Review service boundary and consistency choices"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Review order create API contract and idempotency behavior"}

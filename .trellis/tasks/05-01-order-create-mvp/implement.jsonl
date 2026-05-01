@@ -1,0 +1,13 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Order service package layout and layer boundaries"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Order create API contract, ApiResult envelope, and idempotency expectations"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer checks for auth, API, DB, and downstream product snapshot flow"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required backend tests and forbidden patterns"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Trusted SanguiPrincipal contract for downstream identity"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Service boundary and consistency checklist for first order workflow"}
+{"file": ".trellis/spec/backend/seckill-contracts.md", "reason": "Order schema and statuses must stay compatible with future seckill upstream"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "oms_order and oms_order_item schema contract with unique request_id handling"}
+{"file": "services/sangui-product-service/src/test/java/com/sangui/shop/product/api/ProductCatalogControllerTest.java", "reason": "Reference WebMvc auth and envelope assertions"}
+{"file": "services/sangui-product-service/src/main/java/com/sangui/shop/product/application/ProductCatalogService.java", "reason": "Reference application service pattern for first business domain module"}
+{"file": "services/sangui-product-service/src/main/java/com/sangui/shop/product/infrastructure/persistence/JdbcProductRepository.java", "reason": "Reference JDBC repository and generated-key pattern"}

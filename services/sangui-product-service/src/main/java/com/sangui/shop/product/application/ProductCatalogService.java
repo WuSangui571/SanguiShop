@@ -18,6 +18,7 @@ import com.sangui.shop.product.domain.ProductRecord;
 import com.sangui.shop.product.domain.ProductRepository;
 import com.sangui.shop.product.domain.ProductSkuDraft;
 import com.sangui.shop.product.domain.ProductSnapshot;
+import com.sangui.shop.product.domain.ProductSkuRecord;
 import com.sangui.shop.product.domain.ProductStatus;
 import java.util.HashSet;
 import java.util.List;
@@ -65,6 +66,14 @@ public class ProductCatalogService {
         ProductSnapshot snapshot = productRepository.findPublicProduct(defaultShopId, productId)
                 .orElseThrow(() -> new SanguiException(ProductErrorCode.PRODUCT_NOT_FOUND, 404));
         return toDetailResponse(snapshot);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductSkuRecord> listActiveSkuSnapshots(Long shopId, List<Long> skuIds) {
+        if (skuIds.isEmpty()) {
+            return List.of();
+        }
+        return productRepository.findActiveSkus(shopId, skuIds);
     }
 
     @Transactional

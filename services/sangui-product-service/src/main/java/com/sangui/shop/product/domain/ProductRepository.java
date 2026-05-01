@@ -2,6 +2,7 @@ package com.sangui.shop.product.domain;
 
 import com.sangui.shop.common.core.api.PageRequest;
 import com.sangui.shop.common.core.api.PageResponse;
+import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepository {
@@ -11,6 +12,8 @@ public interface ProductRepository {
     Optional<ProductSnapshot> findPublicProduct(Long shopId, Long productId);
 
     Optional<ProductSnapshot> findAdminProduct(Long shopId, Long productId);
+
+    List<ProductSkuRecord> findActiveSkus(Long shopId, List<Long> skuIds);
 
     Long createProduct(Long shopId, String operatorUserId, ProductDraft draft, ProductStatus status);
 

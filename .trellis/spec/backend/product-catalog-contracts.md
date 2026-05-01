@@ -42,6 +42,20 @@ Security rule:
 - Missing principal must fail through `SanguiPrincipalArgumentResolver` with `AUTH_TOKEN_MISSING`.
 - Non-admin principal must fail with `AUTH_FORBIDDEN`.
 
+### Internal Snapshot API
+
+| API | Auth | Request | Success code | Response data |
+| --- | --- | --- | --- | --- |
+| `POST /internal/products/skus/snapshot` | internal service-to-service | `ProductSkuSnapshotRequest` | `PRODUCT_SKU_SNAPSHOTS_FETCHED` | `ProductSkuSnapshotResponse` |
+
+Internal snapshot behavior:
+
+- `shopId` is required.
+- `skuIds` must be non-empty positive longs.
+- Only SKUs whose parent product is `active` are returned.
+- The response item contract is stable for downstream order creation and includes `productId`, `skuId`, `skuCode`, `skuName`, and `priceCent`.
+- The endpoint is read-only and must not expose persistence-only audit fields.
+
 ## Request / Response Shapes
 
 ### `CreateProductRequest`
@@ -180,7 +194,7 @@ Money rule:
 ## Required Tests
 
 ```powershell
-mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service" -am "-Dtest=ProductMigrationContractTest,ProductCatalogServiceTest,ProductCatalogControllerTest,SanguiProductApplicationSmokeTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service" -am "-Dtest=ProductMigrationContractTest,ProductCatalogServiceTest,ProductCatalogControllerTest,InternalProductSnapshotControllerTest,SanguiProductApplicationSmokeTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 ## Good / Base / Bad Cases
@@ -192,3 +206,4 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 - Bad: product write handlers trust request body `shopId` or `userId`.
 - Bad: public read exposes draft products or audit fields.
 - Bad: price uses floating-point types or response fields.
+- Bad: internal snapshot API returns inactive product SKUs.

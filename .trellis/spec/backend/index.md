@@ -1,40 +1,41 @@
 # SanguiShop Backend Spec Index
 
-> SanguiShop 后端可执行编码规范。默认技术栈：Spring Boot、Spring Cloud Alibaba、Nacos、Sentinel、Redis、MySQL、MQ、Spring Security JWT、Spring AI Alibaba。
+> SanguiShop backend executable coding standards. Default stack: Spring Boot, Spring Cloud Alibaba, Nacos, Sentinel, Redis, MySQL, MQ, Spring Security JWT, and Spring AI Alibaba.
 
-## 项目定位
+## Project Positioning
 
-SanguiShop 是单商家电商平台，但所有核心业务表、缓存 Key、事件和 API 契约必须预留 `shop_id` / `shopId`。默认单商家可以用配置值表达，禁止在业务代码里散落 magic number。
+SanguiShop is a single-merchant ecommerce platform, but all core business tables, cache keys, events, and API contracts must reserve `shop_id` / `shopId`. Default single-merchant values may come from configuration, but business code must not hardcode merchant magic numbers.
 
 ## Spec Map
 
-| Spec | 何时读取 | 核心内容 |
+| Spec | When to Read | Core Focus |
 | --- | --- | --- |
-| [Directory Structure](./directory-structure.md) | 新建/移动后端代码前 | 微服务边界、包结构、分层规则 |
-| [Microservice Contracts](./microservice-contracts.md) | API、Feign、事件、跨服务数据流前 | DTO、事件、幂等、错误码 |
-| [Gateway & Security](./gateway-security.md) | 网关、鉴权、权限、密钥前 | JWT、RBAC、限流、敏感配置 |
-| [Database Guidelines](./database-guidelines.md) | 表、索引、事务、迁移前 | MySQL 设计、唯一约束、分库分表 |
-| [Messaging & Cache Guidelines](./messaging-cache-guidelines.md) | Redis/MQ/异步一致性前 | Redis Key、Lua、MQ、重试、死信 |
-| [Seckill Contracts](./seckill-contracts.md) | 秒杀链路前 | 秒杀 API、Redis 预扣、MQ 下单、幂等 |
-| [AI/RAG Guidelines](./ai-rag-guidelines.md) | AI/RAG 前 | Spring AI、向量库、Prompt、安全边界 |
-| [Error Handling](./error-handling.md) | Controller/Service/Feign/MQ 前 | 异常映射、错误码、降级 |
-| [Logging Guidelines](./logging-guidelines.md) | 日志、审计、链路追踪前 | JSON 日志、Trace ID、指标 |
-| [Observability & DevOps](./observability-devops.md) | 部署、监控、CI/CD 前 | Docker、K8s、Prometheus、ELK、备份 |
-| [Quality Guidelines](./quality-guidelines.md) | 完成实现和 review 前 | 测试、评审习惯、禁用模式 |
+| [Directory Structure](./directory-structure.md) | Before adding or moving backend code | Microservice boundaries, package layout, layer rules |
+| [Microservice Contracts](./microservice-contracts.md) | Before API / Feign / event / cross-service DTO work | DTOs, envelopes, idempotency, error codes |
+| [Gateway & Security](./gateway-security.md) | Before gateway / auth / permission / secret changes | JWT, RBAC, rate limit, sensitive config |
+| [Database Guidelines](./database-guidelines.md) | Before table / index / transaction / migration work | MySQL design, uniqueness, Flyway, money/time fields |
+| [Messaging & Cache Guidelines](./messaging-cache-guidelines.md) | Before Redis / MQ / async consistency work | Redis keys, TTL, retries, consumer behavior |
+| [Seckill Contracts](./seckill-contracts.md) | Before seckill, stock, or order-upstream changes | Seckill API, Redis pre-deduct, MQ ordering, idempotency |
+| [AI/RAG Guidelines](./ai-rag-guidelines.md) | Before AI / RAG work | Spring AI, vector store, prompt and safety boundaries |
+| [Error Handling](./error-handling.md) | Before controller / service / Feign / MQ work | Exception mapping, business vs system failures |
+| [Logging Guidelines](./logging-guidelines.md) | Before key-path logging or audit changes | JSON logs, trace IDs, sensitive data boundaries |
+| [Observability & DevOps](./observability-devops.md) | Before deploy / monitoring / CI-CD changes | Docker, K8s, Prometheus, ELK, backup |
+| [Order Create Contracts](./order-create-contracts.md) | Before order create / order-service schema changes | Order create API, principal scope, product snapshot, idempotency |
+| [Quality Guidelines](./quality-guidelines.md) | Before review or completion | Tests, review habits, forbidden patterns |
 
 ## Pre-Development Checklist
 
-- [ ] 明确改动属于哪个服务：user/product/seckill/order/payment/logistics/review/marketing/search-rec/ai/gateway。
-- [ ] 跨服务调用先定义 request/response/event 字段，不能从 entity 反推契约。
-- [ ] 订单、支付、库存、秒杀必须补齐幂等键、唯一索引、重试和补偿策略。
-- [ ] Redis/MQ 必须先定义 Key/Topic/Queue、TTL、序列化、重复消费行为。
-- [ ] 外部 API 必须明确网关鉴权、限流、输入校验、错误码。
-- [ ] 密钥、JWT 私钥、支付密钥、模型 API Key 不得进入仓库，必须走 Nacos/Vault/K8s Secret。
+- [ ] Confirm which service owns the change: `user`, `product`, `seckill`, `order`, `payment`, `logistics`, `review`, `marketing`, `search-rec`, `ai`, or `gateway`.
+- [ ] Define request / response / event fields before implementation; never reverse-engineer contracts from entities.
+- [ ] For order / payment / inventory / seckill work, define idempotency keys, unique indexes, retry behavior, and compensation strategy first.
+- [ ] For Redis / MQ work, define key or topic naming, TTL, serialization, and duplicate-consume behavior first.
+- [ ] For external APIs, define gateway auth, rate limit, input validation, and error codes first.
+- [ ] Secrets such as JWT secrets, payment keys, and model API keys must not enter the repository; use Nacos, Vault, or K8s Secret.
 
 ## Quality Check
 
-- [ ] `mvn test` 至少覆盖被改动服务；涉及契约时补集成测试或 contract test。
-- [ ] Controller、Feign、MQ Consumer 均有参数校验和错误映射。
-- [ ] 关键链路日志带 `traceId`、`shopId`、`userId`、`orderNo` 或 `activityId`。
-- [ ] 秒杀/支付/订单代码必须证明幂等，不能只依赖前端不会重复请求。
-- [ ] 新增 DB 字段、Redis Key、MQ 事件已写入对应 spec。
+- [ ] `mvn test` covers the touched services; when contracts change, add integration or contract tests.
+- [ ] Controllers, Feign clients, and MQ consumers include parameter validation and error mapping.
+- [ ] Key business paths record enough context such as `traceId`, `shopId`, `userId`, `orderNo`, or `activityId`.
+- [ ] Seckill, payment, and order code proves idempotency instead of assuming the frontend will never repeat requests.
+- [ ] New DB fields, Redis keys, and MQ events are written into the matching backend spec docs.

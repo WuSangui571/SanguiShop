@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: sangui-order
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${SANGUI_ORDER_MYSQL_SCHEMA:sangui_order}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:sangui_app}
+    password: ${MYSQL_PASSWORD:}
+  flyway:
+    enabled: ${SANGUI_ORDER_FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    default-schema: ${SANGUI_ORDER_MYSQL_SCHEMA:sangui_order}
+    schemas:
+      - ${SANGUI_ORDER_MYSQL_SCHEMA:sangui_order}
+    baseline-on-migrate: false
+    validate-on-migrate: true
   config:
     import: optional:nacos:${spring.application.name}.yml
   cloud:
@@ -24,6 +37,11 @@ spring:
 sangui:
   service:
     domain: order
+  client:
+    product:
+      base-url: ${SANGUI_PRODUCT_BASE_URL:http://localhost:8102}
+      connect-timeout-ms: ${SANGUI_PRODUCT_CONNECT_TIMEOUT_MS:2000}
+      read-timeout-ms: ${SANGUI_PRODUCT_READ_TIMEOUT_MS:3000}
   shop:
     default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
   infrastructure:

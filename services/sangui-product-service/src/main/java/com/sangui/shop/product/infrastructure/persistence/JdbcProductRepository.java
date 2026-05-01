@@ -14,6 +14,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -120,6 +121,33 @@ public class JdbcProductRepository implements ProductRepository {
                         """,
                 shopId,
                 productId
+        );
+    }
+
+    @Override
+    public List<ProductSkuRecord> findActiveSkus(Long shopId, List<Long> skuIds) {
+        String placeholders = skuIds.stream().map(ignored -> "?").collect(Collectors.joining(", "));
+        Object[] args = new Object[skuIds.size() + 1];
+        args[0] = shopId;
+        for (int index = 0; index < skuIds.size(); index++) {
+            args[index + 1] = skuIds.get(index);
+        }
+        return jdbcTemplate.query(
+                """
+                        SELECT s.id, s.product_id, s.sku_code, s.sku_name, s.sale_price_cent
+                        FROM pms_sku s
+                        JOIN pms_product p
+                          ON p.id = s.product_id
+                         AND p.shop_id = s.shop_id
+                         AND p.deleted = 0
+                         AND p.status = 'active'
+                        WHERE s.shop_id = ?
+                          AND s.deleted = 0
+                          AND s.id IN (%s)
+                        ORDER BY s.id ASC
+                        """.formatted(placeholders),
+                SKU_ROW_MAPPER,
+                args
         );
     }
 
