@@ -465,3 +465,45 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: IDEA Local Startup Stabilization
+
+**Date**: 2026-05-01
+**Task**: IDEA Local Startup Stabilization
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Local Startup | Unified local MySQL JDBC URLs in user-service, product-service, and order-service so IDEA-based startup no longer relies on per-window PowerShell overrides. |
+| MySQL Connectivity | Added `allowPublicKeyRetrieval=true` to the three service datasource URLs, fixing the shared MySQL 8 local authentication failure (`Public Key Retrieval is not allowed`). |
+| IDEA Workflow | Human verified the three small business services can now start successfully from IDEA after moving away from manual terminal-based service startup. |
+
+**Verification**:
+- Human tested successful IDEA startup for user-service, product-service, and order-service.
+- Commit recorded: `f82afb7 fix(config): support mysql public key retrieval for local startup`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f82afb7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

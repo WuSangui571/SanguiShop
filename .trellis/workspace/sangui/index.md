@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 10
+- **Total Sessions**: 11
 - **Last Active**: 2026-05-01
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~467 | Active |
+| `journal-1.md` | ~509 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-05-01 | IDEA Local Startup Stabilization | `f82afb7` | `main` |
 | 10 | 2026-05-01 | Order Create MVP | `befcf39`, `c852047` | `main` |
 | 9 | 2026-05-01 | Product Catalog MVP | `58683bc` | `main` |
 | 8 | 2026-05-01 | Downstream Auth Context MVP | `a7328d3` | `main` |
