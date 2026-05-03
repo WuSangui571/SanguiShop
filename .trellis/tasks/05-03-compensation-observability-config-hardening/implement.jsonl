@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Compensation job logs must include traceId/shopId/batch parameters/outcome counts and avoid sensitive data."}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "deploy/.env.example and application.yml env override contracts must stay executable and secret-safe."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Scheduled compensation tasks must separate per-row recoverable failures from batch-fatal failures."}
+ocs."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Observable compensation code needs targeted tests and no hardcoded shop IDs or secrets."}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order timeout compensation scheduler config keys and batch fields must remain aligned with code and docs."}

@@ -224,6 +224,15 @@ Config keys:
 - `sangui.compensation.payment-reconcile.initial-delay-ms`
 - `sangui.compensation.payment-reconcile.fixed-delay-ms`
 
+Deploy env keys:
+
+- `SANGUI_PAYMENT_RECONCILE_ENABLED`
+- `SANGUI_PAYMENT_RECONCILE_SHOP_ID`
+- `SANGUI_PAYMENT_RECONCILE_MIN_AGE_MINUTES`
+- `SANGUI_PAYMENT_RECONCILE_LIMIT`
+- `SANGUI_PAYMENT_RECONCILE_INITIAL_DELAY_MS`
+- `SANGUI_PAYMENT_RECONCILE_FIXED_DELAY_MS`
+
 Rules:
 
 - Scheduler is disabled by default; enabling it scans stale `created` payments and retries internal settlement without a human-triggered replay.
@@ -234,7 +243,20 @@ Rules:
 - Successful reconcile reuses the same settle path as replay or callback success and converges `created -> paid`.
 - `PAYMENT_ORDER_STATUS_INVALID` during reconcile is terminal for that payment row and must mark it `failed` to stop endless retries.
 - `DOWNSTREAM_TIMEOUT` or other retryable/system failures keep the row in `created` so later batches can retry.
-- Batch execution must continue when one payment fails; batch logs must include `shopId`, `traceId`, `minAgeMinutes`, `limit`, `scannedCount`, `settledCount`, `skippedCount`, and `failedCount`.
+- Batch execution must continue when one payment fails; batch logs must include `jobName`, `shopId`, `traceId`, `minAgeMinutes`, `limit`, `durationMs`, `scannedCount`, `settledCount`, `skippedCount`, and `failedCount`.
+- Batch-fatal logs must also include `errorType`, `errorCode`, and sanitized `message` instead of dumping raw multi-line stack traces for expected test scenarios.
+
+Metrics contract:
+
+- `sangui.compensation.job.run.total{service="payment",job="payment-reconcile",result="success|failed|disabled"}`
+- `sangui.compensation.job.item.total{service="payment",job="payment-reconcile",result="scanned|settled|skipped|failed"}`
+- Do not tag these counters with `traceId`; keep traceability in logs and keep metrics cardinality bounded.
+
+Alert thresholds:
+
+- Critical: `increase(sangui_compensation_job_run_total{service="payment",job="payment-reconcile",result="failed"}[5m]) > 0`
+- Warning: `increase(sangui_compensation_job_item_total{service="payment",job="payment-reconcile",result="failed"}[15m]) >= 1`
+- Warning: if `SANGUI_PAYMENT_RECONCILE_ENABLED=true`, investigate when `increase(sangui_compensation_job_run_total{service="payment",job="payment-reconcile",result="success"}[15m]) == 0`
 
 Additional `pay_callback_log` contract:
 
@@ -276,6 +298,7 @@ Good/Base/Bad cases:
 - Good: polling returns current payment status only for the owning principal.
 - Good: reconcile job settles a stale `created` row through the same path as replay.
 - Good: reconcile job marks terminal invalid-order rows `failed` instead of retrying forever.
+- Good: reconcile scheduler metrics expose run results and batch item counts without adding high-cardinality tags.
 - Base: callback path is mock/provider-neutral and does not verify real third-party signatures.
 - Bad: late success callback after timeout cancellation revives a cancelled order or confirms released inventory.
 - Bad: reconcile job double-confirms a row that is already `paid` or releases inventory from payment-service.

@@ -234,12 +234,34 @@ Config keys:
 - `sangui.compensation.order-timeout.initial-delay-ms`
 - `sangui.compensation.order-timeout.fixed-delay-ms`
 
+Deploy env keys:
+
+- `SANGUI_ORDER_TIMEOUT_COMPENSATION_ENABLED`
+- `SANGUI_ORDER_TIMEOUT_COMPENSATION_SHOP_ID`
+- `SANGUI_ORDER_TIMEOUT_COMPENSATION_TIMEOUT_MINUTES`
+- `SANGUI_ORDER_TIMEOUT_COMPENSATION_LIMIT`
+- `SANGUI_ORDER_TIMEOUT_COMPENSATION_INITIAL_DELAY_MS`
+- `SANGUI_ORDER_TIMEOUT_COMPENSATION_FIXED_DELAY_MS`
+
 Rules:
 
 - Scheduler is disabled by default; enabling it turns the timeout-cancel path into an in-process recurring compensation job.
 - `shop-id` must come from configuration, typically `${SANGUI_DEFAULT_SHOP_ID}`, and must not be hardcoded in Java business logic.
-- Each batch generates a job `traceId` and logs `shopId`, `timeoutMinutes`, `limit`, `scannedCount`, `cancelledCount`, `skippedCount`, and `failedCount`.
+- Each batch generates a job `traceId` and logs `jobName`, `shopId`, `timeoutMinutes`, `limit`, `durationMs`, `scannedCount`, `cancelledCount`, `skippedCount`, and `failedCount`.
+- Batch-fatal logs must also include `errorType`, `errorCode`, and sanitized `message` instead of dumping raw multi-line stack traces for expected test scenarios.
 - Candidates are re-read by `orderId` before release to reduce stale-scan races; non-`created` rows are skipped.
+
+Metrics contract:
+
+- `sangui.compensation.job.run.total{service="order",job="order-timeout",result="success|failed|disabled"}`
+- `sangui.compensation.job.item.total{service="order",job="order-timeout",result="scanned|cancelled|skipped|failed"}`
+- Do not tag these counters with `traceId`; keep traceability in logs and keep metrics cardinality bounded.
+
+Alert thresholds:
+
+- Critical: `increase(sangui_compensation_job_run_total{service="order",job="order-timeout",result="failed"}[5m]) > 0`
+- Warning: `increase(sangui_compensation_job_item_total{service="order",job="order-timeout",result="failed"}[15m]) >= 1`
+- Warning: if `SANGUI_ORDER_TIMEOUT_COMPENSATION_ENABLED=true`, investigate when `increase(sangui_compensation_job_run_total{service="order",job="order-timeout",result="success"}[15m]) == 0`
 
 Additional state transitions:
 
@@ -274,5 +296,6 @@ Good/Base/Bad cases:
 - Good: duplicate timeout cancellation does not release inventory twice.
 - Good: paid order is skipped when payment callback wins before timeout.
 - Good: one failing row increments `failedCount` without aborting the rest of the batch.
+- Good: scheduler metrics expose run results and batch item counts without adding high-cardinality tags.
 - Base: timeout selection uses `created_at` cutoff until a dedicated payment deadline field is introduced.
 - Bad: timeout cancellation selects paid orders or hardcodes shop id.
