@@ -864,3 +864,49 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: Compensation Dashboard Query Wiring
+
+**Date**: 2026-05-03
+**Task**: Compensation Dashboard Query Wiring
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Frontend Scaffold | Added a minimal Vue 3 + TypeScript + Vite frontend scaffold in `frontend/` so compensation ops UI can run inside this repository instead of staying at placeholder level. |
+| Compensation Dashboard | Wired a real order/payment compensation dashboard with shared gateway HTTP client, API DTOs, view switching, filters, pagination, status cards, and attempt drill-down. |
+| Query Contracts | Mapped frontend request/response types directly to the history-backed order/payment compensation query contracts, including latest metadata and nested attempt detail. |
+| Quality Fixes | Repaired frontend check failures by narrowing `tsconfig` scope and importing Vitest APIs explicitly in the unit test file. |
+| Verification | Human reran `npm install`, `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build`; all passed locally after the fixes. |
+
+**Verification**:
+- Human committed `eba9baa feat(compensation): add dashboard query wiring`.
+- Human committed `d9b3cda fix(frontend): repair dashboard frontend checks`.
+- Human confirmed local frontend lint, typecheck, test, and production build all passed on May 3, 2026.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `eba9baa` | (see git log) |
+| `d9b3cda` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
