@@ -199,6 +199,11 @@ class OrderCreateServiceTest {
         }
 
         @Override
+        public List<OrderRecord> findCancelledOrders(Long shopId, int limit) {
+            return List.of();
+        }
+
+        @Override
         public Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft) {
             createCalls++;
             lastCreatedShopId = shopId;
@@ -219,7 +224,25 @@ class OrderCreateServiceTest {
                     ))
                     .toList();
             OrderSnapshot snapshot = new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, draft.requestId(), draft.reservationNo(), status, draft.totalAmountCent(), traceId),
+                    new OrderRecord(
+                            orderId,
+                            shopId,
+                            userId,
+                            orderNo,
+                            draft.requestId(),
+                            draft.reservationNo(),
+                            status,
+                            draft.totalAmountCent(),
+                            traceId,
+                            LocalDateTime.now(),
+                            LocalDateTime.now(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                    ),
                     items
             );
             snapshotsByRequestKey.put(key(shopId, userId, draft.requestId()), snapshot);
@@ -229,6 +252,19 @@ class OrderCreateServiceTest {
         @Override
         public int updateStatus(Long shopId, Long orderId, OrderStatus currentStatus, OrderStatus nextStatus) {
             return 0;
+        }
+
+        @Override
+        public void updateCompensationMetadata(
+                Long shopId,
+                Long orderId,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                LocalDateTime compensatedAt
+        ) {
         }
 
         private String key(Long shopId, String userId, String requestId) {

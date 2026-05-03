@@ -12,6 +12,7 @@ import com.sangui.shop.payment.domain.PaymentCreateDraft;
 import com.sangui.shop.payment.domain.PaymentOrderRecord;
 import com.sangui.shop.payment.domain.PaymentRepository;
 import com.sangui.shop.payment.domain.PaymentStatus;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -150,7 +151,15 @@ public class PaymentPayService {
                 draft.channel(),
                 draft.amountCent(),
                 PaymentStatus.CREATED,
-                draft.traceId()
+                draft.traceId(),
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
     }
 

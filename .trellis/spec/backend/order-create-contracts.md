@@ -299,3 +299,131 @@ Good/Base/Bad cases:
 - Good: scheduler metrics expose run results and batch item counts without adding high-cardinality tags.
 - Base: timeout selection uses `created_at` cutoff until a dedicated payment deadline field is introduced.
 - Bad: timeout cancellation selects paid orders or hardcodes shop id.
+## Compensation Ops Surface Addendum
+
+### `POST /internal/orders/compensation-records/query`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "timeoutMinutes": 15,
+  "limit": 100
+}
+```
+
+Response code: `ORDER_COMPENSATION_RECORDS_FETCHED`.
+
+Response data:
+
+```json
+{
+  "shopId": 1,
+  "timeoutOrders": [
+    {
+      "orderId": 101,
+      "orderNo": "ORD-001",
+      "userId": "10001",
+      "reservationNo": "ord:10001:req-001",
+      "status": "created",
+      "totalAmountCent": 59900,
+      "traceId": "trace-order-create",
+      "createdAt": "2026-05-03T12:00:00+08:00",
+      "updatedAt": "2026-05-03T12:00:00+08:00",
+      "lastCompensationResult": "failed",
+      "lastCompensationErrorCode": "DOWNSTREAM_TIMEOUT",
+      "lastCompensationReason": "inventory release timeout",
+      "lastCompensationTraceId": "order-timeout-job-xxx",
+      "lastCompensationTrigger": "scheduler",
+      "lastCompensatedAt": "2026-05-03T12:16:00+08:00"
+    }
+  ],
+  "cancelledOrders": []
+}
+```
+
+Rules:
+
+- `shopId` is required.
+- `timeoutMinutes` defaults to 15; `limit` defaults to 100 and must stay capped at 500.
+- `timeoutOrders` are queried from `oms_order` where `shop_id = ?`, `status = created`, and `created_at <= now - timeoutMinutes`.
+- `cancelledOrders` are queried from `oms_order` where `shop_id = ?` and `status = cancelled`, ordered by most recently updated rows first.
+- Query responses must expose `createdAt`, `updatedAt`, and `lastCompensatedAt`.
+
+### `POST /internal/orders/timeout-replays/manual`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "orderId": 101,
+  "timeoutMinutes": 15
+}
+```
+
+Response code: `ORDER_TIMEOUT_REPLAYED_MANUALLY`.
+
+Response data:
+
+```json
+{
+  "result": "cancelled",
+  "errorCode": null,
+  "reason": null,
+  "order": {
+    "orderId": 101,
+    "orderNo": "ORD-001",
+    "status": "cancelled",
+    "lastCompensationResult": "cancelled",
+    "lastCompensationTraceId": "trace-manual-order",
+    "lastCompensationTrigger": "manual",
+    "lastCompensatedAt": "2026-05-03T12:20:00+08:00"
+  }
+}
+```
+
+Rules:
+
+- Manual timeout replay reuses the same release + status transition path as scheduler timeout cancellation.
+- Missing order returns `ORDER_NOT_FOUND`.
+- Non-`created` orders or rows that have not crossed the timeout threshold return HTTP 200 with `result = skipped`; they do not force a status change.
+- Replay success persists latest-compensation metadata on `oms_order`.
+- Replay failure persists `lastCompensationResult = failed` plus sanitized `errorCode` / `reason`.
+- Manual replay logs must include `traceId`, `trigger=manual`, `shopId`, `orderId`, `orderNo`, `reservationNo`, `result`, and current `orderStatus`.
+
+Additional database addendum:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V4__add_order_compensation_ops_columns.sql`
+- Required latest-compensation columns on `oms_order`:
+  - `last_compensation_result`
+  - `last_compensation_error_code`
+  - `last_compensation_reason`
+  - `last_compensation_trace_id`
+  - `last_compensation_trigger`
+  - `last_compensated_at`
+
+Additional validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Query/manual request missing `shopId` | 400 | `VALIDATION_FAILED` |
+| `orderId <= 0` or `timeoutMinutes <= 0` | 400 | `VALIDATION_FAILED` |
+| Manual replay order missing | 404 | `ORDER_NOT_FOUND` |
+| Inventory release timeout during manual replay | 503 | `DOWNSTREAM_TIMEOUT` |
+
+Additional required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service" -am "-Dtest=OrderTimeoutCancelServiceTest,OrderTimeoutCompensationSchedulerTest,InternalOrderTimeoutControllerTest,InternalOrderCompensationControllerTest,OrderCompensationOpsMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: manual replay returns `cancelled`, `skipped`, or `failed` without inventing a new state machine.
+- Good: query surfaces show both business status and latest compensation metadata.
+- Good: manual replay and scheduler both overwrite the same latest-compensation fields and share the same metrics family.
+- Base: full attempt history remains in logs; the row stores only the latest attempt.
+- Bad: manual replay forces a not-yet-timeout order into `cancelled`.
+- Bad: ops query omits `traceId` or key timestamps needed for troubleshooting.

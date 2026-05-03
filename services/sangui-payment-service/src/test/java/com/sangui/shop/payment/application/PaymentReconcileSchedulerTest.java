@@ -24,7 +24,7 @@ class PaymentReconcileSchedulerTest {
                 .thenReturn(new PaymentReconcileResult(1L, 2, 1, 0, 1));
         PaymentReconcileScheduler scheduler = new PaymentReconcileScheduler(
                 paymentReconcileService,
-                meterRegistry,
+                new PaymentCompensationMetricsRecorder(meterRegistry),
                 true,
                 1L,
                 1,
@@ -46,7 +46,7 @@ class PaymentReconcileSchedulerTest {
         MeterRegistry meterRegistry = new SimpleMeterRegistry();
         PaymentReconcileScheduler scheduler = new PaymentReconcileScheduler(
                 paymentReconcileService,
-                meterRegistry,
+                new PaymentCompensationMetricsRecorder(meterRegistry),
                 false,
                 1L,
                 1,
@@ -67,7 +67,7 @@ class PaymentReconcileSchedulerTest {
                 .thenThrow(new RuntimeException("boom"));
         PaymentReconcileScheduler scheduler = new PaymentReconcileScheduler(
                 paymentReconcileService,
-                meterRegistry,
+                new PaymentCompensationMetricsRecorder(meterRegistry),
                 true,
                 1L,
                 1,

@@ -5,8 +5,6 @@ import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.order.client.dto.CancelExpiredOrdersRequest;
 import com.sangui.shop.order.client.dto.CancelExpiredOrdersResponse;
 import java.util.UUID;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -18,12 +16,9 @@ import org.springframework.stereotype.Component;
 public class OrderTimeoutCompensationScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(OrderTimeoutCompensationScheduler.class);
-    private static final String JOB_NAME = "order-timeout";
-    private static final String RUN_COUNTER = "sangui.compensation.job.run.total";
-    private static final String ITEM_COUNTER = "sangui.compensation.job.item.total";
 
     private final OrderTimeoutCancelService orderTimeoutCancelService;
-    private final MeterRegistry meterRegistry;
+    private final OrderCompensationMetricsRecorder metricsRecorder;
     private final boolean enabled;
     private final Long shopId;
     private final int timeoutMinutes;
@@ -31,14 +26,14 @@ public class OrderTimeoutCompensationScheduler {
 
     public OrderTimeoutCompensationScheduler(
             OrderTimeoutCancelService orderTimeoutCancelService,
-            MeterRegistry meterRegistry,
+            OrderCompensationMetricsRecorder metricsRecorder,
             @Value("${sangui.compensation.order-timeout.enabled:false}") boolean enabled,
             @Value("${sangui.compensation.order-timeout.shop-id:${sangui.shop.default-shop-id}}") Long shopId,
             @Value("${sangui.compensation.order-timeout.timeout-minutes:15}") int timeoutMinutes,
             @Value("${sangui.compensation.order-timeout.limit:100}") int limit
     ) {
         this.orderTimeoutCancelService = orderTimeoutCancelService;
-        this.meterRegistry = meterRegistry;
+        this.metricsRecorder = metricsRecorder;
         this.enabled = enabled;
         this.shopId = shopId;
         this.timeoutMinutes = timeoutMinutes;
@@ -51,7 +46,7 @@ public class OrderTimeoutCompensationScheduler {
     )
     public void run() {
         if (!enabled) {
-            incrementRunCounter("disabled");
+            metricsRecorder.incrementRun("disabled");
             return;
         }
 
@@ -61,7 +56,7 @@ public class OrderTimeoutCompensationScheduler {
         try {
             log.info(
                     "Starting order timeout compensation batch. jobName={} traceId={} shopId={} timeoutMinutes={} limit={}",
-                    JOB_NAME,
+                    OrderCompensationMetricsRecorder.JOB_NAME,
                     traceId,
                     shopId,
                     timeoutMinutes,
@@ -71,14 +66,14 @@ public class OrderTimeoutCompensationScheduler {
                     new CancelExpiredOrdersRequest(shopId, timeoutMinutes, limit),
                     traceId
             );
-            incrementRunCounter("success");
-            incrementItemCounter("scanned", response.scannedCount());
-            incrementItemCounter("cancelled", response.cancelledCount());
-            incrementItemCounter("skipped", response.skippedCount());
-            incrementItemCounter("failed", response.failedCount());
+            metricsRecorder.incrementRun("success");
+            metricsRecorder.incrementItem("scanned", response.scannedCount());
+            metricsRecorder.incrementItem("cancelled", response.cancelledCount());
+            metricsRecorder.incrementItem("skipped", response.skippedCount());
+            metricsRecorder.incrementItem("failed", response.failedCount());
             log.info(
                     "Completed order timeout compensation batch. jobName={} traceId={} shopId={} timeoutMinutes={} limit={} durationMs={} scannedCount={} cancelledCount={} skippedCount={} failedCount={}",
-                    JOB_NAME,
+                    OrderCompensationMetricsRecorder.JOB_NAME,
                     traceId,
                     response.shopId(),
                     timeoutMinutes,
@@ -90,10 +85,10 @@ public class OrderTimeoutCompensationScheduler {
                     response.failedCount()
             );
         } catch (RuntimeException exception) {
-            incrementRunCounter("failed");
+            metricsRecorder.incrementRun("failed");
             log.error(
                     "Order timeout compensation batch failed. jobName={} traceId={} shopId={} timeoutMinutes={} limit={} durationMs={} errorType={} errorCode={} message={}",
-                    JOB_NAME,
+                    OrderCompensationMetricsRecorder.JOB_NAME,
                     traceId,
                     shopId,
                     timeoutMinutes,
@@ -106,29 +101,6 @@ public class OrderTimeoutCompensationScheduler {
         } finally {
             MDC.remove(TraceConstants.TRACE_ID);
         }
-    }
-
-    private void incrementRunCounter(String result) {
-        Counter.builder(RUN_COUNTER)
-                .description("Total compensation job runs grouped by result.")
-                .tag("service", "order")
-                .tag("job", JOB_NAME)
-                .tag("result", result)
-                .register(meterRegistry)
-                .increment();
-    }
-
-    private void incrementItemCounter(String result, int amount) {
-        if (amount <= 0) {
-            return;
-        }
-        Counter.builder(ITEM_COUNTER)
-                .description("Total compensation job items grouped by result.")
-                .tag("service", "order")
-                .tag("job", JOB_NAME)
-                .tag("result", result)
-                .register(meterRegistry)
-                .increment(amount);
     }
 
     private long elapsedMillis(long startedAt) {

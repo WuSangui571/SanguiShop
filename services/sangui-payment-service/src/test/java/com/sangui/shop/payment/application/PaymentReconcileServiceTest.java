@@ -92,7 +92,22 @@ class PaymentReconcileServiceTest {
         assertThat(paymentRepository.findByPaymentNo(1L, "PAY-002").orElseThrow().status()).isEqualTo(PaymentStatus.PAID);
     }
 
+    @Test
+    void manualReconcileRecordsLatestCompensationMetadata() {
+        paymentRepository.seed(createdPayment("PAY-003"), LocalDateTime.now(FIXED_CLOCK).minusMinutes(5));
+
+        PaymentCompensationExecution execution = paymentReconcileService.reconcilePayment(1L, "PAY-003", "trace-manual", "manual");
+
+        assertThat(execution.result()).isEqualTo("settled");
+        PaymentOrderRecord payment = paymentRepository.findByPaymentNo(1L, "PAY-003").orElseThrow();
+        assertThat(payment.lastCompensationResult()).isEqualTo("settled");
+        assertThat(payment.lastCompensationTraceId()).isEqualTo("trace-manual");
+        assertThat(payment.lastCompensationTrigger()).isEqualTo("manual");
+        assertThat(payment.lastCompensatedAt()).isNotNull();
+    }
+
     private PaymentOrderRecord createdPayment(String paymentNo) {
+        LocalDateTime createdAt = LocalDateTime.now(FIXED_CLOCK).minusMinutes(5);
         return new PaymentOrderRecord(
                 paymentRepository.nextPaymentId.incrementAndGet(),
                 1L,
@@ -104,7 +119,15 @@ class PaymentReconcileServiceTest {
                 "mock",
                 59900L,
                 PaymentStatus.CREATED,
-                "trace-created-" + paymentNo
+                "trace-created-" + paymentNo,
+                createdAt,
+                createdAt,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
     }
 
@@ -131,6 +154,16 @@ class PaymentReconcileServiceTest {
         }
 
         @Override
+        public List<PaymentOrderRecord> findFailedPayments(Long shopId, int limit) {
+            return recordsByKey.values().stream()
+                    .filter(record -> java.util.Objects.equals(record.shopId(), shopId))
+                    .filter(record -> record.status() == PaymentStatus.FAILED)
+                    .sorted(Comparator.comparing(PaymentOrderRecord::updatedAt).reversed())
+                    .limit(limit)
+                    .toList();
+        }
+
+        @Override
         public Optional<PaymentCallbackLogRecord> findCallbackLog(String channel, String channelTradeNo) {
             return Optional.empty();
         }
@@ -149,7 +182,15 @@ class PaymentReconcileServiceTest {
                     draft.channel(),
                     draft.amountCent(),
                     status,
-                    draft.traceId()
+                    draft.traceId(),
+                    LocalDateTime.now(FIXED_CLOCK),
+                    LocalDateTime.now(FIXED_CLOCK),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
             ), LocalDateTime.now(FIXED_CLOCK));
             return paymentId;
         }
@@ -163,7 +204,66 @@ class PaymentReconcileServiceTest {
         public void updatePaymentStatus(Long shopId, Long paymentId, PaymentStatus status) {
             recordsByKey.replaceAll((key, value) -> {
                 if (java.util.Objects.equals(value.shopId(), shopId) && java.util.Objects.equals(value.id(), paymentId)) {
-                    return value.withStatus(status);
+                    return new PaymentOrderRecord(
+                            value.id(),
+                            value.shopId(),
+                            value.orderId(),
+                            value.orderNo(),
+                            value.userId(),
+                            value.reservationNo(),
+                            value.paymentNo(),
+                            value.channel(),
+                            value.amountCent(),
+                            status,
+                            value.traceId(),
+                            value.createdAt(),
+                            LocalDateTime.now(FIXED_CLOCK),
+                            value.lastCompensationResult(),
+                            value.lastCompensationErrorCode(),
+                            value.lastCompensationReason(),
+                            value.lastCompensationTraceId(),
+                            value.lastCompensationTrigger(),
+                            value.lastCompensatedAt()
+                    );
+                }
+                return value;
+            });
+        }
+
+        @Override
+        public void updateCompensationMetadata(
+                Long shopId,
+                Long paymentId,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                LocalDateTime compensatedAt
+        ) {
+            recordsByKey.replaceAll((key, value) -> {
+                if (java.util.Objects.equals(value.shopId(), shopId) && java.util.Objects.equals(value.id(), paymentId)) {
+                    return new PaymentOrderRecord(
+                            value.id(),
+                            value.shopId(),
+                            value.orderId(),
+                            value.orderNo(),
+                            value.userId(),
+                            value.reservationNo(),
+                            value.paymentNo(),
+                            value.channel(),
+                            value.amountCent(),
+                            value.status(),
+                            value.traceId(),
+                            value.createdAt(),
+                            compensatedAt,
+                            result,
+                            errorCode,
+                            reason,
+                            traceId,
+                            trigger,
+                            compensatedAt
+                    );
                 }
                 return value;
             });

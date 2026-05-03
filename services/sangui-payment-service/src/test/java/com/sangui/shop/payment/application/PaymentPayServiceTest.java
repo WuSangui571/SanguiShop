@@ -103,7 +103,15 @@ class PaymentPayServiceTest {
                 "mock",
                 59900L,
                 PaymentStatus.CREATED,
-                "trace-created"
+                "trace-created",
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         ));
         orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
 
@@ -132,7 +140,15 @@ class PaymentPayServiceTest {
                 "mock",
                 59900L,
                 PaymentStatus.PAID,
-                "trace-paid"
+                "trace-paid",
+                LocalDateTime.now(),
+                LocalDateTime.now(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         ));
 
         assertThatThrownBy(() -> paymentPayService.pay(
@@ -165,6 +181,11 @@ class PaymentPayServiceTest {
         }
 
         @Override
+        public List<PaymentOrderRecord> findFailedPayments(Long shopId, int limit) {
+            return List.of();
+        }
+
+        @Override
         public Optional<PaymentCallbackLogRecord> findCallbackLog(String channel, String channelTradeNo) {
             return Optional.empty();
         }
@@ -183,7 +204,15 @@ class PaymentPayServiceTest {
                     draft.channel(),
                     draft.amountCent(),
                     status,
-                    draft.traceId()
+                    draft.traceId(),
+                    LocalDateTime.now(),
+                    LocalDateTime.now(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
             ));
             return paymentId;
         }
@@ -197,10 +226,43 @@ class PaymentPayServiceTest {
         public void updatePaymentStatus(Long shopId, Long paymentId, PaymentStatus status) {
             recordsByKey.replaceAll((key, value) -> {
                 if (java.util.Objects.equals(value.shopId(), shopId) && java.util.Objects.equals(value.id(), paymentId)) {
-                    return value.withStatus(status);
+                    return new PaymentOrderRecord(
+                            value.id(),
+                            value.shopId(),
+                            value.orderId(),
+                            value.orderNo(),
+                            value.userId(),
+                            value.reservationNo(),
+                            value.paymentNo(),
+                            value.channel(),
+                            value.amountCent(),
+                            status,
+                            value.traceId(),
+                            value.createdAt(),
+                            LocalDateTime.now(),
+                            value.lastCompensationResult(),
+                            value.lastCompensationErrorCode(),
+                            value.lastCompensationReason(),
+                            value.lastCompensationTraceId(),
+                            value.lastCompensationTrigger(),
+                            value.lastCompensatedAt()
+                    );
                 }
                 return value;
             });
+        }
+
+        @Override
+        public void updateCompensationMetadata(
+                Long shopId,
+                Long paymentId,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                LocalDateTime compensatedAt
+        ) {
         }
 
         @Override

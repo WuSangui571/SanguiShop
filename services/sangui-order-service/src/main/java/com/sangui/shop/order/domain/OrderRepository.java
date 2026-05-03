@@ -14,7 +14,20 @@ public interface OrderRepository {
 
     List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit);
 
+    List<OrderRecord> findCancelledOrders(Long shopId, int limit);
+
     Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft);
 
     int updateStatus(Long shopId, Long orderId, OrderStatus currentStatus, OrderStatus nextStatus);
+
+    void updateCompensationMetadata(
+            Long shopId,
+            Long orderId,
+            String result,
+            String errorCode,
+            String reason,
+            String traceId,
+            String trigger,
+            LocalDateTime compensatedAt
+    );
 }

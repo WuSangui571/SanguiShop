@@ -1,5 +1,7 @@
 package com.sangui.shop.payment.domain;
 
+import java.time.LocalDateTime;
+
 public record PaymentOrderRecord(
         Long id,
         Long shopId,
@@ -11,7 +13,15 @@ public record PaymentOrderRecord(
         String channel,
         Long amountCent,
         PaymentStatus status,
-        String traceId
+        String traceId,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt,
+        String lastCompensationResult,
+        String lastCompensationErrorCode,
+        String lastCompensationReason,
+        String lastCompensationTraceId,
+        String lastCompensationTrigger,
+        LocalDateTime lastCompensatedAt
 ) {
     public PaymentOrderRecord withStatus(PaymentStatus nextStatus) {
         return new PaymentOrderRecord(
@@ -25,7 +35,15 @@ public record PaymentOrderRecord(
                 channel,
                 amountCent,
                 nextStatus,
-                traceId
+                traceId,
+                createdAt,
+                updatedAt,
+                lastCompensationResult,
+                lastCompensationErrorCode,
+                lastCompensationReason,
+                lastCompensationTraceId,
+                lastCompensationTrigger,
+                lastCompensatedAt
         );
     }
 }

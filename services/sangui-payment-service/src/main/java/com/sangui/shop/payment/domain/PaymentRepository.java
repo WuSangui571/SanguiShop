@@ -10,6 +10,8 @@ public interface PaymentRepository {
 
     List<PaymentOrderRecord> findCreatedPayments(Long shopId, LocalDateTime createdBefore, int limit);
 
+    List<PaymentOrderRecord> findFailedPayments(Long shopId, int limit);
+
     Optional<PaymentCallbackLogRecord> findCallbackLog(String channel, String channelTradeNo);
 
     Long createPaymentOrder(PaymentCreateDraft draft, PaymentStatus status);
@@ -17,6 +19,17 @@ public interface PaymentRepository {
     Long createCallbackLog(PaymentCallbackLogDraft draft);
 
     void updatePaymentStatus(Long shopId, Long paymentId, PaymentStatus status);
+
+    void updateCompensationMetadata(
+            Long shopId,
+            Long paymentId,
+            String result,
+            String errorCode,
+            String reason,
+            String traceId,
+            String trigger,
+            LocalDateTime compensatedAt
+    );
 
     void updateCallbackProcessStatus(Long callbackLogId, String processStatus);
 }

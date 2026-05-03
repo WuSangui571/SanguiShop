@@ -31,7 +31,15 @@ public class JdbcPaymentRepository implements PaymentRepository {
             rs.getString("channel"),
             rs.getLong("amount_cent"),
             PaymentStatus.fromValue(rs.getString("status")),
-            rs.getString("trace_id")
+            rs.getString("trace_id"),
+            rs.getTimestamp("created_at").toLocalDateTime(),
+            rs.getTimestamp("updated_at").toLocalDateTime(),
+            rs.getString("last_compensation_result"),
+            rs.getString("last_compensation_error_code"),
+            rs.getString("last_compensation_reason"),
+            rs.getString("last_compensation_trace_id"),
+            rs.getString("last_compensation_trigger"),
+            rs.getTimestamp("last_compensated_at") == null ? null : rs.getTimestamp("last_compensated_at").toLocalDateTime()
     );
 
     private static final RowMapper<PaymentCallbackLogRecord> CALLBACK_LOG_ROW_MAPPER = (rs, rowNum) -> new PaymentCallbackLogRecord(
@@ -55,7 +63,9 @@ public class JdbcPaymentRepository implements PaymentRepository {
     public Optional<PaymentOrderRecord> findByPaymentNo(Long shopId, String paymentNo) {
         return jdbcTemplate.query(
                 """
-                        SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id
+                        SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id,
+                               created_at, updated_at, last_compensation_result, last_compensation_error_code,
+                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger, last_compensated_at
                         FROM pay_payment_order
                         WHERE shop_id = ? AND payment_no = ? AND deleted = 0
                         LIMIT 1
@@ -70,7 +80,9 @@ public class JdbcPaymentRepository implements PaymentRepository {
     public List<PaymentOrderRecord> findCreatedPayments(Long shopId, LocalDateTime createdBefore, int limit) {
         return jdbcTemplate.query(
                 """
-                        SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id
+                        SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id,
+                               created_at, updated_at, last_compensation_result, last_compensation_error_code,
+                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger, last_compensated_at
                         FROM pay_payment_order
                         WHERE shop_id = ? AND status = ? AND created_at <= ? AND deleted = 0
                         ORDER BY id ASC
@@ -80,6 +92,25 @@ public class JdbcPaymentRepository implements PaymentRepository {
                 shopId,
                 PaymentStatus.CREATED.value(),
                 createdBefore,
+                limit
+        );
+    }
+
+    @Override
+    public List<PaymentOrderRecord> findFailedPayments(Long shopId, int limit) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id,
+                               created_at, updated_at, last_compensation_result, last_compensation_error_code,
+                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger, last_compensated_at
+                        FROM pay_payment_order
+                        WHERE shop_id = ? AND status = ? AND deleted = 0
+                        ORDER BY updated_at DESC, id DESC
+                        LIMIT ?
+                        """,
+                PAYMENT_ROW_MAPPER,
+                shopId,
+                PaymentStatus.FAILED.value(),
                 limit
         );
     }
@@ -167,6 +198,39 @@ public class JdbcPaymentRepository implements PaymentRepository {
                         WHERE shop_id = ? AND id = ? AND deleted = 0
                         """,
                 status.value(),
+                shopId,
+                paymentId
+        );
+    }
+
+    @Override
+    public void updateCompensationMetadata(
+            Long shopId,
+            Long paymentId,
+            String result,
+            String errorCode,
+            String reason,
+            String traceId,
+            String trigger,
+            LocalDateTime compensatedAt
+    ) {
+        jdbcTemplate.update(
+                """
+                        UPDATE pay_payment_order
+                        SET last_compensation_result = ?,
+                            last_compensation_error_code = ?,
+                            last_compensation_reason = ?,
+                            last_compensation_trace_id = ?,
+                            last_compensation_trigger = ?,
+                            last_compensated_at = ?
+                        WHERE shop_id = ? AND id = ? AND deleted = 0
+                        """,
+                result,
+                errorCode,
+                reason,
+                traceId,
+                trigger,
+                compensatedAt,
                 shopId,
                 paymentId
         );

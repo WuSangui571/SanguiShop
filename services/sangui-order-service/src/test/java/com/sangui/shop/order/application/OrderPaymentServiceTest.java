@@ -112,7 +112,25 @@ class OrderPaymentServiceTest {
         ) {
             Long orderId = nextOrderId.incrementAndGet();
             snapshotsById.put(orderId, new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, requestId, reservationNo, status, totalAmountCent, "trace-seed"),
+                    new OrderRecord(
+                            orderId,
+                            shopId,
+                            userId,
+                            orderNo,
+                            requestId,
+                            reservationNo,
+                            status,
+                            totalAmountCent,
+                            "trace-seed",
+                            LocalDateTime.now(),
+                            LocalDateTime.now(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                    ),
                     List.of(new com.sangui.shop.order.domain.OrderItemRecord(
                             1L,
                             orderId,
@@ -160,6 +178,11 @@ class OrderPaymentServiceTest {
         }
 
         @Override
+        public List<OrderRecord> findCancelledOrders(Long shopId, int limit) {
+            return List.of();
+        }
+
+        @Override
         public Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft) {
             Long orderId = nextOrderId.incrementAndGet();
             List<com.sangui.shop.order.domain.OrderItemRecord> items = draft.items().stream()
@@ -175,7 +198,25 @@ class OrderPaymentServiceTest {
                     ))
                     .toList();
             snapshotsById.put(orderId, new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, draft.requestId(), draft.reservationNo(), status, draft.totalAmountCent(), traceId),
+                    new OrderRecord(
+                            orderId,
+                            shopId,
+                            userId,
+                            orderNo,
+                            draft.requestId(),
+                            draft.reservationNo(),
+                            status,
+                            draft.totalAmountCent(),
+                            traceId,
+                            LocalDateTime.now(),
+                            LocalDateTime.now(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                    ),
                     items
             ));
             return orderId;
@@ -200,11 +241,32 @@ class OrderPaymentServiceTest {
                             snapshot.order().reservationNo(),
                             nextStatus,
                             snapshot.order().totalAmountCent(),
-                            snapshot.order().traceId()
+                            snapshot.order().traceId(),
+                            snapshot.order().createdAt(),
+                            LocalDateTime.now(),
+                            snapshot.order().lastCompensationResult(),
+                            snapshot.order().lastCompensationErrorCode(),
+                            snapshot.order().lastCompensationReason(),
+                            snapshot.order().lastCompensationTraceId(),
+                            snapshot.order().lastCompensationTrigger(),
+                            snapshot.order().lastCompensatedAt()
                     ),
                     snapshot.items()
             ));
             return 1;
+        }
+
+        @Override
+        public void updateCompensationMetadata(
+                Long shopId,
+                Long orderId,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                LocalDateTime compensatedAt
+        ) {
         }
     }
 }

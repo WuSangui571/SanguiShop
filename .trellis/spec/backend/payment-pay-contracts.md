@@ -302,3 +302,133 @@ Good/Base/Bad cases:
 - Base: callback path is mock/provider-neutral and does not verify real third-party signatures.
 - Bad: late success callback after timeout cancellation revives a cancelled order or confirms released inventory.
 - Bad: reconcile job double-confirms a row that is already `paid` or releases inventory from payment-service.
+## Compensation Ops Surface Addendum
+
+### `POST /internal/payments/compensation-records/query`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "minAgeMinutes": 1,
+  "limit": 100
+}
+```
+
+Response code: `PAYMENT_COMPENSATION_RECORDS_FETCHED`.
+
+Response data:
+
+```json
+{
+  "shopId": 1,
+  "createdPayments": [
+    {
+      "paymentId": 201,
+      "paymentNo": "PAY-001",
+      "orderId": 101,
+      "orderNo": "ORD-001",
+      "userId": "10001",
+      "channel": "mock",
+      "status": "created",
+      "amountCent": 59900,
+      "traceId": "trace-pay-1",
+      "createdAt": "2026-05-03T12:00:00+08:00",
+      "updatedAt": "2026-05-03T12:00:00+08:00",
+      "lastCompensationResult": "failed",
+      "lastCompensationErrorCode": "DOWNSTREAM_TIMEOUT",
+      "lastCompensationReason": "order confirm timeout",
+      "lastCompensationTraceId": "payment-reconcile-job-xxx",
+      "lastCompensationTrigger": "scheduler",
+      "lastCompensatedAt": "2026-05-03T12:02:00+08:00"
+    }
+  ],
+  "failedPayments": []
+}
+```
+
+Rules:
+
+- `shopId` is required.
+- `minAgeMinutes` defaults to 1; `limit` defaults to 100 and must stay capped at 500.
+- `createdPayments` are queried from `pay_payment_order` where `shop_id = ?`, `status = created`, and `created_at <= now - minAgeMinutes`.
+- `failedPayments` are queried from `pay_payment_order` where `shop_id = ?` and `status = failed`, ordered by most recently updated rows first.
+- Query responses must expose `createdAt`, `updatedAt`, and `lastCompensatedAt`.
+
+### `POST /internal/payments/reconciliations/manual`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "paymentNo": "PAY-001"
+}
+```
+
+Response code: `PAYMENT_RECONCILED_MANUALLY`.
+
+Response data:
+
+```json
+{
+  "result": "settled",
+  "errorCode": null,
+  "reason": null,
+  "payment": {
+    "paymentId": 201,
+    "paymentNo": "PAY-001",
+    "status": "paid",
+    "lastCompensationResult": "settled",
+    "lastCompensationTraceId": "trace-manual-payment",
+    "lastCompensationTrigger": "manual",
+    "lastCompensatedAt": "2026-05-03T12:05:00+08:00"
+  }
+}
+```
+
+Rules:
+
+- Manual reconcile reuses the same internal settlement path as scheduler reconcile and callback success.
+- Missing payment returns `PAYMENT_NOT_FOUND`.
+- Non-`created` rows return HTTP 200 with `result = skipped`; they do not force a state transition.
+- `PAYMENT_ORDER_STATUS_INVALID` remains terminal and keeps the row in `failed`.
+- Replay success persists latest-compensation metadata on `pay_payment_order`.
+- Replay failure persists `lastCompensationResult = failed` plus sanitized `errorCode` / `reason`.
+- Manual replay logs must include `traceId`, `trigger=manual`, `shopId`, `paymentId`, `paymentNo`, `orderId`, `reservationNo`, `result`, and current `paymentStatus`.
+
+Additional database addendum:
+
+- `services/sangui-payment-service/src/main/resources/db/migration/V4__add_payment_compensation_ops_columns.sql`
+- Required latest-compensation columns on `pay_payment_order`:
+  - `last_compensation_result`
+  - `last_compensation_error_code`
+  - `last_compensation_reason`
+  - `last_compensation_trace_id`
+  - `last_compensation_trigger`
+  - `last_compensated_at`
+
+Additional validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Query/manual request missing `shopId` | 400 | `VALIDATION_FAILED` |
+| Blank `paymentNo` | 400 | `VALIDATION_FAILED` |
+| Manual reconcile payment missing | 404 | `PAYMENT_NOT_FOUND` |
+| Downstream timeout during manual reconcile | 503 | `DOWNSTREAM_TIMEOUT` |
+
+Additional required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-payment-service" -am "-Dtest=PaymentReconcileServiceTest,PaymentReconcileSchedulerTest,PaymentControllerTest,InternalPaymentCompensationControllerTest,PaymentCompensationOpsMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: manual reconcile returns `settled`, `skipped`, or `failed` without bypassing existing settle rules.
+- Good: query surfaces show both business status and latest compensation metadata.
+- Good: manual reconcile and scheduler share the same metrics family and latest-compensation columns.
+- Base: full attempt history remains in logs; the row stores only the latest attempt.
+- Bad: manual reconcile revives a non-`created` payment by force.
+- Bad: ops query omits failure reason, traceId, or key timestamps needed for troubleshooting.

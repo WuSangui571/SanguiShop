@@ -43,7 +43,7 @@ public class OrderTimeoutCancelService {
     @Transactional
     public CancelExpiredOrdersResponse cancelExpiredOrders(CancelExpiredOrdersRequest request, String traceId) {
         int limit = normalizeLimit(request.limit());
-        int timeoutMinutes = request.timeoutMinutes() == null ? DEFAULT_TIMEOUT_MINUTES : request.timeoutMinutes();
+        int timeoutMinutes = normalizeTimeoutMinutes(request.timeoutMinutes());
         LocalDateTime cutoff = LocalDateTime.now(clock).minusMinutes(timeoutMinutes);
         List<OrderRecord> expiredOrders = orderRepository.findExpiredCreatedOrders(request.shopId(), cutoff, limit);
 
@@ -51,47 +51,59 @@ public class OrderTimeoutCancelService {
         int skippedCount = 0;
         int failedCount = 0;
         for (OrderRecord order : expiredOrders) {
-            try {
-                if (cancelOne(order, traceId)) {
-                    cancelledCount++;
-                } else {
-                    skippedCount++;
-                }
-            } catch (RuntimeException exception) {
+            OrderTimeoutReplayExecution execution = replayTimeoutOrder(order.shopId(), order.id(), timeoutMinutes, traceId, "scheduler");
+            if ("cancelled".equals(execution.result())) {
+                cancelledCount++;
+            } else if ("skipped".equals(execution.result())) {
+                skippedCount++;
+            } else {
                 failedCount++;
-                log.warn(
-                        "Order timeout compensation failed. traceId={} shopId={} orderId={} orderNo={} reservationNo={} errorType={} errorCode={} message={}",
-                        normalizeTraceId(traceId),
-                        order.shopId(),
-                        order.id(),
-                        order.orderNo(),
-                        order.reservationNo(),
-                        exception.getClass().getSimpleName(),
-                        errorCode(exception),
-                        sanitizeMessage(exception)
-                );
             }
         }
         return new CancelExpiredOrdersResponse(request.shopId(), expiredOrders.size(), cancelledCount, skippedCount, failedCount);
     }
 
-    private boolean cancelOne(OrderRecord order, String traceId) {
-        OrderRecord latest = orderRepository.findById(order.shopId(), order.id())
+    @Transactional
+    public OrderTimeoutReplayExecution replayTimeoutOrder(Long shopId, Long orderId, Integer timeoutMinutes, String traceId, String trigger) {
+        OrderRecord latest = orderRepository.findById(shopId, orderId)
                 .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
         if (latest.status() != OrderStatus.CREATED) {
-            return false;
+            return recordSkipped(latest, traceId, trigger, "ORDER_STATUS_NOT_CREATED", "Order is no longer in created status.");
         }
-        productCatalogClient.releaseInventory(latest.shopId(), latest.reservationNo(), normalizeTraceId(traceId));
-        int updated = orderRepository.updateStatus(latest.shopId(), latest.id(), OrderStatus.CREATED, OrderStatus.CANCELLED);
-        if (updated > 0) {
-            return true;
+        int effectiveTimeoutMinutes = normalizeTimeoutMinutes(timeoutMinutes);
+        LocalDateTime cutoff = LocalDateTime.now(clock).minusMinutes(effectiveTimeoutMinutes);
+        if (latest.createdAt().isAfter(cutoff)) {
+            return recordSkipped(latest, traceId, trigger, "ORDER_NOT_TIMEOUT_ELIGIBLE", "Order has not reached the timeout threshold yet.");
         }
-        OrderRecord refreshed = orderRepository.findById(order.shopId(), order.id())
-                .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
-        if (refreshed.status() == OrderStatus.CANCELLED || refreshed.status() == OrderStatus.PAID) {
-            return false;
+        try {
+            productCatalogClient.releaseInventory(latest.shopId(), latest.reservationNo(), normalizeTraceId(traceId));
+            int updated = orderRepository.updateStatus(latest.shopId(), latest.id(), OrderStatus.CREATED, OrderStatus.CANCELLED);
+            if (updated > 0) {
+                updateCompensationMetadata(latest, "cancelled", null, null, traceId, trigger);
+                OrderRecord refreshed = orderRepository.findById(latest.shopId(), latest.id())
+                        .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
+                log.info(
+                        "Order compensation audit. traceId={} trigger={} shopId={} orderId={} orderNo={} reservationNo={} result={} orderStatus={}",
+                        normalizeTraceId(traceId),
+                        trigger,
+                        refreshed.shopId(),
+                        refreshed.id(),
+                        refreshed.orderNo(),
+                        refreshed.reservationNo(),
+                        "cancelled",
+                        refreshed.status().value()
+                );
+                return new OrderTimeoutReplayExecution(refreshed, "cancelled", null, null);
+            }
+            OrderRecord refreshed = orderRepository.findById(latest.shopId(), latest.id())
+                    .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
+            if (refreshed.status() == OrderStatus.CANCELLED || refreshed.status() == OrderStatus.PAID) {
+                return recordSkipped(refreshed, traceId, trigger, "ORDER_STATUS_NOT_CREATED", "Order was already processed by another path.");
+            }
+            throw new SanguiException(OrderErrorCode.ORDER_STATUS_INVALID, 409);
+        } catch (RuntimeException exception) {
+            return recordFailed(latest, traceId, trigger, errorCode(exception), sanitizeMessage(exception), exception);
         }
-        throw new SanguiException(OrderErrorCode.ORDER_STATUS_INVALID, 409);
     }
 
     private int normalizeLimit(Integer limit) {
@@ -99,6 +111,10 @@ public class OrderTimeoutCancelService {
             return DEFAULT_LIMIT;
         }
         return Math.min(limit, MAX_LIMIT);
+    }
+
+    private int normalizeTimeoutMinutes(Integer timeoutMinutes) {
+        return timeoutMinutes == null ? DEFAULT_TIMEOUT_MINUTES : timeoutMinutes;
     }
 
     private String normalizeTraceId(String traceId) {
@@ -114,6 +130,78 @@ public class OrderTimeoutCancelService {
             return sanguiException.errorCode().code();
         }
         return "INTERNAL_ERROR";
+    }
+
+    private OrderTimeoutReplayExecution recordSkipped(
+            OrderRecord order,
+            String traceId,
+            String trigger,
+            String errorCode,
+            String reason
+    ) {
+        updateCompensationMetadata(order, "skipped", errorCode, reason, traceId, trigger);
+        OrderRecord refreshed = orderRepository.findById(order.shopId(), order.id()).orElse(order);
+        log.info(
+                "Order compensation audit. traceId={} trigger={} shopId={} orderId={} orderNo={} reservationNo={} result={} errorCode={} reason={} orderStatus={}",
+                normalizeTraceId(traceId),
+                trigger,
+                refreshed.shopId(),
+                refreshed.id(),
+                refreshed.orderNo(),
+                refreshed.reservationNo(),
+                "skipped",
+                errorCode,
+                reason,
+                refreshed.status().value()
+        );
+        return new OrderTimeoutReplayExecution(refreshed, "skipped", errorCode, reason);
+    }
+
+    private OrderTimeoutReplayExecution recordFailed(
+            OrderRecord order,
+            String traceId,
+            String trigger,
+            String errorCode,
+            String reason,
+            RuntimeException exception
+    ) {
+        updateCompensationMetadata(order, "failed", errorCode, reason, traceId, trigger);
+        OrderRecord refreshed = orderRepository.findById(order.shopId(), order.id()).orElse(order);
+        log.warn(
+                "Order compensation audit. traceId={} trigger={} shopId={} orderId={} orderNo={} reservationNo={} result={} errorType={} errorCode={} reason={} orderStatus={}",
+                normalizeTraceId(traceId),
+                trigger,
+                refreshed.shopId(),
+                refreshed.id(),
+                refreshed.orderNo(),
+                refreshed.reservationNo(),
+                "failed",
+                exception.getClass().getSimpleName(),
+                errorCode,
+                reason,
+                refreshed.status().value()
+        );
+        return new OrderTimeoutReplayExecution(refreshed, "failed", errorCode, reason);
+    }
+
+    private void updateCompensationMetadata(
+            OrderRecord order,
+            String result,
+            String errorCode,
+            String reason,
+            String traceId,
+            String trigger
+    ) {
+        orderRepository.updateCompensationMetadata(
+                order.shopId(),
+                order.id(),
+                result,
+                errorCode,
+                reason,
+                normalizeTraceId(traceId),
+                trigger,
+                LocalDateTime.now(clock)
+        );
     }
 
     private String sanitizeMessage(RuntimeException exception) {

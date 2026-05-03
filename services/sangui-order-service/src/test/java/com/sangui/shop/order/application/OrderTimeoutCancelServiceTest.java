@@ -150,6 +150,31 @@ class OrderTimeoutCancelServiceTest {
         assertThat(orderRepository.findById(1L, secondOrderId).orElseThrow().status()).isEqualTo(OrderStatus.CANCELLED);
     }
 
+    @Test
+    void manualReplaySkipsOrderThatIsNotYetTimedOut() {
+        Long orderId = orderRepository.seedOrder(
+                1L,
+                "10001",
+                "ORD-003",
+                "req-003",
+                "ord:10001:req-003",
+                OrderStatus.CREATED,
+                LocalDateTime.now(FIXED_CLOCK).minusMinutes(5)
+        );
+
+        OrderTimeoutReplayExecution execution = orderTimeoutCancelService.replayTimeoutOrder(
+                1L,
+                orderId,
+                15,
+                "trace-manual-order",
+                "manual"
+        );
+
+        assertThat(execution.result()).isEqualTo("skipped");
+        assertThat(orderRepository.findById(1L, orderId).orElseThrow().lastCompensationResult()).isEqualTo("skipped");
+        assertThat(orderRepository.findById(1L, orderId).orElseThrow().lastCompensationTrigger()).isEqualTo("manual");
+    }
+
     private static final class InMemoryOrderRepository implements OrderRepository {
 
         private final AtomicLong nextOrderId = new AtomicLong(10000);
@@ -192,6 +217,17 @@ class OrderTimeoutCancelServiceTest {
         }
 
         @Override
+        public List<OrderRecord> findCancelledOrders(Long shopId, int limit) {
+            return snapshotsById.values().stream()
+                    .map(OrderSnapshot::order)
+                    .filter(order -> java.util.Objects.equals(order.shopId(), shopId))
+                    .filter(order -> order.status() == OrderStatus.CANCELLED)
+                    .sorted(Comparator.comparing(OrderRecord::updatedAt).reversed())
+                    .limit(limit)
+                    .toList();
+        }
+
+        @Override
         public Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft) {
             Long orderId = nextOrderId.incrementAndGet();
             put(orderId, shopId, userId, orderNo, draft.requestId(), draft.reservationNo(), status, traceId, LocalDateTime.now(FIXED_CLOCK));
@@ -213,9 +249,49 @@ class OrderTimeoutCancelServiceTest {
                     snapshot.order().reservationNo(),
                     nextStatus,
                     snapshot.order().traceId(),
-                    createdAtById.get(orderId)
+                    createdAtById.get(orderId),
+                    snapshot.order().lastCompensationResult(),
+                    snapshot.order().lastCompensationErrorCode(),
+                    snapshot.order().lastCompensationReason(),
+                    snapshot.order().lastCompensationTraceId(),
+                    snapshot.order().lastCompensationTrigger(),
+                    snapshot.order().lastCompensatedAt()
             );
             return 1;
+        }
+
+        @Override
+        public void updateCompensationMetadata(
+                Long shopId,
+                Long orderId,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                LocalDateTime compensatedAt
+        ) {
+            OrderSnapshot snapshot = snapshotsById.get(orderId);
+            if (snapshot == null || !java.util.Objects.equals(snapshot.order().shopId(), shopId)) {
+                return;
+            }
+            put(
+                    orderId,
+                    snapshot.order().shopId(),
+                    snapshot.order().userId(),
+                    snapshot.order().orderNo(),
+                    snapshot.order().requestId(),
+                    snapshot.order().reservationNo(),
+                    snapshot.order().status(),
+                    snapshot.order().traceId(),
+                    createdAtById.get(orderId),
+                    result,
+                    errorCode,
+                    reason,
+                    traceId,
+                    trigger,
+                    compensatedAt
+            );
         }
 
         private Long seedOrder(
@@ -243,8 +319,46 @@ class OrderTimeoutCancelServiceTest {
                 String traceId,
                 LocalDateTime createdAt
         ) {
+            put(orderId, shopId, userId, orderNo, requestId, reservationNo, status, traceId, createdAt, null, null, null, null, null, null);
+        }
+
+        private void put(
+                Long orderId,
+                Long shopId,
+                String userId,
+                String orderNo,
+                String requestId,
+                String reservationNo,
+                OrderStatus status,
+                String traceId,
+                LocalDateTime createdAt,
+                String lastCompensationResult,
+                String lastCompensationErrorCode,
+                String lastCompensationReason,
+                String lastCompensationTraceId,
+                String lastCompensationTrigger,
+                LocalDateTime lastCompensatedAt
+        ) {
             snapshotsById.put(orderId, new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, requestId, reservationNo, status, 59900L, traceId),
+                    new OrderRecord(
+                            orderId,
+                            shopId,
+                            userId,
+                            orderNo,
+                            requestId,
+                            reservationNo,
+                            status,
+                            59900L,
+                            traceId,
+                            createdAt,
+                            createdAt,
+                            lastCompensationResult,
+                            lastCompensationErrorCode,
+                            lastCompensationReason,
+                            lastCompensationTraceId,
+                            lastCompensationTrigger,
+                            lastCompensatedAt
+                    ),
                     List.of(new OrderItemRecord(1L, orderId, 301L, 401L, "Sneaker 42", 59900L, 1, 59900L))
             ));
             createdAtById.put(orderId, createdAt);

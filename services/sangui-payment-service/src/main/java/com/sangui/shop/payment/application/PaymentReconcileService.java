@@ -46,46 +46,55 @@ public class PaymentReconcileService {
         int skippedCount = 0;
         int failedCount = 0;
         for (PaymentOrderRecord payment : payments) {
-            try {
-                if (reconcileOne(payment, traceId)) {
-                    settledCount++;
-                } else {
-                    skippedCount++;
-                }
-            } catch (RuntimeException exception) {
+            PaymentCompensationExecution execution = reconcilePayment(payment.shopId(), payment.paymentNo(), traceId, "scheduler");
+            if ("settled".equals(execution.result())) {
+                settledCount++;
+            } else if ("skipped".equals(execution.result())) {
+                skippedCount++;
+            } else {
                 failedCount++;
-                log.warn(
-                        "Payment reconcile failed. traceId={} shopId={} paymentId={} paymentNo={} orderId={} reservationNo={} errorType={} errorCode={} message={}",
-                        normalizeTraceId(traceId),
-                        payment.shopId(),
-                        payment.id(),
-                        payment.paymentNo(),
-                        payment.orderId(),
-                        payment.reservationNo(),
-                        exception.getClass().getSimpleName(),
-                        errorCode(exception),
-                        sanitizeMessage(exception)
-                );
             }
         }
 
         return new PaymentReconcileResult(shopId, payments.size(), settledCount, skippedCount, failedCount);
     }
 
-    private boolean reconcileOne(PaymentOrderRecord payment, String traceId) {
-        PaymentOrderRecord latest = paymentRepository.findByPaymentNo(payment.shopId(), payment.paymentNo())
+    public PaymentCompensationExecution reconcilePayment(Long shopId, String paymentNo, String traceId, String trigger) {
+        PaymentOrderRecord latest = paymentRepository.findByPaymentNo(shopId, paymentNo)
                 .orElseThrow(() -> new SanguiException(PaymentErrorCode.PAYMENT_NOT_FOUND, 404));
         if (latest.status() != PaymentStatus.CREATED) {
-            return false;
+            return recordSkipped(latest, traceId, trigger, "PAYMENT_STATUS_NOT_CREATED", "Payment is no longer in created status.");
         }
         try {
             paymentPayService.settlePayment(latest, traceId);
-            return true;
+            PaymentOrderRecord refreshed = paymentRepository.findByPaymentNo(latest.shopId(), latest.paymentNo())
+                    .orElse(latest.withStatus(PaymentStatus.PAID));
+            updateCompensationMetadata(refreshed, "settled", null, null, traceId, trigger);
+            log.info(
+                    "Payment compensation audit. traceId={} trigger={} shopId={} paymentId={} paymentNo={} orderId={} reservationNo={} result={} paymentStatus={}",
+                    normalizeTraceId(traceId),
+                    trigger,
+                    refreshed.shopId(),
+                    refreshed.id(),
+                    refreshed.paymentNo(),
+                    refreshed.orderId(),
+                    refreshed.reservationNo(),
+                    "settled",
+                    refreshed.status().value()
+            );
+            return new PaymentCompensationExecution(
+                    paymentRepository.findByPaymentNo(refreshed.shopId(), refreshed.paymentNo()).orElse(refreshed),
+                    "settled",
+                    null,
+                    null
+            );
         } catch (SanguiException exception) {
             if (exception.errorCode().code().equals(PaymentErrorCode.PAYMENT_ORDER_STATUS_INVALID.code())) {
                 paymentRepository.updatePaymentStatus(latest.shopId(), latest.id(), PaymentStatus.FAILED);
             }
-            throw exception;
+            return recordFailed(latest, traceId, trigger, errorCode(exception), sanitizeMessage(exception), exception);
+        } catch (RuntimeException exception) {
+            return recordFailed(latest, traceId, trigger, errorCode(exception), sanitizeMessage(exception), exception);
         }
     }
 
@@ -109,6 +118,80 @@ public class PaymentReconcileService {
             return sanguiException.errorCode().code();
         }
         return "INTERNAL_ERROR";
+    }
+
+    private PaymentCompensationExecution recordSkipped(
+            PaymentOrderRecord payment,
+            String traceId,
+            String trigger,
+            String errorCode,
+            String reason
+    ) {
+        updateCompensationMetadata(payment, "skipped", errorCode, reason, traceId, trigger);
+        PaymentOrderRecord refreshed = paymentRepository.findByPaymentNo(payment.shopId(), payment.paymentNo()).orElse(payment);
+        log.info(
+                "Payment compensation audit. traceId={} trigger={} shopId={} paymentId={} paymentNo={} orderId={} reservationNo={} result={} errorCode={} reason={} paymentStatus={}",
+                normalizeTraceId(traceId),
+                trigger,
+                refreshed.shopId(),
+                refreshed.id(),
+                refreshed.paymentNo(),
+                refreshed.orderId(),
+                refreshed.reservationNo(),
+                "skipped",
+                errorCode,
+                reason,
+                refreshed.status().value()
+        );
+        return new PaymentCompensationExecution(refreshed, "skipped", errorCode, reason);
+    }
+
+    private PaymentCompensationExecution recordFailed(
+            PaymentOrderRecord payment,
+            String traceId,
+            String trigger,
+            String errorCode,
+            String reason,
+            RuntimeException exception
+    ) {
+        updateCompensationMetadata(payment, "failed", errorCode, reason, traceId, trigger);
+        PaymentOrderRecord refreshed = paymentRepository.findByPaymentNo(payment.shopId(), payment.paymentNo()).orElse(payment);
+        log.warn(
+                "Payment compensation audit. traceId={} trigger={} shopId={} paymentId={} paymentNo={} orderId={} reservationNo={} result={} errorType={} errorCode={} reason={} paymentStatus={}",
+                normalizeTraceId(traceId),
+                trigger,
+                refreshed.shopId(),
+                refreshed.id(),
+                refreshed.paymentNo(),
+                refreshed.orderId(),
+                refreshed.reservationNo(),
+                "failed",
+                exception.getClass().getSimpleName(),
+                errorCode,
+                reason,
+                refreshed.status().value()
+        );
+        return new PaymentCompensationExecution(refreshed, "failed", errorCode, reason);
+    }
+
+    private void updateCompensationMetadata(
+            PaymentOrderRecord payment,
+            String result,
+            String errorCode,
+            String reason,
+            String traceId,
+            String trigger
+    ) {
+        paymentRepository.updateCompensationMetadata(
+                payment.shopId(),
+                payment.id(),
+                result,
+                errorCode,
+                reason,
+                normalizeTraceId(traceId),
+                trigger,
+                LocalDateTime.now(clock)
+        );
     }
 
     private String sanitizeMessage(RuntimeException exception) {

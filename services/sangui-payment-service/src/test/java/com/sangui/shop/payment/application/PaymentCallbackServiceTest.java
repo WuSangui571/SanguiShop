@@ -93,6 +93,7 @@ class PaymentCallbackServiceTest {
     }
 
     private PaymentOrderRecord createdPayment() {
+        LocalDateTime now = LocalDateTime.now();
         return new PaymentOrderRecord(
                 10001L,
                 1L,
@@ -104,7 +105,15 @@ class PaymentCallbackServiceTest {
                 "mock",
                 59900L,
                 PaymentStatus.CREATED,
-                "trace-created"
+                "trace-created",
+                now,
+                now,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
     }
 
@@ -143,6 +152,11 @@ class PaymentCallbackServiceTest {
         }
 
         @Override
+        public List<PaymentOrderRecord> findFailedPayments(Long shopId, int limit) {
+            return List.of();
+        }
+
+        @Override
         public Optional<PaymentCallbackLogRecord> findCallbackLog(String channel, String channelTradeNo) {
             return Optional.ofNullable(callbackLogsByKey.get(callbackKey(channel, channelTradeNo)));
         }
@@ -160,7 +174,15 @@ class PaymentCallbackServiceTest {
                     draft.channel(),
                     draft.amountCent(),
                     status,
-                    draft.traceId()
+                    draft.traceId(),
+                    LocalDateTime.now(),
+                    LocalDateTime.now(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
             ));
             return 10001L;
         }
@@ -190,10 +212,43 @@ class PaymentCallbackServiceTest {
         public void updatePaymentStatus(Long shopId, Long paymentId, PaymentStatus status) {
             recordsByKey.replaceAll((key, value) -> {
                 if (java.util.Objects.equals(value.shopId(), shopId) && java.util.Objects.equals(value.id(), paymentId)) {
-                    return value.withStatus(status);
+                    return new PaymentOrderRecord(
+                            value.id(),
+                            value.shopId(),
+                            value.orderId(),
+                            value.orderNo(),
+                            value.userId(),
+                            value.reservationNo(),
+                            value.paymentNo(),
+                            value.channel(),
+                            value.amountCent(),
+                            status,
+                            value.traceId(),
+                            value.createdAt(),
+                            LocalDateTime.now(),
+                            value.lastCompensationResult(),
+                            value.lastCompensationErrorCode(),
+                            value.lastCompensationReason(),
+                            value.lastCompensationTraceId(),
+                            value.lastCompensationTrigger(),
+                            value.lastCompensatedAt()
+                    );
                 }
                 return value;
             });
+        }
+
+        @Override
+        public void updateCompensationMetadata(
+                Long shopId,
+                Long paymentId,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                LocalDateTime compensatedAt
+        ) {
         }
 
         @Override

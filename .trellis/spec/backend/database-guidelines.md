@@ -160,3 +160,46 @@ Repository test strategy:
 | Base | 仅有迁移脚本、尚无 repository 时，至少保留 SQL contract test。 |
 | Bad | 重复 `(shop_id, username)` 或 `(shop_id, mobile)` 必须被唯一索引拒绝。 |
 | Bad | repository 查询遗漏 `shop_id` 条件。 |
+## Compensation Ops Metadata Columns
+
+Manual replay / ops-surface work stores the latest compensation attempt on the business row instead of introducing a second history table.
+
+Order migration:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V4__add_order_compensation_ops_columns.sql`
+
+Payment migration:
+
+- `services/sangui-payment-service/src/main/resources/db/migration/V4__add_payment_compensation_ops_columns.sql`
+
+Required columns on both `oms_order` and `pay_payment_order`:
+
+- `last_compensation_result`
+- `last_compensation_error_code`
+- `last_compensation_reason`
+- `last_compensation_trace_id`
+- `last_compensation_trigger`
+- `last_compensated_at`
+
+Rules:
+
+- Latest-compensation columns are nullable because legacy rows may have no compensation attempts yet.
+- `last_compensation_result` is bounded to operational outcomes such as `cancelled`, `settled`, `skipped`, or `failed`; do not store free-form prose in this field.
+- `last_compensation_error_code` stores a stable machine-readable code or skip reason key.
+- `last_compensation_reason` stores a sanitized one-line message safe for ops query surfaces.
+- `last_compensation_trace_id` must reuse the request/job trace id that was emitted to logs.
+- `last_compensation_trigger` distinguishes at least `manual` and `scheduler`.
+
+Executable validation:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-payment-service" -am "-Dtest=OrderCompensationOpsMigrationContractTest,PaymentCompensationOpsMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: a manual replay updates latest-compensation columns on the same order/payment row that operators query later.
+- Good: a scheduler retry overwrites latest-compensation columns with the latest attempt instead of appending hidden state elsewhere.
+- Base: only the latest attempt is persisted; full attempt history still lives in logs.
+- Bad: storing stack traces or multi-line raw payloads in `last_compensation_reason`.
+- Bad: adding ops query APIs without persisting any latest-compensation metadata.

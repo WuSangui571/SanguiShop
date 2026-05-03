@@ -22,7 +22,7 @@ class OrderTimeoutCompensationSchedulerTest {
                 .thenReturn(new CancelExpiredOrdersResponse(1L, 2, 1, 0, 1));
         OrderTimeoutCompensationScheduler scheduler = new OrderTimeoutCompensationScheduler(
                 orderTimeoutCancelService,
-                meterRegistry,
+                new OrderCompensationMetricsRecorder(meterRegistry),
                 true,
                 1L,
                 15,
@@ -44,7 +44,7 @@ class OrderTimeoutCompensationSchedulerTest {
         MeterRegistry meterRegistry = new SimpleMeterRegistry();
         OrderTimeoutCompensationScheduler scheduler = new OrderTimeoutCompensationScheduler(
                 orderTimeoutCancelService,
-                meterRegistry,
+                new OrderCompensationMetricsRecorder(meterRegistry),
                 false,
                 1L,
                 15,
@@ -65,7 +65,7 @@ class OrderTimeoutCompensationSchedulerTest {
                 .thenThrow(new RuntimeException("boom"));
         OrderTimeoutCompensationScheduler scheduler = new OrderTimeoutCompensationScheduler(
                 orderTimeoutCancelService,
-                meterRegistry,
+                new OrderCompensationMetricsRecorder(meterRegistry),
                 true,
                 1L,
                 15,

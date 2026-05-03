@@ -103,10 +103,33 @@ class OrderCancelServiceTest {
         }
 
         @Override
+        public List<OrderRecord> findCancelledOrders(Long shopId, int limit) {
+            return List.of();
+        }
+
+        @Override
         public Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft) {
             Long orderId = ++nextOrderId;
             snapshotsById.put(orderId, new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, draft.requestId(), draft.reservationNo(), status, draft.totalAmountCent(), traceId),
+                    new OrderRecord(
+                            orderId,
+                            shopId,
+                            userId,
+                            orderNo,
+                            draft.requestId(),
+                            draft.reservationNo(),
+                            status,
+                            draft.totalAmountCent(),
+                            traceId,
+                            LocalDateTime.now(),
+                            LocalDateTime.now(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                    ),
                     List.of(new OrderItemRecord(1L, orderId, 301L, 401L, "Sneaker 42", 59900L, 1, 59900L))
             ));
             return orderId;
@@ -126,13 +149,34 @@ class OrderCancelServiceTest {
                             snapshot.order().orderNo(),
                             snapshot.order().requestId(),
                             snapshot.order().reservationNo(),
-                            nextStatus,
-                            snapshot.order().totalAmountCent(),
-                            snapshot.order().traceId()
+                    nextStatus,
+                    snapshot.order().totalAmountCent(),
+                    snapshot.order().traceId(),
+                    snapshot.order().createdAt(),
+                    LocalDateTime.now(),
+                    snapshot.order().lastCompensationResult(),
+                    snapshot.order().lastCompensationErrorCode(),
+                    snapshot.order().lastCompensationReason(),
+                    snapshot.order().lastCompensationTraceId(),
+                    snapshot.order().lastCompensationTrigger(),
+                    snapshot.order().lastCompensatedAt()
                     ),
                     snapshot.items()
             ));
             return 1;
+        }
+
+        @Override
+        public void updateCompensationMetadata(
+                Long shopId,
+                Long orderId,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                LocalDateTime compensatedAt
+        ) {
         }
 
         private Long seedOrder(
@@ -146,7 +190,25 @@ class OrderCancelServiceTest {
         ) {
             Long orderId = ++nextOrderId;
             snapshotsById.put(orderId, new OrderSnapshot(
-                    new OrderRecord(orderId, shopId, userId, orderNo, requestId, reservationNo, status, totalAmountCent, "trace-seed"),
+                    new OrderRecord(
+                            orderId,
+                            shopId,
+                            userId,
+                            orderNo,
+                            requestId,
+                            reservationNo,
+                            status,
+                            totalAmountCent,
+                            "trace-seed",
+                            LocalDateTime.now(),
+                            LocalDateTime.now(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                    ),
                     List.of(new OrderItemRecord(1L, orderId, 301L, 401L, "Sneaker 42", 59900L, 1, 59900L))
             ));
             return orderId;
