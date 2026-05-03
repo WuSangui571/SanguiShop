@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 18
+- **Total Sessions**: 19
 - **Last Active**: 2026-05-03
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~822 | Active |
+| `journal-1.md` | ~866 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 19 | 2026-05-03 | Compensation Attempt History Query Surface | `aa9f853` | `main` |
 | 18 | 2026-05-03 | Compensation task closure and CI fix | `18a67d2` | `main` |
 | 17 | 2026-05-03 | Compensation Ops Surface / Manual Replay | `badf0d4` | `main` |
 | 16 | 2026-05-03 | Compensation Observability / Config Hardening | `b935f3f` | `main` |

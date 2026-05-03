@@ -820,3 +820,47 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 19: Compensation Attempt History Query Surface
+
+**Date**: 2026-05-03
+**Task**: Compensation Attempt History Query Surface
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Order Query Surface | Reworked `/internal/orders/compensation-records/query` into a history-backed aggregate query with filters for `shopId`, `orderId`, `trigger`, `result`, `operator`, `traceId`, time range, and paged drill-down attempt detail. |
+| Payment Query Surface | Reworked `/internal/payments/compensation-records/query` into a history-backed aggregate query with filters for `shopId`, `orderId`, `paymentNo`, `trigger`, `result`, `operator`, `traceId`, time range, and paged drill-down attempt detail. |
+| Repository & DTOs | Added attempt-history query models, JDBC summary/detail queries, aggregate DTOs, and response shapes that combine latest business-row snapshot with ordered attempt records. |
+| Tests | Added order/payment compensation ops service tests, controller tests, and JSON contract tests; kept migration contract coverage in the targeted test suite. |
+| Spec Sync | Updated backend database, order-create, and payment-pay specs with the new history-query contract, pagination behavior, and drill-down response pattern. |
+
+**Verification**:
+- Human committed `aa9f853 feat(compensation): add attempt history query surface`.
+- AI ran targeted Maven tests and compile successfully with workspace-local Maven repo.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aa9f853` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
