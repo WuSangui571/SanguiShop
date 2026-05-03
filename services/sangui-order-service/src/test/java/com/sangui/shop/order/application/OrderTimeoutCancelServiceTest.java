@@ -342,7 +342,7 @@ class OrderTimeoutCancelServiceTest {
                 String traceId,
                 LocalDateTime createdAt
         ) {
-            put(orderId, shopId, userId, orderNo, requestId, reservationNo, status, traceId, createdAt, null, null, null, null, null, null);
+            put(orderId, shopId, userId, orderNo, requestId, reservationNo, status, traceId, createdAt, null, null, null, null, null, null, null);
         }
 
         private void put(
