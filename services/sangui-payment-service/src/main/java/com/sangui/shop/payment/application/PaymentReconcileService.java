@@ -55,14 +55,16 @@ public class PaymentReconcileService {
             } catch (RuntimeException exception) {
                 failedCount++;
                 log.warn(
-                        "Payment reconcile failed. traceId={} shopId={} paymentId={} paymentNo={} orderId={} reservationNo={}",
+                        "Payment reconcile failed. traceId={} shopId={} paymentId={} paymentNo={} orderId={} reservationNo={} errorType={} errorCode={} message={}",
                         normalizeTraceId(traceId),
                         payment.shopId(),
                         payment.id(),
                         payment.paymentNo(),
                         payment.orderId(),
                         payment.reservationNo(),
-                        exception
+                        exception.getClass().getSimpleName(),
+                        errorCode(exception),
+                        sanitizeMessage(exception)
                 );
             }
         }
@@ -100,5 +102,20 @@ public class PaymentReconcileService {
         }
         String trimmed = traceId.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String errorCode(RuntimeException exception) {
+        if (exception instanceof SanguiException sanguiException) {
+            return sanguiException.errorCode().code();
+        }
+        return "INTERNAL_ERROR";
+    }
+
+    private String sanitizeMessage(RuntimeException exception) {
+        String message = exception.getMessage();
+        if (message == null) {
+            return "";
+        }
+        return message.replaceAll("[\\r\\n]+", " ").trim();
     }
 }

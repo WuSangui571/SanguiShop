@@ -60,13 +60,15 @@ public class OrderTimeoutCancelService {
             } catch (RuntimeException exception) {
                 failedCount++;
                 log.warn(
-                        "Order timeout compensation failed. traceId={} shopId={} orderId={} orderNo={} reservationNo={}",
+                        "Order timeout compensation failed. traceId={} shopId={} orderId={} orderNo={} reservationNo={} errorType={} errorCode={} message={}",
                         normalizeTraceId(traceId),
                         order.shopId(),
                         order.id(),
                         order.orderNo(),
                         order.reservationNo(),
-                        exception
+                        exception.getClass().getSimpleName(),
+                        errorCode(exception),
+                        sanitizeMessage(exception)
                 );
             }
         }
@@ -105,5 +107,20 @@ public class OrderTimeoutCancelService {
         }
         String trimmed = traceId.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String errorCode(RuntimeException exception) {
+        if (exception instanceof SanguiException sanguiException) {
+            return sanguiException.errorCode().code();
+        }
+        return "INTERNAL_ERROR";
+    }
+
+    private String sanitizeMessage(RuntimeException exception) {
+        String message = exception.getMessage();
+        if (message == null) {
+            return "";
+        }
+        return message.replaceAll("[\\r\\n]+", " ").trim();
     }
 }
