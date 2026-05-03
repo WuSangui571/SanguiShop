@@ -21,6 +21,7 @@ public record PaymentOrderRecord(
         String lastCompensationReason,
         String lastCompensationTraceId,
         String lastCompensationTrigger,
+        String lastCompensationOperator,
         LocalDateTime lastCompensatedAt
 ) {
     public PaymentOrderRecord withStatus(PaymentStatus nextStatus) {
@@ -43,6 +44,7 @@ public record PaymentOrderRecord(
                 lastCompensationReason,
                 lastCompensationTraceId,
                 lastCompensationTrigger,
+                lastCompensationOperator,
                 lastCompensatedAt
         );
     }

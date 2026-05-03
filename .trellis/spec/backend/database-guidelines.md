@@ -189,6 +189,7 @@ Rules:
 - `last_compensation_reason` stores a sanitized one-line message safe for ops query surfaces.
 - `last_compensation_trace_id` must reuse the request/job trace id that was emitted to logs.
 - `last_compensation_trigger` distinguishes at least `manual` and `scheduler`.
+- `last_compensation_operator` stores the explicit operator for manual single/bulk replay and stays `NULL` for scheduler-triggered runs.
 
 Executable validation:
 
@@ -200,6 +201,26 @@ Good/Base/Bad cases:
 
 - Good: a manual replay updates latest-compensation columns on the same order/payment row that operators query later.
 - Good: a scheduler retry overwrites latest-compensation columns with the latest attempt instead of appending hidden state elsewhere.
-- Base: only the latest attempt is persisted; full attempt history still lives in logs.
+- Good: every scheduler or manual attempt appends a separate history row with `trace_id`, `trigger_type`, and `operator`.
+- Base: latest metadata remains on the business row while history rows accumulate separately.
 - Bad: storing stack traces or multi-line raw payloads in `last_compensation_reason`.
 - Bad: adding ops query APIs without persisting any latest-compensation metadata.
+
+## Compensation Attempt History Tables
+
+Follow-up compensation operations persist immutable attempt history alongside latest row metadata.
+
+Order migration:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V5__add_order_compensation_attempt_history.sql`
+
+Payment migration:
+
+- `services/sangui-payment-service/src/main/resources/db/migration/V5__add_payment_compensation_attempt_history.sql`
+
+Rules:
+
+- Attempt history is append-only from application code; do not update prior attempt rows to reflect the latest state.
+- `operator` is nullable for scheduler runs and required for manual single/bulk replay requests.
+- `reason` remains sanitized single-line operational text; do not persist stack traces or raw payloads.
+- Keep latest metadata on business rows for fast query APIs; the history table is the audit trail, not a replacement for the fast-path row snapshot.

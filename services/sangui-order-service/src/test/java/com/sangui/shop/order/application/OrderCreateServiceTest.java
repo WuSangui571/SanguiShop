@@ -241,6 +241,7 @@ class OrderCreateServiceTest {
                             null,
                             null,
                             null,
+                            null,
                             null
                     ),
                     items
@@ -263,7 +264,23 @@ class OrderCreateServiceTest {
                 String reason,
                 String traceId,
                 String trigger,
+                String operator,
                 LocalDateTime compensatedAt
+        ) {
+        }
+
+        @Override
+        public void appendCompensationAttempt(
+                Long shopId,
+                Long orderId,
+                String orderNo,
+                String reservationNo,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                String operator
         ) {
         }
 

@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "run_dir": "D:\\02-WorkSpace\\02-Java\\SanguiShop\\output\\hatch-pet\\tracebun-run",
+  "spritesheet": "D:\\02-WorkSpace\\02-Java\\SanguiShop\\output\\hatch-pet\\tracebun-run\\final\\spritesheet.webp",
+  "validation": "D:\\02-WorkSpace\\02-Java\\SanguiShop\\output\\hatch-pet\\tracebun-run\\final\\validation.json",
+  "contact_sheet": "D:\\02-WorkSpace\\02-Java\\SanguiShop\\output\\hatch-pet\\tracebun-run\\qa\\contact-sheet.png",
+  "review": "D:\\02-WorkSpace\\02-Java\\SanguiShop\\output\\hatch-pet\\tracebun-run\\qa\\review.json",
+  "videos": null,
+  "package": "C:\\Users\\root\\.codex\\pets\\tracebun"
+}

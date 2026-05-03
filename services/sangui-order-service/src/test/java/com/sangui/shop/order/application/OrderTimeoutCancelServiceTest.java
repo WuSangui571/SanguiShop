@@ -167,12 +167,15 @@ class OrderTimeoutCancelServiceTest {
                 orderId,
                 15,
                 "trace-manual-order",
-                "manual"
+                "manual",
+                "ops-user"
         );
 
         assertThat(execution.result()).isEqualTo("skipped");
         assertThat(orderRepository.findById(1L, orderId).orElseThrow().lastCompensationResult()).isEqualTo("skipped");
         assertThat(orderRepository.findById(1L, orderId).orElseThrow().lastCompensationTrigger()).isEqualTo("manual");
+        assertThat(orderRepository.findById(1L, orderId).orElseThrow().lastCompensationOperator()).isEqualTo("ops-user");
+        assertThat(orderRepository.compensationAttempts).hasSize(1);
     }
 
     private static final class InMemoryOrderRepository implements OrderRepository {
@@ -180,6 +183,7 @@ class OrderTimeoutCancelServiceTest {
         private final AtomicLong nextOrderId = new AtomicLong(10000);
         private final Map<Long, OrderSnapshot> snapshotsById = new LinkedHashMap<>();
         private final Map<Long, LocalDateTime> createdAtById = new LinkedHashMap<>();
+        private final List<String> compensationAttempts = new java.util.ArrayList<>();
 
         @Override
         public Optional<OrderRecord> findById(Long shopId, Long orderId) {
@@ -255,6 +259,7 @@ class OrderTimeoutCancelServiceTest {
                     snapshot.order().lastCompensationReason(),
                     snapshot.order().lastCompensationTraceId(),
                     snapshot.order().lastCompensationTrigger(),
+                    snapshot.order().lastCompensationOperator(),
                     snapshot.order().lastCompensatedAt()
             );
             return 1;
@@ -269,6 +274,7 @@ class OrderTimeoutCancelServiceTest {
                 String reason,
                 String traceId,
                 String trigger,
+                String operator,
                 LocalDateTime compensatedAt
         ) {
             OrderSnapshot snapshot = snapshotsById.get(orderId);
@@ -290,8 +296,25 @@ class OrderTimeoutCancelServiceTest {
                     reason,
                     traceId,
                     trigger,
+                    operator,
                     compensatedAt
             );
+        }
+
+        @Override
+        public void appendCompensationAttempt(
+                Long shopId,
+                Long orderId,
+                String orderNo,
+                String reservationNo,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                String operator
+        ) {
+            compensationAttempts.add(trigger + "|" + result + "|" + operator);
         }
 
         private Long seedOrder(
@@ -337,6 +360,7 @@ class OrderTimeoutCancelServiceTest {
                 String lastCompensationReason,
                 String lastCompensationTraceId,
                 String lastCompensationTrigger,
+                String lastCompensationOperator,
                 LocalDateTime lastCompensatedAt
         ) {
             snapshotsById.put(orderId, new OrderSnapshot(
@@ -357,6 +381,7 @@ class OrderTimeoutCancelServiceTest {
                             lastCompensationReason,
                             lastCompensationTraceId,
                             lastCompensationTrigger,
+                            lastCompensationOperator,
                             lastCompensatedAt
                     ),
                     List.of(new OrderItemRecord(1L, orderId, 301L, 401L, "Sneaker 42", 59900L, 1, 59900L))

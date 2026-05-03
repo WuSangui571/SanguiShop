@@ -2,6 +2,8 @@ package com.sangui.shop.payment.api;
 
 import com.sangui.shop.common.core.api.ApiResult;
 import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.payment.api.dto.BulkPaymentReconcileRequest;
+import com.sangui.shop.payment.api.dto.BulkPaymentReconcileResponse;
 import com.sangui.shop.payment.api.dto.ManualPaymentReconcileRequest;
 import com.sangui.shop.payment.api.dto.ManualPaymentReconcileResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationQueryRequest;
@@ -44,6 +46,16 @@ public class InternalPaymentCompensationController {
         String traceId = traceId(httpRequest);
         ManualPaymentReconcileResponse response = paymentCompensationOpsService.manualReconcile(request, traceId);
         return ApiResult.ok("PAYMENT_RECONCILED_MANUALLY", response, traceId);
+    }
+
+    @PostMapping("/reconciliations/bulk")
+    public ApiResult<BulkPaymentReconcileResponse> bulkReconcile(
+            @Valid @RequestBody BulkPaymentReconcileRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = traceId(httpRequest);
+        BulkPaymentReconcileResponse response = paymentCompensationOpsService.bulkReconcile(request, traceId);
+        return ApiResult.ok("PAYMENT_RECONCILED_IN_BULK", response, traceId);
     }
 
     private String traceId(HttpServletRequest request) {

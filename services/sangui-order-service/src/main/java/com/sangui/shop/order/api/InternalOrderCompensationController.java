@@ -2,6 +2,8 @@ package com.sangui.shop.order.api;
 
 import com.sangui.shop.common.core.api.ApiResult;
 import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayRequest;
+import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayResponse;
 import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayRequest;
 import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayResponse;
 import com.sangui.shop.order.api.dto.OrderCompensationQueryRequest;
@@ -44,6 +46,16 @@ public class InternalOrderCompensationController {
         String traceId = traceId(httpRequest);
         ManualOrderTimeoutReplayResponse response = orderCompensationOpsService.manualReplay(request, traceId);
         return ApiResult.ok("ORDER_TIMEOUT_REPLAYED_MANUALLY", response, traceId);
+    }
+
+    @PostMapping("/timeout-replays/bulk")
+    public ApiResult<BulkOrderTimeoutReplayResponse> bulkReplay(
+            @Valid @RequestBody BulkOrderTimeoutReplayRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = traceId(httpRequest);
+        BulkOrderTimeoutReplayResponse response = orderCompensationOpsService.bulkReplay(request, traceId);
+        return ApiResult.ok("ORDER_TIMEOUT_REPLAYED_IN_BULK", response, traceId);
     }
 
     private String traceId(HttpServletRequest request) {

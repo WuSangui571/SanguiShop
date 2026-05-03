@@ -19,6 +19,7 @@ public record PaymentCompensationRecordResponse(
         String lastCompensationReason,
         String lastCompensationTraceId,
         String lastCompensationTrigger,
+        String lastCompensationOperator,
         OffsetDateTime lastCompensatedAt
 ) {
 }

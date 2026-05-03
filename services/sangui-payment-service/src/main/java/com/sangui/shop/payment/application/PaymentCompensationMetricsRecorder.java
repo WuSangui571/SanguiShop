@@ -17,17 +17,18 @@ public class PaymentCompensationMetricsRecorder {
         this.meterRegistry = meterRegistry;
     }
 
-    public void incrementRun(String result) {
+    public void incrementRun(String trigger, String result) {
         Counter.builder(RUN_COUNTER)
                 .description("Total compensation job runs grouped by result.")
                 .tag("service", "payment")
                 .tag("job", JOB_NAME)
+                .tag("trigger", trigger)
                 .tag("result", result)
                 .register(meterRegistry)
                 .increment();
     }
 
-    public void incrementItem(String result, int amount) {
+    public void incrementItem(String trigger, String result, int amount) {
         if (amount <= 0) {
             return;
         }
@@ -35,6 +36,7 @@ public class PaymentCompensationMetricsRecorder {
                 .description("Total compensation job items grouped by result.")
                 .tag("service", "payment")
                 .tag("job", JOB_NAME)
+                .tag("trigger", trigger)
                 .tag("result", result)
                 .register(meterRegistry)
                 .increment(amount);

@@ -28,7 +28,23 @@ public interface PaymentRepository {
             String reason,
             String traceId,
             String trigger,
+            String operator,
             LocalDateTime compensatedAt
+    );
+
+    void appendCompensationAttempt(
+            Long shopId,
+            Long paymentId,
+            Long orderId,
+            String paymentNo,
+            String orderNo,
+            String reservationNo,
+            String result,
+            String errorCode,
+            String reason,
+            String traceId,
+            String trigger,
+            String operator
     );
 
     void updateCallbackProcessStatus(Long callbackLogId, String processStatus);

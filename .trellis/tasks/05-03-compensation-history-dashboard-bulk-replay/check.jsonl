@@ -1,0 +1,13 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Internal bulk replay/query DTOs and stable response envelopes."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Append-only compensation attempt history tables, migration versioning, and index rules."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Bulk replay validation, deterministic error mapping, and sanitized failure reasons."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Attempt audit logs and traceability fields for manual, scheduler, and bulk replay paths."}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Repo-backed Grafana or alert artifacts and env/ops contract alignment."}
+{"file": ".trellis/spec/backend/inventory-reserve-contracts.md", "reason": "Order/payment compensation must not violate inventory ownership and release/confirm boundaries."}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order timeout compensation APIs, metrics, and replay rules must stay executable."}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Payment reconcile compensation APIs, metrics, and idempotent replay rules must stay executable."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required migration, controller, service, and contract coverage for backend delivery."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "This task spans API, DB, scheduler/manual flows, and deploy observability assets."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Check service boundaries, consistency, idempotency, and operability before changes."}

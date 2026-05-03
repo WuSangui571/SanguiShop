@@ -113,6 +113,7 @@ class PaymentCallbackServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
     }
@@ -182,6 +183,7 @@ class PaymentCallbackServiceTest {
                     null,
                     null,
                     null,
+                    null,
                     null
             ));
             return 10001L;
@@ -231,6 +233,7 @@ class PaymentCallbackServiceTest {
                             value.lastCompensationReason(),
                             value.lastCompensationTraceId(),
                             value.lastCompensationTrigger(),
+                            value.lastCompensationOperator(),
                             value.lastCompensatedAt()
                     );
                 }
@@ -247,7 +250,25 @@ class PaymentCallbackServiceTest {
                 String reason,
                 String traceId,
                 String trigger,
+                String operator,
                 LocalDateTime compensatedAt
+        ) {
+        }
+
+        @Override
+        public void appendCompensationAttempt(
+                Long shopId,
+                Long paymentId,
+                Long orderId,
+                String paymentNo,
+                String orderNo,
+                String reservationNo,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                String operator
         ) {
         }
 

@@ -54,6 +54,7 @@ class InternalOrderCompensationControllerTest {
                 null,
                 "trace-order-manual",
                 "manual",
+                "ops-user",
                 OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
         );
         when(orderCompensationOpsService.queryRecords(any()))
@@ -90,6 +91,7 @@ class InternalOrderCompensationControllerTest {
                 null,
                 "trace-order-manual",
                 "manual",
+                "ops-user",
                 OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
         );
         when(orderCompensationOpsService.manualReplay(any(), any()))
@@ -101,12 +103,65 @@ class InternalOrderCompensationControllerTest {
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "shopId", 1,
                                 "orderId", 101,
-                                "timeoutMinutes", 15
+                                "timeoutMinutes", 15,
+                                "operator", "ops-user"
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("ORDER_TIMEOUT_REPLAYED_MANUALLY"))
                 .andExpect(jsonPath("$.data.result").value("cancelled"))
                 .andExpect(jsonPath("$.data.order.lastCompensationTrigger").value("manual"));
+    }
+
+    @Test
+    void bulkReplayReturnsStableEnvelope() throws Exception {
+        OrderCompensationRecordResponse order = new OrderCompensationRecordResponse(
+                101L,
+                "ORD-001",
+                "10001",
+                "ord:10001:req-001",
+                "created",
+                59900L,
+                "trace-order",
+                OffsetDateTime.parse("2026-05-03T12:00:00+08:00"),
+                OffsetDateTime.parse("2026-05-03T12:10:00+08:00"),
+                "skipped",
+                "ORDER_NOT_TIMEOUT_ELIGIBLE",
+                "not yet timed out",
+                "trace-order-bulk",
+                "manual",
+                "ops-user",
+                OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
+        );
+        when(orderCompensationOpsService.bulkReplay(any(), any()))
+                .thenReturn(new com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayResponse(
+                        1L,
+                        true,
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        List.of(new com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayItemResponse(
+                                "skipped",
+                                "ORDER_NOT_TIMEOUT_ELIGIBLE",
+                                "not yet timed out",
+                                order
+                        ))
+                ));
+
+        mockMvc.perform(post("/internal/orders/timeout-replays/bulk")
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-order-bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "dryRun", true,
+                                "timeoutMinutes", 15,
+                                "limit", 100,
+                                "operator", "ops-user"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ORDER_TIMEOUT_REPLAYED_IN_BULK"))
+                .andExpect(jsonPath("$.data.items[0].result").value("skipped"));
     }
 
     @Test

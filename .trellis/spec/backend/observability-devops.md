@@ -50,6 +50,7 @@ Compensation scheduler env rule:
 
 - When a recurring job is introduced in `application.yml`, the matching `SANGUI_*` env keys must be mirrored in `deploy/.env.example`.
 - `.env.example` keeps only runnable placeholders and defaults; alert rules or dashboard values must not be baked into secrets or code.
+- Repo-backed observability artifacts for recurring jobs live under `deploy/observability/` so dashboards and alert rules can be reviewed together with code.
 
 Required checks:
 

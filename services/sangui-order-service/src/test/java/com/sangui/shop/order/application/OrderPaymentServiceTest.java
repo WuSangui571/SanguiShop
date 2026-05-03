@@ -129,6 +129,7 @@ class OrderPaymentServiceTest {
                             null,
                             null,
                             null,
+                            null,
                             null
                     ),
                     List.of(new com.sangui.shop.order.domain.OrderItemRecord(
@@ -215,6 +216,7 @@ class OrderPaymentServiceTest {
                             null,
                             null,
                             null,
+                            null,
                             null
                     ),
                     items
@@ -249,6 +251,7 @@ class OrderPaymentServiceTest {
                             snapshot.order().lastCompensationReason(),
                             snapshot.order().lastCompensationTraceId(),
                             snapshot.order().lastCompensationTrigger(),
+                            snapshot.order().lastCompensationOperator(),
                             snapshot.order().lastCompensatedAt()
                     ),
                     snapshot.items()
@@ -265,7 +268,23 @@ class OrderPaymentServiceTest {
                 String reason,
                 String traceId,
                 String trigger,
+                String operator,
                 LocalDateTime compensatedAt
+        ) {
+        }
+
+        @Override
+        public void appendCompensationAttempt(
+                Long shopId,
+                Long orderId,
+                String orderNo,
+                String reservationNo,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                String operator
         ) {
         }
     }

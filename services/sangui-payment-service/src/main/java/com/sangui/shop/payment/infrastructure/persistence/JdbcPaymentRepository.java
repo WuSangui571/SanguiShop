@@ -39,6 +39,7 @@ public class JdbcPaymentRepository implements PaymentRepository {
             rs.getString("last_compensation_reason"),
             rs.getString("last_compensation_trace_id"),
             rs.getString("last_compensation_trigger"),
+            rs.getString("last_compensation_operator"),
             rs.getTimestamp("last_compensated_at") == null ? null : rs.getTimestamp("last_compensated_at").toLocalDateTime()
     );
 
@@ -65,7 +66,8 @@ public class JdbcPaymentRepository implements PaymentRepository {
                 """
                         SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id,
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
-                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger, last_compensated_at
+                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
+                               last_compensation_operator, last_compensated_at
                         FROM pay_payment_order
                         WHERE shop_id = ? AND payment_no = ? AND deleted = 0
                         LIMIT 1
@@ -82,7 +84,8 @@ public class JdbcPaymentRepository implements PaymentRepository {
                 """
                         SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id,
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
-                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger, last_compensated_at
+                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
+                               last_compensation_operator, last_compensated_at
                         FROM pay_payment_order
                         WHERE shop_id = ? AND status = ? AND created_at <= ? AND deleted = 0
                         ORDER BY id ASC
@@ -102,7 +105,8 @@ public class JdbcPaymentRepository implements PaymentRepository {
                 """
                         SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id,
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
-                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger, last_compensated_at
+                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
+                               last_compensation_operator, last_compensated_at
                         FROM pay_payment_order
                         WHERE shop_id = ? AND status = ? AND deleted = 0
                         ORDER BY updated_at DESC, id DESC
@@ -212,6 +216,7 @@ public class JdbcPaymentRepository implements PaymentRepository {
             String reason,
             String traceId,
             String trigger,
+            String operator,
             LocalDateTime compensatedAt
     ) {
         jdbcTemplate.update(
@@ -222,6 +227,7 @@ public class JdbcPaymentRepository implements PaymentRepository {
                             last_compensation_reason = ?,
                             last_compensation_trace_id = ?,
                             last_compensation_trigger = ?,
+                            last_compensation_operator = ?,
                             last_compensated_at = ?
                         WHERE shop_id = ? AND id = ? AND deleted = 0
                         """,
@@ -230,9 +236,47 @@ public class JdbcPaymentRepository implements PaymentRepository {
                 reason,
                 traceId,
                 trigger,
+                operator,
                 compensatedAt,
                 shopId,
                 paymentId
+        );
+    }
+
+    @Override
+    public void appendCompensationAttempt(
+            Long shopId,
+            Long paymentId,
+            Long orderId,
+            String paymentNo,
+            String orderNo,
+            String reservationNo,
+            String result,
+            String errorCode,
+            String reason,
+            String traceId,
+            String trigger,
+            String operator
+    ) {
+        jdbcTemplate.update(
+                """
+                        INSERT INTO pay_payment_compensation_attempt (
+                            shop_id, payment_id, order_id, payment_no, order_no, reservation_no,
+                            result, error_code, reason, trace_id, trigger_type, operator
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                shopId,
+                paymentId,
+                orderId,
+                paymentNo,
+                orderNo,
+                reservationNo,
+                result,
+                errorCode,
+                reason,
+                traceId,
+                trigger,
+                operator
         );
     }
 

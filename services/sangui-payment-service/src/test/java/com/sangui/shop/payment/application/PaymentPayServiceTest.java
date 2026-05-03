@@ -111,6 +111,7 @@ class PaymentPayServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         ));
         orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
@@ -143,6 +144,7 @@ class PaymentPayServiceTest {
                 "trace-paid",
                 LocalDateTime.now(),
                 LocalDateTime.now(),
+                null,
                 null,
                 null,
                 null,
@@ -212,6 +214,7 @@ class PaymentPayServiceTest {
                     null,
                     null,
                     null,
+                    null,
                     null
             ));
             return paymentId;
@@ -245,6 +248,7 @@ class PaymentPayServiceTest {
                             value.lastCompensationReason(),
                             value.lastCompensationTraceId(),
                             value.lastCompensationTrigger(),
+                            value.lastCompensationOperator(),
                             value.lastCompensatedAt()
                     );
                 }
@@ -261,7 +265,25 @@ class PaymentPayServiceTest {
                 String reason,
                 String traceId,
                 String trigger,
+                String operator,
                 LocalDateTime compensatedAt
+        ) {
+        }
+
+        @Override
+        public void appendCompensationAttempt(
+                Long shopId,
+                Long paymentId,
+                Long orderId,
+                String paymentNo,
+                String orderNo,
+                String reservationNo,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                String operator
         ) {
         }
 

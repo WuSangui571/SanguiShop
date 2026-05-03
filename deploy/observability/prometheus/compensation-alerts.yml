@@ -1,0 +1,51 @@
+groups:
+  - name: sangui-compensation
+    rules:
+      - alert: SanguiOrderTimeoutCompensationBatchFailed
+        expr: increase(sangui_compensation_job_run_total{service="order",job="order-timeout",trigger="scheduler",result="failed"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: sangui-order-service
+        annotations:
+          summary: "Order timeout compensation batch failed"
+          description: "The scheduler-reported order timeout compensation batch has failed at least once in the last 5 minutes."
+
+      - alert: SanguiPaymentReconcileBatchFailed
+        expr: increase(sangui_compensation_job_run_total{service="payment",job="payment-reconcile",trigger="scheduler",result="failed"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: sangui-payment-service
+        annotations:
+          summary: "Payment reconcile batch failed"
+          description: "The scheduler-reported payment reconcile batch has failed at least once in the last 5 minutes."
+
+      - alert: SanguiOrderTimeoutCompensationIdle
+        expr: increase(sangui_compensation_job_run_total{service="order",job="order-timeout",trigger="scheduler",result="success"}[15m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: sangui-order-service
+        annotations:
+          summary: "Order timeout compensation scheduler appears idle"
+          description: "No successful scheduler order-timeout compensation run was reported in the last 15 minutes."
+
+      - alert: SanguiPaymentReconcileIdle
+        expr: increase(sangui_compensation_job_run_total{service="payment",job="payment-reconcile",trigger="scheduler",result="success"}[15m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: sangui-payment-service
+        annotations:
+          summary: "Payment reconcile scheduler appears idle"
+          description: "No successful scheduler payment-reconcile run was reported in the last 15 minutes."
+
+      - alert: SanguiCompensationItemFailures
+        expr: increase(sangui_compensation_job_item_total{trigger="scheduler",result="failed"}[15m]) >= 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Compensation item failures detected"
+          description: "At least one compensation item failed during scheduler-driven execution in the last 15 minutes."

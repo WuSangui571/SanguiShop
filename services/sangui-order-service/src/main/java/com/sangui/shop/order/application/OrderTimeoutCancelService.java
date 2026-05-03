@@ -51,7 +51,7 @@ public class OrderTimeoutCancelService {
         int skippedCount = 0;
         int failedCount = 0;
         for (OrderRecord order : expiredOrders) {
-            OrderTimeoutReplayExecution execution = replayTimeoutOrder(order.shopId(), order.id(), timeoutMinutes, traceId, "scheduler");
+            OrderTimeoutReplayExecution execution = replayTimeoutOrder(order.shopId(), order.id(), timeoutMinutes, traceId, "scheduler", null);
             if ("cancelled".equals(execution.result())) {
                 cancelledCount++;
             } else if ("skipped".equals(execution.result())) {
@@ -64,28 +64,36 @@ public class OrderTimeoutCancelService {
     }
 
     @Transactional
-    public OrderTimeoutReplayExecution replayTimeoutOrder(Long shopId, Long orderId, Integer timeoutMinutes, String traceId, String trigger) {
+    public OrderTimeoutReplayExecution replayTimeoutOrder(
+            Long shopId,
+            Long orderId,
+            Integer timeoutMinutes,
+            String traceId,
+            String trigger,
+            String operator
+    ) {
         OrderRecord latest = orderRepository.findById(shopId, orderId)
                 .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
         if (latest.status() != OrderStatus.CREATED) {
-            return recordSkipped(latest, traceId, trigger, "ORDER_STATUS_NOT_CREATED", "Order is no longer in created status.");
+            return recordSkipped(latest, traceId, trigger, operator, "ORDER_STATUS_NOT_CREATED", "Order is no longer in created status.");
         }
         int effectiveTimeoutMinutes = normalizeTimeoutMinutes(timeoutMinutes);
         LocalDateTime cutoff = LocalDateTime.now(clock).minusMinutes(effectiveTimeoutMinutes);
         if (latest.createdAt().isAfter(cutoff)) {
-            return recordSkipped(latest, traceId, trigger, "ORDER_NOT_TIMEOUT_ELIGIBLE", "Order has not reached the timeout threshold yet.");
+            return recordSkipped(latest, traceId, trigger, operator, "ORDER_NOT_TIMEOUT_ELIGIBLE", "Order has not reached the timeout threshold yet.");
         }
         try {
             productCatalogClient.releaseInventory(latest.shopId(), latest.reservationNo(), normalizeTraceId(traceId));
             int updated = orderRepository.updateStatus(latest.shopId(), latest.id(), OrderStatus.CREATED, OrderStatus.CANCELLED);
             if (updated > 0) {
-                updateCompensationMetadata(latest, "cancelled", null, null, traceId, trigger);
+                updateCompensationMetadata(latest, "cancelled", null, null, traceId, trigger, operator);
                 OrderRecord refreshed = orderRepository.findById(latest.shopId(), latest.id())
                         .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
                 log.info(
-                        "Order compensation audit. traceId={} trigger={} shopId={} orderId={} orderNo={} reservationNo={} result={} orderStatus={}",
+                        "Order compensation audit. traceId={} trigger={} operator={} shopId={} orderId={} orderNo={} reservationNo={} result={} orderStatus={}",
                         normalizeTraceId(traceId),
                         trigger,
+                        normalizeOperator(operator),
                         refreshed.shopId(),
                         refreshed.id(),
                         refreshed.orderNo(),
@@ -98,11 +106,11 @@ public class OrderTimeoutCancelService {
             OrderRecord refreshed = orderRepository.findById(latest.shopId(), latest.id())
                     .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
             if (refreshed.status() == OrderStatus.CANCELLED || refreshed.status() == OrderStatus.PAID) {
-                return recordSkipped(refreshed, traceId, trigger, "ORDER_STATUS_NOT_CREATED", "Order was already processed by another path.");
+                return recordSkipped(refreshed, traceId, trigger, operator, "ORDER_STATUS_NOT_CREATED", "Order was already processed by another path.");
             }
             throw new SanguiException(OrderErrorCode.ORDER_STATUS_INVALID, 409);
         } catch (RuntimeException exception) {
-            return recordFailed(latest, traceId, trigger, errorCode(exception), sanitizeMessage(exception), exception);
+            return recordFailed(latest, traceId, trigger, operator, errorCode(exception), sanitizeMessage(exception), exception);
         }
     }
 
@@ -136,15 +144,17 @@ public class OrderTimeoutCancelService {
             OrderRecord order,
             String traceId,
             String trigger,
+            String operator,
             String errorCode,
             String reason
     ) {
-        updateCompensationMetadata(order, "skipped", errorCode, reason, traceId, trigger);
+        updateCompensationMetadata(order, "skipped", errorCode, reason, traceId, trigger, operator);
         OrderRecord refreshed = orderRepository.findById(order.shopId(), order.id()).orElse(order);
         log.info(
-                "Order compensation audit. traceId={} trigger={} shopId={} orderId={} orderNo={} reservationNo={} result={} errorCode={} reason={} orderStatus={}",
+                "Order compensation audit. traceId={} trigger={} operator={} shopId={} orderId={} orderNo={} reservationNo={} result={} errorCode={} reason={} orderStatus={}",
                 normalizeTraceId(traceId),
                 trigger,
+                normalizeOperator(operator),
                 refreshed.shopId(),
                 refreshed.id(),
                 refreshed.orderNo(),
@@ -161,16 +171,18 @@ public class OrderTimeoutCancelService {
             OrderRecord order,
             String traceId,
             String trigger,
+            String operator,
             String errorCode,
             String reason,
             RuntimeException exception
     ) {
-        updateCompensationMetadata(order, "failed", errorCode, reason, traceId, trigger);
+        updateCompensationMetadata(order, "failed", errorCode, reason, traceId, trigger, operator);
         OrderRecord refreshed = orderRepository.findById(order.shopId(), order.id()).orElse(order);
         log.warn(
-                "Order compensation audit. traceId={} trigger={} shopId={} orderId={} orderNo={} reservationNo={} result={} errorType={} errorCode={} reason={} orderStatus={}",
+                "Order compensation audit. traceId={} trigger={} operator={} shopId={} orderId={} orderNo={} reservationNo={} result={} errorType={} errorCode={} reason={} orderStatus={}",
                 normalizeTraceId(traceId),
                 trigger,
+                normalizeOperator(operator),
                 refreshed.shopId(),
                 refreshed.id(),
                 refreshed.orderNo(),
@@ -190,17 +202,33 @@ public class OrderTimeoutCancelService {
             String errorCode,
             String reason,
             String traceId,
-            String trigger
+            String trigger,
+            String operator
     ) {
+        String normalizedTraceId = normalizeTraceId(traceId);
+        String normalizedOperator = normalizeOperator(operator);
         orderRepository.updateCompensationMetadata(
                 order.shopId(),
                 order.id(),
                 result,
                 errorCode,
                 reason,
-                normalizeTraceId(traceId),
+                normalizedTraceId,
                 trigger,
+                normalizedOperator,
                 LocalDateTime.now(clock)
+        );
+        orderRepository.appendCompensationAttempt(
+                order.shopId(),
+                order.id(),
+                order.orderNo(),
+                order.reservationNo(),
+                result,
+                errorCode,
+                reason,
+                normalizedTraceId,
+                trigger,
+                normalizedOperator
         );
     }
 
@@ -210,5 +238,13 @@ public class OrderTimeoutCancelService {
             return "";
         }
         return message.replaceAll("[\\r\\n]+", " ").trim();
+    }
+
+    private String normalizeOperator(String operator) {
+        if (operator == null) {
+            return null;
+        }
+        String trimmed = operator.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record ManualPaymentReconcileRequest(
         @NotNull Long shopId,
-        @NotBlank String paymentNo
+        @NotBlank String paymentNo,
+        @NotBlank String operator
 ) {
 }

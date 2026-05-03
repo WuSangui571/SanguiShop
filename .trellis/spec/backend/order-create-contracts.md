@@ -253,8 +253,8 @@ Rules:
 
 Metrics contract:
 
-- `sangui.compensation.job.run.total{service="order",job="order-timeout",result="success|failed|disabled"}`
-- `sangui.compensation.job.item.total{service="order",job="order-timeout",result="scanned|cancelled|skipped|failed"}`
+- `sangui.compensation.job.run.total{service="order",job="order-timeout",trigger="scheduler|manual",result="success|failed|disabled"}`
+- `sangui.compensation.job.item.total{service="order",job="order-timeout",trigger="scheduler|manual",result="scanned|cancelled|skipped|failed"}`
 - Do not tag these counters with `traceId`; keep traceability in logs and keep metrics cardinality bounded.
 
 Alert thresholds:
@@ -423,7 +423,34 @@ Good/Base/Bad cases:
 
 - Good: manual replay returns `cancelled`, `skipped`, or `failed` without inventing a new state machine.
 - Good: query surfaces show both business status and latest compensation metadata.
-- Good: manual replay and scheduler both overwrite the same latest-compensation fields and share the same metrics family.
-- Base: full attempt history remains in logs; the row stores only the latest attempt.
+- Good: manual replay and scheduler both overwrite the same latest-compensation fields, append history rows, and share the same metrics family.
+- Good: dry-run bulk replay previews bounded work without mutating rows or history.
+- Base: latest metadata is the fast-path query surface while history rows preserve every attempt.
 - Bad: manual replay forces a not-yet-timeout order into `cancelled`.
 - Bad: ops query omits `traceId` or key timestamps needed for troubleshooting.
+
+### Bulk Replay Addendum
+
+`POST /internal/orders/timeout-replays/bulk`
+
+Request fields:
+
+- `shopId`
+- `dryRun`
+- `operator`
+- `limit`
+- one of `timeoutMinutes` or `orderIds`
+
+Rules:
+
+- `dryRun=true` must not mutate `oms_order` or append compensation history.
+- `operator` is required for accountability even during dry-run.
+- `limit` is required, positive, and capped at 500.
+- Bulk replay reuses the same single-record timeout replay path for each item; no second compensation state machine is allowed.
+- Per-item results are bounded to `would-cancel`, `cancelled`, `skipped`, or `failed`.
+
+V5 addendum:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V5__add_order_compensation_attempt_history.sql`
+- latest-compensation columns on `oms_order` now include `last_compensation_operator`
+- history table `oms_order_compensation_attempt` is append-only and stores `order_id`, `order_no`, `reservation_no`, `result`, `error_code`, `reason`, `trace_id`, `trigger_type`, and `operator`

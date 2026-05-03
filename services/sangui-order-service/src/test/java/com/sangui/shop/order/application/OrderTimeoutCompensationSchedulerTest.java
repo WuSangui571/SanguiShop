@@ -80,7 +80,7 @@ class OrderTimeoutCompensationSchedulerTest {
     private double counterValue(MeterRegistry meterRegistry, String result) {
         return meterRegistry
                 .find("sangui.compensation.job.run.total")
-                .tags("service", "order", "job", "order-timeout", "result", result)
+                .tags("service", "order", "job", "order-timeout", "trigger", "scheduler", "result", result)
                 .counter()
                 .count();
     }
@@ -88,7 +88,7 @@ class OrderTimeoutCompensationSchedulerTest {
     private double itemCounterValue(MeterRegistry meterRegistry, String result) {
         return meterRegistry
                 .find("sangui.compensation.job.item.total")
-                .tags("service", "order", "job", "order-timeout", "result", result)
+                .tags("service", "order", "job", "order-timeout", "trigger", "scheduler", "result", result)
                 .counter()
                 .count();
     }

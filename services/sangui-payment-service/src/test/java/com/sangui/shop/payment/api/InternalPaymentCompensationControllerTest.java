@@ -56,6 +56,7 @@ class InternalPaymentCompensationControllerTest {
                 "downstream timeout",
                 "trace-reconcile",
                 "scheduler",
+                null,
                 OffsetDateTime.parse("2026-05-03T12:05:00+08:00")
         );
         when(paymentCompensationOpsService.queryRecords(any()))
@@ -94,6 +95,7 @@ class InternalPaymentCompensationControllerTest {
                 null,
                 "trace-manual",
                 "manual",
+                "ops-user",
                 OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
         );
         when(paymentCompensationOpsService.manualReconcile(any(), any()))
@@ -104,12 +106,67 @@ class InternalPaymentCompensationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "shopId", 1,
-                                "paymentNo", "PAY-001"
+                                "paymentNo", "PAY-001",
+                                "operator", "ops-user"
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("PAYMENT_RECONCILED_MANUALLY"))
                 .andExpect(jsonPath("$.data.result").value("settled"))
                 .andExpect(jsonPath("$.data.payment.lastCompensationTrigger").value("manual"));
+    }
+
+    @Test
+    void bulkReconcileReturnsStableEnvelope() throws Exception {
+        PaymentCompensationRecordResponse payment = new PaymentCompensationRecordResponse(
+                201L,
+                "PAY-001",
+                101L,
+                "ORD-001",
+                "10001",
+                "mock",
+                "created",
+                59900L,
+                "trace-payment",
+                OffsetDateTime.parse("2026-05-03T12:00:00+08:00"),
+                OffsetDateTime.parse("2026-05-03T12:05:00+08:00"),
+                "failed",
+                "DOWNSTREAM_TIMEOUT",
+                "downstream timeout",
+                "trace-bulk",
+                "manual",
+                "ops-user",
+                OffsetDateTime.parse("2026-05-03T12:05:00+08:00")
+        );
+        when(paymentCompensationOpsService.bulkReconcile(any(), any()))
+                .thenReturn(new com.sangui.shop.payment.api.dto.BulkPaymentReconcileResponse(
+                        1L,
+                        true,
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        List.of(new com.sangui.shop.payment.api.dto.BulkPaymentReconcileItemResponse(
+                                "skipped",
+                                "PAYMENT_STATUS_NOT_CREATED",
+                                "Payment is no longer in created status.",
+                                payment
+                        ))
+                ));
+
+        mockMvc.perform(post("/internal/payments/reconciliations/bulk")
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-payment-bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "dryRun", true,
+                                "minAgeMinutes", 1,
+                                "limit", 100,
+                                "operator", "ops-user"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("PAYMENT_RECONCILED_IN_BULK"))
+                .andExpect(jsonPath("$.data.items[0].result").value("skipped"));
     }
 
     @Test

@@ -46,7 +46,7 @@ public class OrderTimeoutCompensationScheduler {
     )
     public void run() {
         if (!enabled) {
-            metricsRecorder.incrementRun("disabled");
+            metricsRecorder.incrementRun("scheduler", "disabled");
             return;
         }
 
@@ -66,11 +66,11 @@ public class OrderTimeoutCompensationScheduler {
                     new CancelExpiredOrdersRequest(shopId, timeoutMinutes, limit),
                     traceId
             );
-            metricsRecorder.incrementRun("success");
-            metricsRecorder.incrementItem("scanned", response.scannedCount());
-            metricsRecorder.incrementItem("cancelled", response.cancelledCount());
-            metricsRecorder.incrementItem("skipped", response.skippedCount());
-            metricsRecorder.incrementItem("failed", response.failedCount());
+            metricsRecorder.incrementRun("scheduler", "success");
+            metricsRecorder.incrementItem("scheduler", "scanned", response.scannedCount());
+            metricsRecorder.incrementItem("scheduler", "cancelled", response.cancelledCount());
+            metricsRecorder.incrementItem("scheduler", "skipped", response.skippedCount());
+            metricsRecorder.incrementItem("scheduler", "failed", response.failedCount());
             log.info(
                     "Completed order timeout compensation batch. jobName={} traceId={} shopId={} timeoutMinutes={} limit={} durationMs={} scannedCount={} cancelledCount={} skippedCount={} failedCount={}",
                     OrderCompensationMetricsRecorder.JOB_NAME,
@@ -85,7 +85,7 @@ public class OrderTimeoutCompensationScheduler {
                     response.failedCount()
             );
         } catch (RuntimeException exception) {
-            metricsRecorder.incrementRun("failed");
+            metricsRecorder.incrementRun("scheduler", "failed");
             log.error(
                     "Order timeout compensation batch failed. jobName={} traceId={} shopId={} timeoutMinutes={} limit={} durationMs={} errorType={} errorCode={} message={}",
                     OrderCompensationMetricsRecorder.JOB_NAME,

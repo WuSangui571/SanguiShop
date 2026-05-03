@@ -248,8 +248,8 @@ Rules:
 
 Metrics contract:
 
-- `sangui.compensation.job.run.total{service="payment",job="payment-reconcile",result="success|failed|disabled"}`
-- `sangui.compensation.job.item.total{service="payment",job="payment-reconcile",result="scanned|settled|skipped|failed"}`
+- `sangui.compensation.job.run.total{service="payment",job="payment-reconcile",trigger="scheduler|manual",result="success|failed|disabled"}`
+- `sangui.compensation.job.item.total{service="payment",job="payment-reconcile",trigger="scheduler|manual",result="scanned|settled|skipped|failed"}`
 - Do not tag these counters with `traceId`; keep traceability in logs and keep metrics cardinality bounded.
 
 Alert thresholds:
@@ -428,7 +428,34 @@ Good/Base/Bad cases:
 
 - Good: manual reconcile returns `settled`, `skipped`, or `failed` without bypassing existing settle rules.
 - Good: query surfaces show both business status and latest compensation metadata.
-- Good: manual reconcile and scheduler share the same metrics family and latest-compensation columns.
-- Base: full attempt history remains in logs; the row stores only the latest attempt.
+- Good: manual reconcile and scheduler share the same metrics family, overwrite latest metadata, and append attempt history.
+- Good: dry-run bulk reconcile previews bounded work without mutating rows or history.
+- Base: latest metadata remains on the row while history tables preserve every attempt.
 - Bad: manual reconcile revives a non-`created` payment by force.
 - Bad: ops query omits failure reason, traceId, or key timestamps needed for troubleshooting.
+
+### Bulk Reconcile Addendum
+
+`POST /internal/payments/reconciliations/bulk`
+
+Request fields:
+
+- `shopId`
+- `dryRun`
+- `operator`
+- `limit`
+- one of `minAgeMinutes` or `paymentNos`
+
+Rules:
+
+- `dryRun=true` must not mutate `pay_payment_order` or append compensation history.
+- `operator` is required for manual accountability even during dry-run.
+- `limit` is required, positive, and capped at 500.
+- Bulk reconcile reuses the same single-payment reconcile path for each item.
+- Per-item results are bounded to `would-settle`, `settled`, `skipped`, or `failed`.
+
+V5 addendum:
+
+- `services/sangui-payment-service/src/main/resources/db/migration/V5__add_payment_compensation_attempt_history.sql`
+- latest-compensation columns on `pay_payment_order` now include `last_compensation_operator`
+- history table `pay_payment_compensation_attempt` is append-only and stores `payment_id`, `order_id`, `payment_no`, `order_no`, `reservation_no`, `result`, `error_code`, `reason`, `trace_id`, `trigger_type`, and `operator`

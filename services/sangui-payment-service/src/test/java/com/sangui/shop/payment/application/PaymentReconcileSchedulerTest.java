@@ -82,7 +82,7 @@ class PaymentReconcileSchedulerTest {
     private double counterValue(MeterRegistry meterRegistry, String result) {
         return meterRegistry
                 .find("sangui.compensation.job.run.total")
-                .tags("service", "payment", "job", "payment-reconcile", "result", result)
+                .tags("service", "payment", "job", "payment-reconcile", "trigger", "scheduler", "result", result)
                 .counter()
                 .count();
     }
@@ -90,7 +90,7 @@ class PaymentReconcileSchedulerTest {
     private double itemCounterValue(MeterRegistry meterRegistry, String result) {
         return meterRegistry
                 .find("sangui.compensation.job.item.total")
-                .tags("service", "payment", "job", "payment-reconcile", "result", result)
+                .tags("service", "payment", "job", "payment-reconcile", "trigger", "scheduler", "result", result)
                 .counter()
                 .count();
     }

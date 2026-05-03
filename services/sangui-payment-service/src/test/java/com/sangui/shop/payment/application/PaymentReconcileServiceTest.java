@@ -96,14 +96,16 @@ class PaymentReconcileServiceTest {
     void manualReconcileRecordsLatestCompensationMetadata() {
         paymentRepository.seed(createdPayment("PAY-003"), LocalDateTime.now(FIXED_CLOCK).minusMinutes(5));
 
-        PaymentCompensationExecution execution = paymentReconcileService.reconcilePayment(1L, "PAY-003", "trace-manual", "manual");
+        PaymentCompensationExecution execution = paymentReconcileService.reconcilePayment(1L, "PAY-003", "trace-manual", "manual", "ops-user");
 
         assertThat(execution.result()).isEqualTo("settled");
         PaymentOrderRecord payment = paymentRepository.findByPaymentNo(1L, "PAY-003").orElseThrow();
         assertThat(payment.lastCompensationResult()).isEqualTo("settled");
         assertThat(payment.lastCompensationTraceId()).isEqualTo("trace-manual");
         assertThat(payment.lastCompensationTrigger()).isEqualTo("manual");
+        assertThat(payment.lastCompensationOperator()).isEqualTo("ops-user");
         assertThat(payment.lastCompensatedAt()).isNotNull();
+        assertThat(paymentRepository.compensationAttempts).hasSize(1);
     }
 
     private PaymentOrderRecord createdPayment(String paymentNo) {
@@ -127,6 +129,7 @@ class PaymentReconcileServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
     }
@@ -136,6 +139,7 @@ class PaymentReconcileServiceTest {
         private final AtomicLong nextPaymentId = new AtomicLong(10000);
         private final Map<String, PaymentOrderRecord> recordsByKey = new LinkedHashMap<>();
         private final Map<String, LocalDateTime> createdAtByKey = new LinkedHashMap<>();
+        private final List<String> compensationAttempts = new java.util.ArrayList<>();
 
         @Override
         public Optional<PaymentOrderRecord> findByPaymentNo(Long shopId, String paymentNo) {
@@ -190,6 +194,7 @@ class PaymentReconcileServiceTest {
                     null,
                     null,
                     null,
+                    null,
                     null
             ), LocalDateTime.now(FIXED_CLOCK));
             return paymentId;
@@ -223,6 +228,7 @@ class PaymentReconcileServiceTest {
                             value.lastCompensationReason(),
                             value.lastCompensationTraceId(),
                             value.lastCompensationTrigger(),
+                            value.lastCompensationOperator(),
                             value.lastCompensatedAt()
                     );
                 }
@@ -239,6 +245,7 @@ class PaymentReconcileServiceTest {
                 String reason,
                 String traceId,
                 String trigger,
+                String operator,
                 LocalDateTime compensatedAt
         ) {
             recordsByKey.replaceAll((key, value) -> {
@@ -262,11 +269,30 @@ class PaymentReconcileServiceTest {
                             reason,
                             traceId,
                             trigger,
+                            operator,
                             compensatedAt
                     );
                 }
                 return value;
             });
+        }
+
+        @Override
+        public void appendCompensationAttempt(
+                Long shopId,
+                Long paymentId,
+                Long orderId,
+                String paymentNo,
+                String orderNo,
+                String reservationNo,
+                String result,
+                String errorCode,
+                String reason,
+                String traceId,
+                String trigger,
+                String operator
+        ) {
+            compensationAttempts.add(trigger + "|" + result + "|" + operator);
         }
 
         @Override

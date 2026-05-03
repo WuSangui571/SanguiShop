@@ -1,0 +1,66 @@
+{
+  "title": "Sangui Compensation Operations",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Compensation Batch Runs",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (service, job, trigger, result) (increase(sangui_compensation_job_run_total[15m]))",
+          "legendFormat": "{{service}} {{job}} {{trigger}} {{result}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Compensation Item Outcomes",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (service, job, trigger, result) (increase(sangui_compensation_job_item_total[15m]))",
+          "legendFormat": "{{service}} {{job}} {{trigger}} {{result}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Scheduler Batch Failures (15m)",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(increase(sangui_compensation_job_run_total{trigger=\"scheduler\",result=\"failed\"}[15m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Scheduler Item Failures (15m)",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(increase(sangui_compensation_job_item_total{trigger=\"scheduler\",result=\"failed\"}[15m]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Manual Replays (15m)",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(increase(sangui_compensation_job_run_total{trigger=\"manual\",result=\"success\"}[15m]))"
+        }
+      ]
+    }
+  ]
+}

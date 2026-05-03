@@ -44,7 +44,7 @@ public class PaymentReconcileScheduler {
     )
     public void run() {
         if (!enabled) {
-            metricsRecorder.incrementRun("disabled");
+            metricsRecorder.incrementRun("scheduler", "disabled");
             return;
         }
 
@@ -61,11 +61,11 @@ public class PaymentReconcileScheduler {
                     limit
             );
             PaymentReconcileResult result = paymentReconcileService.reconcileCreatedPayments(shopId, minAgeMinutes, limit, traceId);
-            metricsRecorder.incrementRun("success");
-            metricsRecorder.incrementItem("scanned", result.scannedCount());
-            metricsRecorder.incrementItem("settled", result.settledCount());
-            metricsRecorder.incrementItem("skipped", result.skippedCount());
-            metricsRecorder.incrementItem("failed", result.failedCount());
+            metricsRecorder.incrementRun("scheduler", "success");
+            metricsRecorder.incrementItem("scheduler", "scanned", result.scannedCount());
+            metricsRecorder.incrementItem("scheduler", "settled", result.settledCount());
+            metricsRecorder.incrementItem("scheduler", "skipped", result.skippedCount());
+            metricsRecorder.incrementItem("scheduler", "failed", result.failedCount());
             log.info(
                     "Completed payment reconcile batch. jobName={} traceId={} shopId={} minAgeMinutes={} limit={} durationMs={} scannedCount={} settledCount={} skippedCount={} failedCount={}",
                     PaymentCompensationMetricsRecorder.JOB_NAME,
@@ -80,7 +80,7 @@ public class PaymentReconcileScheduler {
                     result.failedCount()
             );
         } catch (RuntimeException exception) {
-            metricsRecorder.incrementRun("failed");
+            metricsRecorder.incrementRun("scheduler", "failed");
             log.error(
                     "Payment reconcile batch failed. jobName={} traceId={} shopId={} minAgeMinutes={} limit={} durationMs={} errorType={} errorCode={} message={}",
                     PaymentCompensationMetricsRecorder.JOB_NAME,
