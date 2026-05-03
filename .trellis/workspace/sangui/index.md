@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 15
+- **Total Sessions**: 16
 - **Last Active**: 2026-05-03
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~695 | Active |
+| `journal-1.md` | ~736 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-05-03 | Compensation Observability / Config Hardening | `b935f3f` | `main` |
 | 15 | 2026-05-03 | Compensation Scheduler / Reconcile MVP | `fe389f9`, `c3ee16a` | `main` |
 | 14 | 2026-05-01 | Payment Callback Timeout Compensation MVP | `d83ff6c` | `main` |
 | 13 | 2026-05-01 | Inventory Reserve MVP | `fe3ac1c` | `main` |

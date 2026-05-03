@@ -693,3 +693,44 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Compensation Observability / Config Hardening
+
+**Date**: 2026-05-03
+**Task**: Compensation Observability / Config Hardening
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Deploy Config | Added scheduler env examples for order timeout compensation and payment reconcile jobs in `deploy/.env.example`. |
+| Order Observability | Added Micrometer batch run/item counters plus consistent batch logs for `OrderTimeoutCompensationScheduler`. |
+| Payment Observability | Added Micrometer batch run/item counters plus consistent batch logs for `PaymentReconcileScheduler`. |
+| Logging Hardening | Standardized failure logs to include `errorType`, `errorCode`, and sanitized `message` instead of noisy stack traces for expected test failures. |
+| Spec Sync | Updated backend observability, order-create, and payment-pay specs with env keys, metrics names, log fields, and alert-threshold guidance. |
+| Verification | Human ran targeted order/payment compensation and controller/migration test suites successfully after commit. |
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b935f3f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
