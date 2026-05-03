@@ -648,3 +648,48 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Compensation Scheduler / Reconcile MVP
+
+**Date**: 2026-05-03
+**Task**: Compensation Scheduler / Reconcile MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Order Service | Added scheduled timeout compensation with config-driven enable switch, batch parameters, batch stats logging, and per-record failure isolation while reusing the existing timeout cancellation path. |
+| Payment Service | Added scheduled reconcile job for stale `created` payment rows, repository batch lookup by `shopId/status/created_at`, terminal invalid-order demotion to `failed`, and batch stats logging. |
+| Database & Spec | Added payment reconcile lookup index migration and updated backend executable specs for order timeout, payment reconcile, inventory ownership, and database validation. |
+| Testing | Added scheduler/reconcile unit and migration contract coverage, then human-tested and committed the feature plus follow-up log output cleanup. |
+
+**Verification**:
+- Human completed local testing and committed `fe389f9 feat(compensation): add scheduler reconcile mvp`.
+- Human also committed `c3ee16a fix:????????` to reduce noisy expected-failure stack traces in test output.
+- Working tree was clean at record time.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fe389f9` | (see git log) |
+| `c3ee16a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
