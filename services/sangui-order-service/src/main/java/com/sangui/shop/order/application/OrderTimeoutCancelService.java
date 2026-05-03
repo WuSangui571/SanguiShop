@@ -12,6 +12,8 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ public class OrderTimeoutCancelService {
     private static final int DEFAULT_TIMEOUT_MINUTES = 15;
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 500;
+    private static final Logger log = LoggerFactory.getLogger(OrderTimeoutCancelService.class);
 
     private final OrderRepository orderRepository;
     private final ProductCatalogClient productCatalogClient;
@@ -46,28 +49,44 @@ public class OrderTimeoutCancelService {
 
         int cancelledCount = 0;
         int skippedCount = 0;
+        int failedCount = 0;
         for (OrderRecord order : expiredOrders) {
-            if (cancelOne(order, traceId)) {
-                cancelledCount++;
-            } else {
-                skippedCount++;
+            try {
+                if (cancelOne(order, traceId)) {
+                    cancelledCount++;
+                } else {
+                    skippedCount++;
+                }
+            } catch (RuntimeException exception) {
+                failedCount++;
+                log.warn(
+                        "Order timeout compensation failed. traceId={} shopId={} orderId={} orderNo={} reservationNo={}",
+                        normalizeTraceId(traceId),
+                        order.shopId(),
+                        order.id(),
+                        order.orderNo(),
+                        order.reservationNo(),
+                        exception
+                );
             }
         }
-        return new CancelExpiredOrdersResponse(request.shopId(), expiredOrders.size(), cancelledCount, skippedCount);
+        return new CancelExpiredOrdersResponse(request.shopId(), expiredOrders.size(), cancelledCount, skippedCount, failedCount);
     }
 
     private boolean cancelOne(OrderRecord order, String traceId) {
-        if (order.status() != OrderStatus.CREATED) {
+        OrderRecord latest = orderRepository.findById(order.shopId(), order.id())
+                .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
+        if (latest.status() != OrderStatus.CREATED) {
             return false;
         }
-        productCatalogClient.releaseInventory(order.shopId(), order.reservationNo(), normalizeTraceId(traceId));
-        int updated = orderRepository.updateStatus(order.shopId(), order.id(), OrderStatus.CREATED, OrderStatus.CANCELLED);
+        productCatalogClient.releaseInventory(latest.shopId(), latest.reservationNo(), normalizeTraceId(traceId));
+        int updated = orderRepository.updateStatus(latest.shopId(), latest.id(), OrderStatus.CREATED, OrderStatus.CANCELLED);
         if (updated > 0) {
             return true;
         }
-        OrderRecord latest = orderRepository.findById(order.shopId(), order.id())
+        OrderRecord refreshed = orderRepository.findById(order.shopId(), order.id())
                 .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
-        if (latest.status() == OrderStatus.CANCELLED || latest.status() == OrderStatus.PAID) {
+        if (refreshed.status() == OrderStatus.CANCELLED || refreshed.status() == OrderStatus.PAID) {
             return false;
         }
         throw new SanguiException(OrderErrorCode.ORDER_STATUS_INVALID, 409);

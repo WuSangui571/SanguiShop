@@ -114,7 +114,7 @@ Schema env and migrations:
 
 | Service | Schema Env | Default Schema | Migrations |
 | --- | --- | --- | --- |
-| `services/sangui-payment-service` | `SANGUI_PAYMENT_MYSQL_SCHEMA` | `sangui_payment` | `db/migration/V1__create_payment_tables.sql`, `db/migration/V2__add_payment_reservation_reference.sql` |
+| `services/sangui-payment-service` | `SANGUI_PAYMENT_MYSQL_SCHEMA` | `sangui_payment` | `db/migration/V1__create_payment_tables.sql`, `db/migration/V2__add_payment_reservation_reference.sql`, `db/migration/V3__add_payment_reconcile_lookup_index.sql` |
 
 ### `pay_payment_order`
 
@@ -136,6 +136,7 @@ Required constraints and indexes:
 - `idx_pay_payment_order_shop_order_id (shop_id, order_id)`
 - `idx_pay_payment_order_shop_user_id (shop_id, user_id, id)`
 - `idx_pay_payment_order_shop_status (shop_id, status)`
+- `idx_pay_payment_order_shop_status_created (shop_id, status, created_at)`
 
 ## Validation and Error Matrix
 
@@ -165,7 +166,7 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 - Bad: payment-service reads `oms_*` or `pms_*` tables directly.
 - Bad: replaying the same `paymentNo` double-confirms inventory or creates another payment row.
 
-## Payment Callback / Timeout Compensation Addendum
+## Payment Callback / Reconcile Compensation Addendum
 
 ### `GET /api/payments/{paymentNo}`
 
@@ -212,6 +213,29 @@ Additional persisted payment status:
 
 - `failed`
 
+### Scheduled Payment Reconcile Job
+
+Config keys:
+
+- `sangui.compensation.payment-reconcile.enabled`
+- `sangui.compensation.payment-reconcile.shop-id`
+- `sangui.compensation.payment-reconcile.min-age-minutes`
+- `sangui.compensation.payment-reconcile.limit`
+- `sangui.compensation.payment-reconcile.initial-delay-ms`
+- `sangui.compensation.payment-reconcile.fixed-delay-ms`
+
+Rules:
+
+- Scheduler is disabled by default; enabling it scans stale `created` payments and retries internal settlement without a human-triggered replay.
+- `shop-id` must come from configuration, typically `${SANGUI_DEFAULT_SHOP_ID}`, and must not be hardcoded in Java business logic.
+- Query candidates from `pay_payment_order` where `shop_id = ?`, `status = created`, and `created_at <= now - minAgeMinutes`.
+- Default `minAgeMinutes` is 1; default `limit` is 100; maximum `limit` is 500.
+- Each candidate must be re-read by `(shopId, paymentNo)` before settlement; non-`created` rows are skipped.
+- Successful reconcile reuses the same settle path as replay or callback success and converges `created -> paid`.
+- `PAYMENT_ORDER_STATUS_INVALID` during reconcile is terminal for that payment row and must mark it `failed` to stop endless retries.
+- `DOWNSTREAM_TIMEOUT` or other retryable/system failures keep the row in `created` so later batches can retry.
+- Batch execution must continue when one payment fails; batch logs must include `shopId`, `traceId`, `minAgeMinutes`, `limit`, `scannedCount`, `settledCount`, `skippedCount`, and `failedCount`.
+
 Additional `pay_callback_log` contract:
 
 - Required business columns: `payment_no`, `channel`, `channel_trade_no`, `callback_type`, `payload_json`, `process_status`, `trace_id`.
@@ -226,6 +250,8 @@ Compensation matrix:
 | Failure callback after paid | Payment remains `paid`; callback is marked `ignored`. |
 | Success callback after timeout cancellation | Callback is logged as `failed`; payment remains not paid; order is not revived; inventory is not confirmed. |
 | Payment status polling by wrong user | Returns `PAYMENT_NOT_FOUND`. |
+| Payment reconcile after partial settle failure | Existing `created` row retries order/inventory confirms and converges to `paid`. |
+| Payment reconcile after timeout-cancelled order | Payment becomes `failed`; inventory is not released by payment-service. |
 
 Additional validation and error matrix:
 
@@ -240,7 +266,7 @@ Additional validation and error matrix:
 Additional required tests:
 
 ```powershell
-mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-payment-service" -am "-Dtest=PaymentPayServiceTest,PaymentCallbackServiceTest,PaymentControllerTest,OrderPaymentServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-payment-service" -am "-Dtest=PaymentPayServiceTest,PaymentCallbackServiceTest,PaymentReconcileServiceTest,PaymentReconcileSchedulerTest,PaymentControllerTest,OrderPaymentServiceTest,PaymentReconcileMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Good/Base/Bad cases:
@@ -248,5 +274,8 @@ Good/Base/Bad cases:
 - Good: duplicate success callback writes or reuses one callback log identity and does not reconfirm order/inventory.
 - Good: failure callback marks a created payment `failed` without releasing inventory directly.
 - Good: polling returns current payment status only for the owning principal.
+- Good: reconcile job settles a stale `created` row through the same path as replay.
+- Good: reconcile job marks terminal invalid-order rows `failed` instead of retrying forever.
 - Base: callback path is mock/provider-neutral and does not verify real third-party signatures.
 - Bad: late success callback after timeout cancellation revives a cancelled order or confirms released inventory.
+- Bad: reconcile job double-confirms a row that is already `paid` or releases inventory from payment-service.

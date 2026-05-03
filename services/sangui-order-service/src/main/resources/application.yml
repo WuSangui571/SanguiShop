@@ -44,6 +44,14 @@ sangui:
       read-timeout-ms: ${SANGUI_PRODUCT_READ_TIMEOUT_MS:3000}
   shop:
     default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
+  compensation:
+    order-timeout:
+      enabled: ${SANGUI_ORDER_TIMEOUT_COMPENSATION_ENABLED:false}
+      shop-id: ${SANGUI_ORDER_TIMEOUT_COMPENSATION_SHOP_ID:${SANGUI_DEFAULT_SHOP_ID:1}}
+      timeout-minutes: ${SANGUI_ORDER_TIMEOUT_COMPENSATION_TIMEOUT_MINUTES:15}
+      limit: ${SANGUI_ORDER_TIMEOUT_COMPENSATION_LIMIT:100}
+      initial-delay-ms: ${SANGUI_ORDER_TIMEOUT_COMPENSATION_INITIAL_DELAY_MS:15000}
+      fixed-delay-ms: ${SANGUI_ORDER_TIMEOUT_COMPENSATION_FIXED_DELAY_MS:60000}
   infrastructure:
     mysql:
       schema: ${SANGUI_ORDER_MYSQL_SCHEMA:sangui_order}

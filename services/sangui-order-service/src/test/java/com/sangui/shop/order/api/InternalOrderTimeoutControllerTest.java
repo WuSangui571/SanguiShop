@@ -36,7 +36,7 @@ class InternalOrderTimeoutControllerTest {
     @Test
     void cancelExpiredOrdersReturnsStableEnvelope() throws Exception {
         when(orderTimeoutCancelService.cancelExpiredOrders(any(), any()))
-                .thenReturn(new CancelExpiredOrdersResponse(1L, 2, 1, 1));
+                .thenReturn(new CancelExpiredOrdersResponse(1L, 2, 1, 1, 0));
 
         mockMvc.perform(post("/internal/orders/timeout-cancellations")
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-timeout")
@@ -49,7 +49,8 @@ class InternalOrderTimeoutControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("ORDER_TIMEOUT_CANCELLED"))
                 .andExpect(jsonPath("$.traceId").value("trace-timeout"))
-                .andExpect(jsonPath("$.data.cancelledCount").value(1));
+                .andExpect(jsonPath("$.data.cancelledCount").value(1))
+                .andExpect(jsonPath("$.data.failedCount").value(0));
     }
 
     @Test

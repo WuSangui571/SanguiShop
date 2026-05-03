@@ -48,6 +48,14 @@ sangui:
       read-timeout-ms: ${SANGUI_PRODUCT_READ_TIMEOUT_MS:3000}
   shop:
     default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
+  compensation:
+    payment-reconcile:
+      enabled: ${SANGUI_PAYMENT_RECONCILE_ENABLED:false}
+      shop-id: ${SANGUI_PAYMENT_RECONCILE_SHOP_ID:${SANGUI_DEFAULT_SHOP_ID:1}}
+      min-age-minutes: ${SANGUI_PAYMENT_RECONCILE_MIN_AGE_MINUTES:1}
+      limit: ${SANGUI_PAYMENT_RECONCILE_LIMIT:100}
+      initial-delay-ms: ${SANGUI_PAYMENT_RECONCILE_INITIAL_DELAY_MS:15000}
+      fixed-delay-ms: ${SANGUI_PAYMENT_RECONCILE_FIXED_DELAY_MS:60000}
   infrastructure:
     mysql:
       schema: ${SANGUI_PAYMENT_MYSQL_SCHEMA:sangui_payment}

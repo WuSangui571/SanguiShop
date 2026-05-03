@@ -64,6 +64,7 @@ class OrderTimeoutCancelServiceTest {
 
         assertThat(response.scannedCount()).isEqualTo(1);
         assertThat(response.cancelledCount()).isEqualTo(1);
+        assertThat(response.failedCount()).isZero();
         assertThat(productCatalogClient.releaseCalls).isEqualTo(1);
         assertThat(productCatalogClient.lastReservationNo).isEqualTo("ord:10001:req-001");
         assertThat(orderRepository.findById(1L, orderId).orElseThrow().status()).isEqualTo(OrderStatus.CANCELLED);
@@ -87,6 +88,7 @@ class OrderTimeoutCancelServiceTest {
 
         assertThat(replay.scannedCount()).isZero();
         assertThat(replay.cancelledCount()).isZero();
+        assertThat(replay.failedCount()).isZero();
         assertThat(productCatalogClient.releaseCalls).isEqualTo(1);
         assertThat(orderRepository.findById(1L, orderId).orElseThrow().status()).isEqualTo(OrderStatus.CANCELLED);
     }
@@ -109,8 +111,43 @@ class OrderTimeoutCancelServiceTest {
         );
 
         assertThat(response.scannedCount()).isZero();
+        assertThat(response.failedCount()).isZero();
         assertThat(productCatalogClient.releaseCalls).isZero();
         assertThat(orderRepository.findById(1L, orderId).orElseThrow().status()).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void cancelExpiredOrdersContinuesWhenOneReleaseFails() {
+        orderRepository.seedOrder(
+                1L,
+                "10001",
+                "ORD-001",
+                "req-001",
+                "ord:10001:req-001",
+                OrderStatus.CREATED,
+                LocalDateTime.now(FIXED_CLOCK).minusMinutes(20)
+        );
+        Long secondOrderId = orderRepository.seedOrder(
+                1L,
+                "10002",
+                "ORD-002",
+                "req-002",
+                "ord:10002:req-002",
+                OrderStatus.CREATED,
+                LocalDateTime.now(FIXED_CLOCK).minusMinutes(30)
+        );
+        productCatalogClient.failReservationNo = "ord:10001:req-001";
+
+        CancelExpiredOrdersResponse response = orderTimeoutCancelService.cancelExpiredOrders(
+                new CancelExpiredOrdersRequest(1L, 15, 100),
+                "trace-timeout-partial-failure"
+        );
+
+        assertThat(response.scannedCount()).isEqualTo(2);
+        assertThat(response.cancelledCount()).isEqualTo(1);
+        assertThat(response.skippedCount()).isZero();
+        assertThat(response.failedCount()).isEqualTo(1);
+        assertThat(orderRepository.findById(1L, secondOrderId).orElseThrow().status()).isEqualTo(OrderStatus.CANCELLED);
     }
 
     private static final class InMemoryOrderRepository implements OrderRepository {
@@ -218,6 +255,7 @@ class OrderTimeoutCancelServiceTest {
 
         private int releaseCalls;
         private String lastReservationNo;
+        private String failReservationNo;
 
         @Override
         public InventoryReservationSnapshot reserveInventory(Long shopId, String reservationNo, List<InventoryReserveItemSnapshot> items, String traceId) {
@@ -226,6 +264,9 @@ class OrderTimeoutCancelServiceTest {
 
         @Override
         public InventoryReservationSnapshot releaseInventory(Long shopId, String reservationNo, String traceId) {
+            if (java.util.Objects.equals(failReservationNo, reservationNo)) {
+                throw new IllegalStateException("simulated release failure");
+            }
             releaseCalls++;
             lastReservationNo = reservationNo;
             return new InventoryReservationSnapshot(reservationNo, "released", List.of());

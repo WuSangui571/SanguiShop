@@ -8,6 +8,8 @@ import com.sangui.shop.payment.domain.PaymentRepository;
 import com.sangui.shop.payment.domain.PaymentStatus;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -62,6 +64,24 @@ public class JdbcPaymentRepository implements PaymentRepository {
                 shopId,
                 paymentNo
         ).stream().findFirst();
+    }
+
+    @Override
+    public List<PaymentOrderRecord> findCreatedPayments(Long shopId, LocalDateTime createdBefore, int limit) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, order_id, order_no, user_id, reservation_no, payment_no, channel, amount_cent, status, trace_id
+                        FROM pay_payment_order
+                        WHERE shop_id = ? AND status = ? AND created_at <= ? AND deleted = 0
+                        ORDER BY id ASC
+                        LIMIT ?
+                        """,
+                PAYMENT_ROW_MAPPER,
+                shopId,
+                PaymentStatus.CREATED.value(),
+                createdBefore,
+                limit
+        );
     }
 
     @Override

@@ -205,7 +205,8 @@ Response:
   "shopId": 1,
   "scannedCount": 2,
   "cancelledCount": 1,
-  "skippedCount": 1
+  "skippedCount": 1,
+  "failedCount": 0
 }
 ```
 
@@ -219,7 +220,26 @@ Rules:
 - Query candidates from `oms_order` where `shop_id = ?`, `status = created`, and `created_at <= now - timeoutMinutes`.
 - Each cancellation must release inventory reservation before transitioning `created -> cancelled`.
 - Repeated timeout cancellation is idempotent because already `cancelled` or `paid` orders are no longer selected.
+- Batch execution must continue when one order release/update fails; failed rows remain visible through `failedCount` and logs.
 - This MVP uses a synchronous internal endpoint/job-style service; delayed MQ can call the same service later.
+
+### Scheduled Timeout Compensation Job
+
+Config keys:
+
+- `sangui.compensation.order-timeout.enabled`
+- `sangui.compensation.order-timeout.shop-id`
+- `sangui.compensation.order-timeout.timeout-minutes`
+- `sangui.compensation.order-timeout.limit`
+- `sangui.compensation.order-timeout.initial-delay-ms`
+- `sangui.compensation.order-timeout.fixed-delay-ms`
+
+Rules:
+
+- Scheduler is disabled by default; enabling it turns the timeout-cancel path into an in-process recurring compensation job.
+- `shop-id` must come from configuration, typically `${SANGUI_DEFAULT_SHOP_ID}`, and must not be hardcoded in Java business logic.
+- Each batch generates a job `traceId` and logs `shopId`, `timeoutMinutes`, `limit`, `scannedCount`, `cancelledCount`, `skippedCount`, and `failedCount`.
+- Candidates are re-read by `orderId` before release to reduce stale-scan races; non-`created` rows are skipped.
 
 Additional state transitions:
 
@@ -245,7 +265,7 @@ Validation and error matrix:
 Additional required tests:
 
 ```powershell
-mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service" -am "-Dtest=OrderCreateServiceTest,OrderCancelServiceTest,OrderTimeoutCancelServiceTest,OrderPaymentServiceTest,InternalOrderTimeoutControllerTest,OrderMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service" -am "-Dtest=OrderCreateServiceTest,OrderCancelServiceTest,OrderTimeoutCancelServiceTest,OrderTimeoutCompensationSchedulerTest,OrderPaymentServiceTest,InternalOrderTimeoutControllerTest,OrderMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Good/Base/Bad cases:
@@ -253,5 +273,6 @@ Good/Base/Bad cases:
 - Good: timeout cancellation releases inventory and returns cancelled/skipped counts.
 - Good: duplicate timeout cancellation does not release inventory twice.
 - Good: paid order is skipped when payment callback wins before timeout.
+- Good: one failing row increments `failedCount` without aborting the rest of the batch.
 - Base: timeout selection uses `created_at` cutoff until a dedicated payment deadline field is introduced.
 - Bad: timeout cancellation selects paid orders or hardcodes shop id.

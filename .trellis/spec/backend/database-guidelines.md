@@ -127,6 +127,28 @@ Good/Base/Bad cases:
 - Base: `created_at` is the timeout basis until a dedicated payment deadline column is introduced.
 - Bad: timeout compensation scans all orders without `shop_id` and `status` predicates.
 
+## Payment Reconcile Compensation Index
+
+`services/sangui-payment-service/src/main/resources/db/migration/V3__add_payment_reconcile_lookup_index.sql` supports stale `created` payment reconciliation.
+
+Required index:
+
+```sql
+CREATE INDEX idx_pay_payment_order_shop_status_created ON pay_payment_order (shop_id, status, created_at);
+```
+
+Executable validation:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-payment-service" -am "-Dtest=PaymentMigrationContractTest,PaymentReservationMigrationContractTest,PaymentReconcileMigrationContractTest,PaymentReconcileServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: reconcile compensation queries `shop_id`, `status = created`, and `created_at <= cutoff`.
+- Base: `created_at` is the reconcile basis until a dedicated provider deadline or next-poll timestamp is introduced.
+- Bad: payment reconcile scans all payment rows without `shop_id` and `status` predicates.
+
 Repository test strategy:
 
 | Case | 断言重点 |

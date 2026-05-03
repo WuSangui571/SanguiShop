@@ -16,7 +16,9 @@ import com.sangui.shop.payment.domain.PaymentErrorCode;
 import com.sangui.shop.payment.domain.PaymentOrderRecord;
 import com.sangui.shop.payment.domain.PaymentRepository;
 import com.sangui.shop.payment.domain.PaymentStatus;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -129,6 +131,15 @@ class PaymentCallbackServiceTest {
         @Override
         public Optional<PaymentOrderRecord> findByPaymentNo(Long shopId, String paymentNo) {
             return Optional.ofNullable(recordsByKey.get(paymentKey(shopId, paymentNo)));
+        }
+
+        @Override
+        public List<PaymentOrderRecord> findCreatedPayments(Long shopId, LocalDateTime createdBefore, int limit) {
+            return recordsByKey.values().stream()
+                    .filter(record -> java.util.Objects.equals(record.shopId(), shopId))
+                    .filter(record -> record.status() == PaymentStatus.CREATED)
+                    .limit(limit)
+                    .toList();
         }
 
         @Override

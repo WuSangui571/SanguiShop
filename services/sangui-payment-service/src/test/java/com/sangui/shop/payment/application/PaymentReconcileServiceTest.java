@@ -1,22 +1,23 @@
 package com.sangui.shop.payment.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sangui.shop.common.core.exception.SanguiException;
-import com.sangui.shop.common.security.SanguiPrincipal;
-import com.sangui.shop.payment.api.dto.CreatePaymentRequest;
-import com.sangui.shop.payment.api.dto.PaymentResponse;
 import com.sangui.shop.payment.client.OrderPaymentClient;
 import com.sangui.shop.payment.client.OrderPaymentSnapshot;
 import com.sangui.shop.payment.client.ProductInventoryClient;
 import com.sangui.shop.payment.domain.PaymentCallbackLogDraft;
 import com.sangui.shop.payment.domain.PaymentCallbackLogRecord;
 import com.sangui.shop.payment.domain.PaymentCreateDraft;
+import com.sangui.shop.payment.domain.PaymentErrorCode;
 import com.sangui.shop.payment.domain.PaymentOrderRecord;
 import com.sangui.shop.payment.domain.PaymentRepository;
 import com.sangui.shop.payment.domain.PaymentStatus;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,130 +26,93 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class PaymentPayServiceTest {
+class PaymentReconcileServiceTest {
 
-    private static final SanguiPrincipal USER_PRINCIPAL = new SanguiPrincipal(
-            "10001",
-            1L,
-            java.util.Set.of("USER"),
-            java.util.Set.of("payment:create"),
-            "jwt-payment"
+    private static final Clock FIXED_CLOCK = Clock.fixed(
+            Instant.parse("2026-05-03T06:00:00Z"),
+            ZoneId.of("Asia/Shanghai")
     );
 
     private InMemoryPaymentRepository paymentRepository;
     private StubOrderPaymentClient orderPaymentClient;
     private StubProductInventoryClient productInventoryClient;
-    private PaymentPayService paymentPayService;
+    private PaymentReconcileService paymentReconcileService;
 
     @BeforeEach
     void setUp() {
         paymentRepository = new InMemoryPaymentRepository();
         orderPaymentClient = new StubOrderPaymentClient();
         productInventoryClient = new StubProductInventoryClient();
-        paymentPayService = new PaymentPayService(paymentRepository, orderPaymentClient, productInventoryClient);
+        PaymentPayService paymentPayService = new PaymentPayService(paymentRepository, orderPaymentClient, productInventoryClient);
+        paymentReconcileService = new PaymentReconcileService(paymentRepository, paymentPayService, FIXED_CLOCK);
     }
 
     @Test
-    void payCreatesPaymentAndMarksOrderPaid() {
-        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
+    void reconcileCreatedPaymentsSettlesEligibleRows() {
+        paymentRepository.seed(createdPayment("PAY-001"), LocalDateTime.now(FIXED_CLOCK).minusMinutes(5));
 
-        PaymentResponse response = paymentPayService.pay(
-                USER_PRINCIPAL,
-                new CreatePaymentRequest(999L, "spoof-user", 101L, "PAY-001", "mock"),
-                "trace-pay-1"
-        );
+        PaymentReconcileResult result = paymentReconcileService.reconcileCreatedPayments(1L, 1, 100, "trace-reconcile-1");
 
-        assertThat(response.paymentId()).isEqualTo(10001L);
-        assertThat(response.paymentNo()).isEqualTo("PAY-001");
-        assertThat(response.orderId()).isEqualTo(101L);
-        assertThat(response.shopId()).isEqualTo(1L);
-        assertThat(response.userId()).isEqualTo("10001");
-        assertThat(response.status()).isEqualTo("paid");
+        assertThat(result.scannedCount()).isEqualTo(1);
+        assertThat(result.settledCount()).isEqualTo(1);
+        assertThat(result.skippedCount()).isZero();
+        assertThat(result.failedCount()).isZero();
         assertThat(orderPaymentClient.confirmCalls).isEqualTo(1);
         assertThat(productInventoryClient.confirmCalls).isEqualTo(1);
         assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.PAID);
     }
 
     @Test
-    void payReturnsExistingPaidPaymentForSamePaymentNo() {
-        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
+    void reconcileCreatedPaymentsMarksTerminalInvalidOrderAsFailed() {
+        paymentRepository.seed(createdPayment("PAY-001"), LocalDateTime.now(FIXED_CLOCK).minusMinutes(5));
+        orderPaymentClient.rejectConfirm = true;
 
-        PaymentResponse first = paymentPayService.pay(
-                USER_PRINCIPAL,
-                new CreatePaymentRequest(1L, "u", 101L, "PAY-001", "mock"),
-                "trace-pay-1"
-        );
-        PaymentResponse second = paymentPayService.pay(
-                USER_PRINCIPAL,
-                new CreatePaymentRequest(1L, "u", 101L, "PAY-001", "mock"),
-                "trace-pay-2"
-        );
+        PaymentReconcileResult result = paymentReconcileService.reconcileCreatedPayments(1L, 1, 100, "trace-reconcile-invalid");
 
-        assertThat(second.paymentId()).isEqualTo(first.paymentId());
-        assertThat(second.status()).isEqualTo("paid");
-        assertThat(orderPaymentClient.confirmCalls).isEqualTo(1);
-        assertThat(productInventoryClient.confirmCalls).isEqualTo(1);
+        assertThat(result.scannedCount()).isEqualTo(1);
+        assertThat(result.settledCount()).isZero();
+        assertThat(result.skippedCount()).isZero();
+        assertThat(result.failedCount()).isEqualTo(1);
+        assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.FAILED);
     }
 
     @Test
-    void payRetriesExistingCreatedPaymentAndMarksItPaid() {
-        paymentRepository.seed(new PaymentOrderRecord(
-                10001L,
+    void reconcileCreatedPaymentsContinuesAfterSingleFailure() {
+        paymentRepository.seed(createdPayment("PAY-001"), LocalDateTime.now(FIXED_CLOCK).minusMinutes(5));
+        paymentRepository.seed(createdPayment("PAY-002"), LocalDateTime.now(FIXED_CLOCK).minusMinutes(6));
+        orderPaymentClient.failPaymentNo = "PAY-001";
+
+        PaymentReconcileResult result = paymentReconcileService.reconcileCreatedPayments(1L, 1, 100, "trace-reconcile-partial");
+
+        assertThat(result.scannedCount()).isEqualTo(2);
+        assertThat(result.settledCount()).isEqualTo(1);
+        assertThat(result.failedCount()).isEqualTo(1);
+        assertThat(result.skippedCount()).isZero();
+        assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.CREATED);
+        assertThat(paymentRepository.findByPaymentNo(1L, "PAY-002").orElseThrow().status()).isEqualTo(PaymentStatus.PAID);
+    }
+
+    private PaymentOrderRecord createdPayment(String paymentNo) {
+        return new PaymentOrderRecord(
+                paymentRepository.nextPaymentId.incrementAndGet(),
                 1L,
                 101L,
-                "ORD-001",
+                "ORD-" + paymentNo,
                 "10001",
-                "ord:10001:req-001",
-                "PAY-001",
+                "ord:10001:req-" + paymentNo,
+                paymentNo,
                 "mock",
                 59900L,
                 PaymentStatus.CREATED,
-                "trace-created"
-        ));
-        orderPaymentClient.seedSnapshot(new OrderPaymentSnapshot(101L, "ORD-001", 1L, "10001", "ord:10001:req-001", "created", 59900L));
-
-        PaymentResponse response = paymentPayService.pay(
-                USER_PRINCIPAL,
-                new CreatePaymentRequest(1L, "u", 101L, "PAY-001", "mock"),
-                "trace-pay-retry"
+                "trace-created-" + paymentNo
         );
-
-        assertThat(response.status()).isEqualTo("paid");
-        assertThat(orderPaymentClient.confirmCalls).isEqualTo(1);
-        assertThat(productInventoryClient.confirmCalls).isEqualTo(1);
-        assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.PAID);
     }
 
-    @Test
-    void payRejectsPaymentNoReuseWithDifferentPayload() {
-        paymentRepository.seed(new PaymentOrderRecord(
-                10001L,
-                1L,
-                101L,
-                "ORD-001",
-                "10001",
-                "ord:10001:req-001",
-                "PAY-001",
-                "mock",
-                59900L,
-                PaymentStatus.PAID,
-                "trace-paid"
-        ));
-
-        assertThatThrownBy(() -> paymentPayService.pay(
-                USER_PRINCIPAL,
-                new CreatePaymentRequest(1L, "u", 102L, "PAY-001", "mock"),
-                "trace-pay-conflict"
-        )).isInstanceOfSatisfying(SanguiException.class, exception -> {
-            assertThat(exception.errorCode().code()).isEqualTo("IDEMPOTENCY_CONFLICT");
-            assertThat(exception.httpStatus()).isEqualTo(409);
-        });
-    }
-
-    private static final class InMemoryPaymentRepository implements PaymentRepository {
+    private final class InMemoryPaymentRepository implements PaymentRepository {
 
         private final AtomicLong nextPaymentId = new AtomicLong(10000);
         private final Map<String, PaymentOrderRecord> recordsByKey = new LinkedHashMap<>();
+        private final Map<String, LocalDateTime> createdAtByKey = new LinkedHashMap<>();
 
         @Override
         public Optional<PaymentOrderRecord> findByPaymentNo(Long shopId, String paymentNo) {
@@ -160,6 +124,8 @@ class PaymentPayServiceTest {
             return recordsByKey.values().stream()
                     .filter(record -> java.util.Objects.equals(record.shopId(), shopId))
                     .filter(record -> record.status() == PaymentStatus.CREATED)
+                    .filter(record -> !createdAtByKey.get(key(record.shopId(), record.paymentNo())).isAfter(createdBefore))
+                    .sorted(Comparator.comparing(PaymentOrderRecord::id))
                     .limit(limit)
                     .toList();
         }
@@ -172,7 +138,7 @@ class PaymentPayServiceTest {
         @Override
         public Long createPaymentOrder(PaymentCreateDraft draft, PaymentStatus status) {
             Long paymentId = nextPaymentId.incrementAndGet();
-            recordsByKey.put(key(draft.shopId(), draft.paymentNo()), new PaymentOrderRecord(
+            seed(new PaymentOrderRecord(
                     paymentId,
                     draft.shopId(),
                     draft.orderId(),
@@ -184,7 +150,7 @@ class PaymentPayServiceTest {
                     draft.amountCent(),
                     status,
                     draft.traceId()
-            ));
+            ), LocalDateTime.now(FIXED_CLOCK));
             return paymentId;
         }
 
@@ -207,8 +173,9 @@ class PaymentPayServiceTest {
         public void updateCallbackProcessStatus(Long callbackLogId, String processStatus) {
         }
 
-        private void seed(PaymentOrderRecord record) {
+        private void seed(PaymentOrderRecord record, LocalDateTime createdAt) {
             recordsByKey.put(key(record.shopId(), record.paymentNo()), record);
+            createdAtByKey.put(key(record.shopId(), record.paymentNo()), createdAt);
         }
 
         private String key(Long shopId, String paymentNo) {
@@ -218,12 +185,13 @@ class PaymentPayServiceTest {
 
     private static final class StubOrderPaymentClient implements OrderPaymentClient {
 
-        private final Map<Long, OrderPaymentSnapshot> snapshotsByOrderId = new LinkedHashMap<>();
         private int confirmCalls;
+        private boolean rejectConfirm;
+        private String failPaymentNo;
 
         @Override
         public OrderPaymentSnapshot getPayableOrder(Long shopId, String userId, Long orderId) {
-            return snapshotsByOrderId.get(orderId);
+            return new OrderPaymentSnapshot(orderId, "ORD-001", shopId, userId, "ord:10001:req-001", "created", 59900L);
         }
 
         @Override
@@ -236,20 +204,13 @@ class PaymentPayServiceTest {
                 String traceId
         ) {
             confirmCalls++;
-            OrderPaymentSnapshot snapshot = snapshotsByOrderId.get(orderId);
-            return new OrderPaymentSnapshot(
-                    snapshot.orderId(),
-                    snapshot.orderNo(),
-                    snapshot.shopId(),
-                    snapshot.userId(),
-                    snapshot.reservationNo(),
-                    "paid",
-                    snapshot.totalAmountCent()
-            );
-        }
-
-        private void seedSnapshot(OrderPaymentSnapshot snapshot) {
-            snapshotsByOrderId.put(snapshot.orderId(), snapshot);
+            if (rejectConfirm) {
+                throw new SanguiException(PaymentErrorCode.PAYMENT_ORDER_STATUS_INVALID, 409);
+            }
+            if (java.util.Objects.equals(failPaymentNo, paymentNo)) {
+                throw new IllegalStateException("simulated downstream timeout");
+            }
+            return new OrderPaymentSnapshot(orderId, "ORD-001", shopId, userId, "ord:10001:req-001", "paid", paidAmountCent);
         }
     }
 
