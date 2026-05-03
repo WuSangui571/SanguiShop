@@ -1,0 +1,8 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend done criteria for build, typecheck, and UI states"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Check DTO compatibility and money/time handling"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Check gateway-only HTTP usage and envelope parsing"}
+{"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Check order compensation query field mapping"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Check loading/empty/error states and component boundaries"}
+{"file": ".trellis\\spec\\backend\\payment-pay-contracts.md", "reason": "Check payment compensation query field mapping"}

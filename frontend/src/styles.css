@@ -1,0 +1,57 @@
+:root {
+  color-scheme: light;
+  font-family: Bahnschrift, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background:
+    radial-gradient(circle at top left, rgba(46, 196, 182, 0.18), transparent 26%),
+    radial-gradient(circle at top right, rgba(255, 159, 28, 0.18), transparent 24%),
+    linear-gradient(180deg, #f6f7fb 0%, #eef2f8 100%);
+  color: #142032;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --bg-shell: rgba(255, 255, 255, 0.8);
+  --bg-panel: rgba(255, 255, 255, 0.92);
+  --bg-soft: rgba(19, 32, 50, 0.05);
+  --border-strong: rgba(20, 32, 50, 0.12);
+  --border-soft: rgba(20, 32, 50, 0.08);
+  --text-main: #142032;
+  --text-muted: #607089;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --warning: #c2410c;
+  --danger: #b42318;
+  --success: #166534;
+  --shadow-soft: 0 18px 48px rgba(22, 33, 56, 0.09);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  color: var(--text-main);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}

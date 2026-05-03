@@ -1,0 +1,11 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\spec\\frontend\\directory-structure.md", "reason": "Frontend structure for minimal app scaffold and admin view placement"}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "Composable rules and shared data fetching through httpClient"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "DTO naming, money formatting, and unknown fallback handling"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Component boundaries and async UI states for dashboard widgets"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Gateway-only HTTP client and ApiResult envelope parsing"}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Distinguish server query state from local UI state"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Cross-layer contract checks between frontend filters and compensation history APIs"}
+{"file": ".trellis\\spec\\backend\\payment-pay-contracts.md", "reason": "Payment compensation query contract and attempt detail response shape"}
+{"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Order compensation query contract and attempt detail response shape"}
