@@ -7,9 +7,14 @@ import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayResponse;
 import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayItemResponse;
 import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayRequest;
 import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayResponse;
+import com.sangui.shop.order.api.dto.OrderCompensationAggregateResponse;
+import com.sangui.shop.order.api.dto.OrderCompensationAttemptResponse;
 import com.sangui.shop.order.api.dto.OrderCompensationQueryRequest;
 import com.sangui.shop.order.api.dto.OrderCompensationQueryResponse;
 import com.sangui.shop.order.api.dto.OrderCompensationRecordResponse;
+import com.sangui.shop.order.domain.OrderCompensationAttemptQuery;
+import com.sangui.shop.order.domain.OrderCompensationAttemptRecord;
+import com.sangui.shop.order.domain.OrderCompensationAttemptSummary;
 import com.sangui.shop.order.domain.OrderRecord;
 import com.sangui.shop.order.domain.OrderRepository;
 import com.sangui.shop.order.domain.OrderStatus;
@@ -18,7 +23,9 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +39,9 @@ public class OrderCompensationOpsService {
     private static final int DEFAULT_TIMEOUT_MINUTES = 15;
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 500;
+    private static final int DEFAULT_PAGE_NO = 1;
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final OrderRepository orderRepository;
     private final OrderTimeoutCancelService orderTimeoutCancelService;
@@ -60,21 +70,40 @@ public class OrderCompensationOpsService {
     }
 
     public OrderCompensationQueryResponse queryRecords(OrderCompensationQueryRequest request) {
-        int limit = normalizeLimit(request.limit());
-        int timeoutMinutes = request.timeoutMinutes() == null ? DEFAULT_TIMEOUT_MINUTES : request.timeoutMinutes();
-        LocalDateTime createdBefore = LocalDateTime.now(clock).minusMinutes(timeoutMinutes);
-        List<OrderCompensationRecordResponse> timeoutOrders = orderRepository.findExpiredCreatedOrders(
-                        request.shopId(),
-                        createdBefore,
-                        limit
-                ).stream()
-                .map(this::toResponse)
+        OrderCompensationAttemptQuery query = toAttemptQuery(request);
+        int pageNo = normalizePageNo(request.pageNo());
+        int pageSize = normalizePageSize(request.pageSize());
+        int offset = (pageNo - 1) * pageSize;
+        long total = orderRepository.countCompensationAttempts(query);
+        if (total == 0) {
+            return new OrderCompensationQueryResponse(request.shopId(), pageNo, pageSize, 0L, List.of());
+        }
+        List<OrderCompensationAttemptSummary> summaries = orderRepository.findCompensationAttemptSummaries(query, offset, pageSize);
+        List<Long> orderIds = summaries.stream()
+                .map(OrderCompensationAttemptSummary::orderId)
                 .toList();
-        List<OrderCompensationRecordResponse> cancelledOrders = orderRepository.findCancelledOrders(request.shopId(), limit)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-        return new OrderCompensationQueryResponse(request.shopId(), timeoutOrders, cancelledOrders);
+        Map<Long, OrderCompensationAttemptSummary> summaryByOrderId = new LinkedHashMap<>();
+        for (OrderCompensationAttemptSummary summary : summaries) {
+            summaryByOrderId.put(summary.orderId(), summary);
+        }
+        Map<Long, List<OrderCompensationAttemptResponse>> attemptsByOrderId = groupAttemptsByOrderId(
+                orderRepository.findCompensationAttemptsByOrderIds(request.shopId(), orderIds)
+        );
+        List<OrderCompensationAggregateResponse> items = new ArrayList<>();
+        for (Long orderId : orderIds) {
+            orderRepository.findById(request.shopId(), orderId).ifPresent(order -> {
+                List<OrderCompensationAttemptResponse> attempts = attemptsByOrderId.getOrDefault(orderId, List.of());
+                OrderCompensationAttemptSummary summary = summaryByOrderId.get(orderId);
+                items.add(new OrderCompensationAggregateResponse(
+                        toResponse(order),
+                        summary == null ? 0L : summary.matchedAttemptCount(),
+                        (long) attempts.size(),
+                        summary == null ? null : toOffsetDateTime(summary.latestAttemptAt()),
+                        attempts
+                ));
+            });
+        }
+        return new OrderCompensationQueryResponse(request.shopId(), pageNo, pageSize, total, items);
     }
 
     public ManualOrderTimeoutReplayResponse manualReplay(ManualOrderTimeoutReplayRequest request, String traceId) {
@@ -231,11 +260,84 @@ public class OrderCompensationOpsService {
         );
     }
 
+    private OrderCompensationAttemptResponse toAttemptResponse(OrderCompensationAttemptRecord attempt) {
+        return new OrderCompensationAttemptResponse(
+                attempt.id(),
+                attempt.orderId(),
+                attempt.orderNo(),
+                attempt.reservationNo(),
+                attempt.result(),
+                attempt.errorCode(),
+                attempt.reason(),
+                attempt.traceId(),
+                attempt.trigger(),
+                attempt.operator(),
+                toOffsetDateTime(attempt.createdAt()),
+                toOffsetDateTime(attempt.updatedAt())
+        );
+    }
+
     private OffsetDateTime toOffsetDateTime(LocalDateTime value) {
         if (value == null) {
             return null;
         }
         return value.atZone(ZoneId.systemDefault()).toOffsetDateTime();
+    }
+
+    private OrderCompensationAttemptQuery toAttemptQuery(OrderCompensationQueryRequest request) {
+        OffsetDateTime fromTime = request.fromTime();
+        OffsetDateTime toTime = request.toTime();
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
+        return new OrderCompensationAttemptQuery(
+                request.shopId(),
+                request.orderId(),
+                normalizeOptionalFilter(request.trigger()),
+                normalizeOptionalFilter(request.result()),
+                normalizeOptionalFilter(request.operator()),
+                normalizeOptionalFilter(request.traceId()),
+                toLocalDateTime(fromTime),
+                toLocalDateTime(toTime)
+        );
+    }
+
+    private LocalDateTime toLocalDateTime(OffsetDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+    }
+
+    private String normalizeOptionalFilter(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
+        return trimmed;
+    }
+
+    private int normalizePageNo(Integer pageNo) {
+        return pageNo == null ? DEFAULT_PAGE_NO : pageNo;
+    }
+
+    private int normalizePageSize(Integer pageSize) {
+        if (pageSize == null) {
+            return DEFAULT_PAGE_SIZE;
+        }
+        return Math.min(pageSize, MAX_PAGE_SIZE);
+    }
+
+    private Map<Long, List<OrderCompensationAttemptResponse>> groupAttemptsByOrderId(List<OrderCompensationAttemptRecord> attempts) {
+        Map<Long, List<OrderCompensationAttemptResponse>> attemptsByOrderId = new LinkedHashMap<>();
+        for (OrderCompensationAttemptRecord attempt : attempts) {
+            attemptsByOrderId.computeIfAbsent(attempt.orderId(), ignored -> new ArrayList<>())
+                    .add(toAttemptResponse(attempt));
+        }
+        return attemptsByOrderId;
     }
 
     private int normalizeLimit(Integer limit) {

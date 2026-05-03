@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "History-table query, index, and compensation metadata rules"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Compensation query DTO and response contract rules"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "TraceId and sanitized ops logging expectations"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Keep API, service, and DB fields aligned across the query surface"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required WebMvc/service/contract coverage for backend changes"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Existing order compensation ops API contract addendum"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Existing payment compensation ops API contract addendum"}

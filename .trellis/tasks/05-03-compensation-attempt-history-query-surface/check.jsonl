@@ -1,0 +1,10 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Verify compensation query DTO and response contract rules"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Verify traceId and sanitized ops logging expectations"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Verify history-table query, index, and compensation metadata rules"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify required WebMvc/service/contract coverage for backend changes"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify validation and error mapping for internal ops APIs"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify API, service, and DB fields stay aligned"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Verify order compensation ops API contract changes"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Verify payment compensation ops API contract changes"}

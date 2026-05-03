@@ -7,10 +7,14 @@ import com.sangui.shop.payment.api.dto.BulkPaymentReconcileRequest;
 import com.sangui.shop.payment.api.dto.BulkPaymentReconcileResponse;
 import com.sangui.shop.payment.api.dto.ManualPaymentReconcileRequest;
 import com.sangui.shop.payment.api.dto.ManualPaymentReconcileResponse;
+import com.sangui.shop.payment.api.dto.PaymentCompensationAggregateResponse;
+import com.sangui.shop.payment.api.dto.PaymentCompensationAttemptResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationQueryRequest;
 import com.sangui.shop.payment.api.dto.PaymentCompensationQueryResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationRecordResponse;
-import com.sangui.shop.payment.domain.PaymentErrorCode;
+import com.sangui.shop.payment.domain.PaymentCompensationAttemptQuery;
+import com.sangui.shop.payment.domain.PaymentCompensationAttemptRecord;
+import com.sangui.shop.payment.domain.PaymentCompensationAttemptSummary;
 import com.sangui.shop.payment.domain.PaymentOrderRecord;
 import com.sangui.shop.payment.domain.PaymentRepository;
 import com.sangui.shop.payment.domain.PaymentStatus;
@@ -19,7 +23,9 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +39,9 @@ public class PaymentCompensationOpsService {
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 500;
     private static final int DEFAULT_MIN_AGE_MINUTES = 1;
+    private static final int DEFAULT_PAGE_NO = 1;
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final PaymentRepository paymentRepository;
     private final PaymentReconcileService paymentReconcileService;
@@ -61,21 +70,39 @@ public class PaymentCompensationOpsService {
     }
 
     public PaymentCompensationQueryResponse queryRecords(PaymentCompensationQueryRequest request) {
-        int limit = normalizeLimit(request.limit());
-        int minAgeMinutes = request.minAgeMinutes() == null ? DEFAULT_MIN_AGE_MINUTES : request.minAgeMinutes();
-        LocalDateTime createdBefore = LocalDateTime.now(clock).minusMinutes(minAgeMinutes);
-        List<PaymentCompensationRecordResponse> createdPayments = paymentRepository.findCreatedPayments(
-                        request.shopId(),
-                        createdBefore,
-                        limit
-                ).stream()
-                .map(this::toResponse)
+        PaymentCompensationAttemptQuery query = toAttemptQuery(request);
+        int pageNo = normalizePageNo(request.pageNo());
+        int pageSize = normalizePageSize(request.pageSize());
+        int offset = (pageNo - 1) * pageSize;
+        long total = paymentRepository.countCompensationAttempts(query);
+        if (total == 0) {
+            return new PaymentCompensationQueryResponse(request.shopId(), pageNo, pageSize, 0L, List.of());
+        }
+        List<PaymentCompensationAttemptSummary> summaries = paymentRepository.findCompensationAttemptSummaries(query, offset, pageSize);
+        List<Long> paymentIds = summaries.stream()
+                .map(PaymentCompensationAttemptSummary::paymentId)
                 .toList();
-        List<PaymentCompensationRecordResponse> failedPayments = paymentRepository.findFailedPayments(request.shopId(), limit)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-        return new PaymentCompensationQueryResponse(request.shopId(), createdPayments, failedPayments);
+        Map<Long, PaymentCompensationAttemptSummary> summaryByPaymentId = new LinkedHashMap<>();
+        for (PaymentCompensationAttemptSummary summary : summaries) {
+            summaryByPaymentId.put(summary.paymentId(), summary);
+        }
+        Map<Long, List<PaymentCompensationAttemptResponse>> attemptsByPaymentId = groupAttemptsByPaymentId(
+                paymentRepository.findCompensationAttemptsByPaymentIds(request.shopId(), paymentIds)
+        );
+        List<PaymentCompensationAggregateResponse> items = new ArrayList<>();
+        for (PaymentCompensationAttemptSummary summary : summaries) {
+            paymentRepository.findByPaymentNo(request.shopId(), summary.paymentNo()).ifPresent(payment -> {
+                List<PaymentCompensationAttemptResponse> attempts = attemptsByPaymentId.getOrDefault(summary.paymentId(), List.of());
+                items.add(new PaymentCompensationAggregateResponse(
+                        toResponse(payment),
+                        summary.matchedAttemptCount(),
+                        (long) attempts.size(),
+                        toOffsetDateTime(summary.latestAttemptAt()),
+                        attempts
+                ));
+            });
+        }
+        return new PaymentCompensationQueryResponse(request.shopId(), pageNo, pageSize, total, items);
     }
 
     public ManualPaymentReconcileResponse manualReconcile(ManualPaymentReconcileRequest request, String traceId) {
@@ -231,11 +258,87 @@ public class PaymentCompensationOpsService {
         );
     }
 
+    private PaymentCompensationAttemptResponse toAttemptResponse(PaymentCompensationAttemptRecord attempt) {
+        return new PaymentCompensationAttemptResponse(
+                attempt.id(),
+                attempt.paymentId(),
+                attempt.orderId(),
+                attempt.paymentNo(),
+                attempt.orderNo(),
+                attempt.reservationNo(),
+                attempt.result(),
+                attempt.errorCode(),
+                attempt.reason(),
+                attempt.traceId(),
+                attempt.trigger(),
+                attempt.operator(),
+                toOffsetDateTime(attempt.createdAt()),
+                toOffsetDateTime(attempt.updatedAt())
+        );
+    }
+
     private OffsetDateTime toOffsetDateTime(LocalDateTime value) {
         if (value == null) {
             return null;
         }
         return value.atZone(ZoneId.systemDefault()).toOffsetDateTime();
+    }
+
+    private PaymentCompensationAttemptQuery toAttemptQuery(PaymentCompensationQueryRequest request) {
+        OffsetDateTime fromTime = request.fromTime();
+        OffsetDateTime toTime = request.toTime();
+        if (fromTime != null && toTime != null && fromTime.isAfter(toTime)) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
+        return new PaymentCompensationAttemptQuery(
+                request.shopId(),
+                request.orderId(),
+                normalizeOptionalFilter(request.paymentNo()),
+                normalizeOptionalFilter(request.trigger()),
+                normalizeOptionalFilter(request.result()),
+                normalizeOptionalFilter(request.operator()),
+                normalizeOptionalFilter(request.traceId()),
+                toLocalDateTime(fromTime),
+                toLocalDateTime(toTime)
+        );
+    }
+
+    private LocalDateTime toLocalDateTime(OffsetDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+    }
+
+    private String normalizeOptionalFilter(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
+        return trimmed;
+    }
+
+    private int normalizePageNo(Integer pageNo) {
+        return pageNo == null ? DEFAULT_PAGE_NO : pageNo;
+    }
+
+    private int normalizePageSize(Integer pageSize) {
+        if (pageSize == null) {
+            return DEFAULT_PAGE_SIZE;
+        }
+        return Math.min(pageSize, MAX_PAGE_SIZE);
+    }
+
+    private Map<Long, List<PaymentCompensationAttemptResponse>> groupAttemptsByPaymentId(List<PaymentCompensationAttemptRecord> attempts) {
+        Map<Long, List<PaymentCompensationAttemptResponse>> attemptsByPaymentId = new LinkedHashMap<>();
+        for (PaymentCompensationAttemptRecord attempt : attempts) {
+            attemptsByPaymentId.computeIfAbsent(attempt.paymentId(), ignored -> new ArrayList<>())
+                    .add(toAttemptResponse(attempt));
+        }
+        return attemptsByPaymentId;
     }
 
     private int normalizeLimit(Integer limit) {

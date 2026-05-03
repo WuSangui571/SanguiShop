@@ -193,8 +193,15 @@ Request:
 ```json
 {
   "shopId": 1,
-  "timeoutMinutes": 15,
-  "limit": 100
+  "orderId": 101,
+  "trigger": "scheduler",
+  "result": "failed",
+  "operator": "ops-user",
+  "traceId": "trace-order-manual",
+  "fromTime": "2026-05-03T12:00:00+08:00",
+  "toTime": "2026-05-03T12:30:00+08:00",
+  "pageNo": 1,
+  "pageSize": 20
 }
 ```
 
@@ -320,36 +327,62 @@ Response data:
 ```json
 {
   "shopId": 1,
-  "timeoutOrders": [
+  "pageNo": 1,
+  "pageSize": 20,
+  "total": 1,
+  "items": [
     {
-      "orderId": 101,
-      "orderNo": "ORD-001",
-      "userId": "10001",
-      "reservationNo": "ord:10001:req-001",
-      "status": "created",
-      "totalAmountCent": 59900,
-      "traceId": "trace-order-create",
-      "createdAt": "2026-05-03T12:00:00+08:00",
-      "updatedAt": "2026-05-03T12:00:00+08:00",
-      "lastCompensationResult": "failed",
-      "lastCompensationErrorCode": "DOWNSTREAM_TIMEOUT",
-      "lastCompensationReason": "inventory release timeout",
-      "lastCompensationTraceId": "order-timeout-job-xxx",
-      "lastCompensationTrigger": "scheduler",
-      "lastCompensatedAt": "2026-05-03T12:16:00+08:00"
+      "order": {
+        "orderId": 101,
+        "orderNo": "ORD-001",
+        "userId": "10001",
+        "reservationNo": "ord:10001:req-001",
+        "status": "cancelled",
+        "totalAmountCent": 59900,
+        "traceId": "trace-order-create",
+        "createdAt": "2026-05-03T12:00:00+08:00",
+        "updatedAt": "2026-05-03T12:10:00+08:00",
+        "lastCompensationResult": "failed",
+        "lastCompensationErrorCode": "DOWNSTREAM_TIMEOUT",
+        "lastCompensationReason": "inventory release timeout",
+        "lastCompensationTraceId": "order-timeout-job-xxx",
+        "lastCompensationTrigger": "scheduler",
+        "lastCompensationOperator": null,
+        "lastCompensatedAt": "2026-05-03T12:16:00+08:00"
+      },
+      "matchedAttemptCount": 1,
+      "totalAttemptCount": 2,
+      "latestAttemptAt": "2026-05-03T12:16:00+08:00",
+      "attempts": [
+        {
+          "attemptId": 9001,
+          "orderId": 101,
+          "orderNo": "ORD-001",
+          "reservationNo": "ord:10001:req-001",
+          "result": "failed",
+          "errorCode": "DOWNSTREAM_TIMEOUT",
+          "reason": "inventory release timeout",
+          "traceId": "order-timeout-job-xxx",
+          "trigger": "scheduler",
+          "operator": null,
+          "createdAt": "2026-05-03T12:16:00+08:00",
+          "updatedAt": "2026-05-03T12:16:00+08:00"
+        }
+      ]
     }
-  ],
-  "cancelledOrders": []
+  ]
 }
 ```
 
 Rules:
 
 - `shopId` is required.
-- `timeoutMinutes` defaults to 15; `limit` defaults to 100 and must stay capped at 500.
-- `timeoutOrders` are queried from `oms_order` where `shop_id = ?`, `status = created`, and `created_at <= now - timeoutMinutes`.
-- `cancelledOrders` are queried from `oms_order` where `shop_id = ?` and `status = cancelled`, ordered by most recently updated rows first.
-- Query responses must expose `createdAt`, `updatedAt`, and `lastCompensatedAt`.
+- `pageNo` defaults to 1; `pageSize` defaults to 20 and must stay capped at 100.
+- History filtering is backed by `oms_order_compensation_attempt`, not only `oms_order.last_compensation_*`.
+- Supported filters are `orderId`, `trigger`, `result`, `operator`, `traceId`, and optional `fromTime` / `toTime`.
+- Pagination is applied to distinct `orderId` aggregates ordered by latest matched `created_at DESC, order_id DESC`.
+- Each aggregate returns the latest order snapshot from `oms_order` plus the full ordered attempt detail list from `oms_order_compensation_attempt`.
+- Query responses must expose `createdAt`, `updatedAt`, `lastCompensatedAt`, and per-attempt `createdAt` / `updatedAt`.
 
 ### `POST /internal/orders/timeout-replays/manual`
 
@@ -409,23 +442,24 @@ Additional validation and error matrix:
 | Case | HTTP | code |
 | --- | --- | --- |
 | Query/manual request missing `shopId` | 400 | `VALIDATION_FAILED` |
-| `orderId <= 0` or `timeoutMinutes <= 0` | 400 | `VALIDATION_FAILED` |
+| `orderId <= 0`, `pageNo <= 0`, or `pageSize <= 0` | 400 | `VALIDATION_FAILED` |
+| `fromTime > toTime` | 400 | `VALIDATION_FAILED` |
 | Manual replay order missing | 404 | `ORDER_NOT_FOUND` |
 | Inventory release timeout during manual replay | 503 | `DOWNSTREAM_TIMEOUT` |
 
 Additional required tests:
 
 ```powershell
-mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service" -am "-Dtest=OrderTimeoutCancelServiceTest,OrderTimeoutCompensationSchedulerTest,InternalOrderTimeoutControllerTest,InternalOrderCompensationControllerTest,OrderCompensationOpsMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service" -am "-Dtest=OrderTimeoutCancelServiceTest,OrderCompensationOpsServiceTest,InternalOrderTimeoutControllerTest,InternalOrderCompensationControllerTest,OrderCompensationQueryResponseJsonTest,OrderCompensationOpsMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Good/Base/Bad cases:
 
 - Good: manual replay returns `cancelled`, `skipped`, or `failed` without inventing a new state machine.
-- Good: query surfaces show both business status and latest compensation metadata.
+- Good: query surfaces show both latest business status and nested attempt history in one response.
 - Good: manual replay and scheduler both overwrite the same latest-compensation fields, append history rows, and share the same metrics family.
 - Good: dry-run bulk replay previews bounded work without mutating rows or history.
-- Base: latest metadata is the fast-path query surface while history rows preserve every attempt.
+- Base: latest metadata remains the fast summary view while history rows preserve every attempt for drill-down.
 - Bad: manual replay forces a not-yet-timeout order into `cancelled`.
 - Bad: ops query omits `traceId` or key timestamps needed for troubleshooting.
 

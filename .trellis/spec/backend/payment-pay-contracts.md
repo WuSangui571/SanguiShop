@@ -311,8 +311,16 @@ Request:
 ```json
 {
   "shopId": 1,
-  "minAgeMinutes": 1,
-  "limit": 100
+  "paymentNo": "PAY-001",
+  "orderId": 101,
+  "trigger": "scheduler",
+  "result": "failed",
+  "operator": "ops-user",
+  "traceId": "trace-manual-payment",
+  "fromTime": "2026-05-03T12:00:00+08:00",
+  "toTime": "2026-05-03T12:10:00+08:00",
+  "pageNo": 1,
+  "pageSize": 20
 }
 ```
 
@@ -323,38 +331,66 @@ Response data:
 ```json
 {
   "shopId": 1,
-  "createdPayments": [
+  "pageNo": 1,
+  "pageSize": 20,
+  "total": 1,
+  "items": [
     {
-      "paymentId": 201,
-      "paymentNo": "PAY-001",
-      "orderId": 101,
-      "orderNo": "ORD-001",
-      "userId": "10001",
-      "channel": "mock",
-      "status": "created",
-      "amountCent": 59900,
-      "traceId": "trace-pay-1",
-      "createdAt": "2026-05-03T12:00:00+08:00",
-      "updatedAt": "2026-05-03T12:00:00+08:00",
-      "lastCompensationResult": "failed",
-      "lastCompensationErrorCode": "DOWNSTREAM_TIMEOUT",
-      "lastCompensationReason": "order confirm timeout",
-      "lastCompensationTraceId": "payment-reconcile-job-xxx",
-      "lastCompensationTrigger": "scheduler",
-      "lastCompensatedAt": "2026-05-03T12:02:00+08:00"
+      "payment": {
+        "paymentId": 201,
+        "paymentNo": "PAY-001",
+        "orderId": 101,
+        "orderNo": "ORD-001",
+        "userId": "10001",
+        "channel": "mock",
+        "status": "failed",
+        "amountCent": 59900,
+        "traceId": "trace-pay-1",
+        "createdAt": "2026-05-03T12:00:00+08:00",
+        "updatedAt": "2026-05-03T12:05:00+08:00",
+        "lastCompensationResult": "failed",
+        "lastCompensationErrorCode": "DOWNSTREAM_TIMEOUT",
+        "lastCompensationReason": "order confirm timeout",
+        "lastCompensationTraceId": "payment-reconcile-job-xxx",
+        "lastCompensationTrigger": "scheduler",
+        "lastCompensationOperator": null,
+        "lastCompensatedAt": "2026-05-03T12:05:00+08:00"
+      },
+      "matchedAttemptCount": 1,
+      "totalAttemptCount": 2,
+      "latestAttemptAt": "2026-05-03T12:05:00+08:00",
+      "attempts": [
+        {
+          "attemptId": 9001,
+          "paymentId": 201,
+          "orderId": 101,
+          "paymentNo": "PAY-001",
+          "orderNo": "ORD-001",
+          "reservationNo": "ord:10001:req-001",
+          "result": "failed",
+          "errorCode": "DOWNSTREAM_TIMEOUT",
+          "reason": "order confirm timeout",
+          "traceId": "payment-reconcile-job-xxx",
+          "trigger": "scheduler",
+          "operator": null,
+          "createdAt": "2026-05-03T12:05:00+08:00",
+          "updatedAt": "2026-05-03T12:05:00+08:00"
+        }
+      ]
     }
-  ],
-  "failedPayments": []
+  ]
 }
 ```
 
 Rules:
 
 - `shopId` is required.
-- `minAgeMinutes` defaults to 1; `limit` defaults to 100 and must stay capped at 500.
-- `createdPayments` are queried from `pay_payment_order` where `shop_id = ?`, `status = created`, and `created_at <= now - minAgeMinutes`.
-- `failedPayments` are queried from `pay_payment_order` where `shop_id = ?` and `status = failed`, ordered by most recently updated rows first.
-- Query responses must expose `createdAt`, `updatedAt`, and `lastCompensatedAt`.
+- `pageNo` defaults to 1; `pageSize` defaults to 20 and must stay capped at 100.
+- History filtering is backed by `pay_payment_compensation_attempt`, not only `pay_payment_order.last_compensation_*`.
+- Supported filters are `paymentNo`, `orderId`, `trigger`, `result`, `operator`, `traceId`, and optional `fromTime` / `toTime`.
+- Pagination is applied to distinct `paymentId` aggregates ordered by latest matched `created_at DESC, payment_id DESC`.
+- Each aggregate returns the latest payment snapshot from `pay_payment_order` plus the full ordered attempt detail list from `pay_payment_compensation_attempt`.
+- Query responses must expose `createdAt`, `updatedAt`, `lastCompensatedAt`, and per-attempt `createdAt` / `updatedAt`.
 
 ### `POST /internal/payments/reconciliations/manual`
 
@@ -415,22 +451,24 @@ Additional validation and error matrix:
 | --- | --- | --- |
 | Query/manual request missing `shopId` | 400 | `VALIDATION_FAILED` |
 | Blank `paymentNo` | 400 | `VALIDATION_FAILED` |
+| `pageNo <= 0` or `pageSize <= 0` | 400 | `VALIDATION_FAILED` |
+| `fromTime > toTime` | 400 | `VALIDATION_FAILED` |
 | Manual reconcile payment missing | 404 | `PAYMENT_NOT_FOUND` |
 | Downstream timeout during manual reconcile | 503 | `DOWNSTREAM_TIMEOUT` |
 
 Additional required tests:
 
 ```powershell
-mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-payment-service" -am "-Dtest=PaymentReconcileServiceTest,PaymentReconcileSchedulerTest,PaymentControllerTest,InternalPaymentCompensationControllerTest,PaymentCompensationOpsMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-payment-service" -am "-Dtest=PaymentReconcileServiceTest,PaymentCompensationOpsServiceTest,InternalPaymentCompensationControllerTest,PaymentCompensationQueryResponseJsonTest,PaymentCompensationOpsMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Good/Base/Bad cases:
 
 - Good: manual reconcile returns `settled`, `skipped`, or `failed` without bypassing existing settle rules.
-- Good: query surfaces show both business status and latest compensation metadata.
+- Good: query surfaces show both latest business status and nested attempt history in one response.
 - Good: manual reconcile and scheduler share the same metrics family, overwrite latest metadata, and append attempt history.
 - Good: dry-run bulk reconcile previews bounded work without mutating rows or history.
-- Base: latest metadata remains on the row while history tables preserve every attempt.
+- Base: latest metadata remains on the row while history tables preserve every attempt for drill-down.
 - Bad: manual reconcile revives a non-`created` payment by force.
 - Bad: ops query omits failure reason, traceId, or key timestamps needed for troubleshooting.
 

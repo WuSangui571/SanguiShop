@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.payment.api.dto.ManualPaymentReconcileResponse;
+import com.sangui.shop.payment.api.dto.PaymentCompensationAggregateResponse;
+import com.sangui.shop.payment.api.dto.PaymentCompensationAttemptResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationQueryResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationRecordResponse;
 import com.sangui.shop.payment.application.PaymentCompensationOpsService;
@@ -59,21 +61,52 @@ class InternalPaymentCompensationControllerTest {
                 null,
                 OffsetDateTime.parse("2026-05-03T12:05:00+08:00")
         );
+        PaymentCompensationAttemptResponse attempt = new PaymentCompensationAttemptResponse(
+                601L,
+                201L,
+                101L,
+                "PAY-001",
+                "ORD-001",
+                "ord:10001:req-001",
+                "failed",
+                "DOWNSTREAM_TIMEOUT",
+                "downstream timeout",
+                "trace-reconcile",
+                "scheduler",
+                null,
+                OffsetDateTime.parse("2026-05-03T12:05:00+08:00"),
+                OffsetDateTime.parse("2026-05-03T12:05:00+08:00")
+        );
         when(paymentCompensationOpsService.queryRecords(any()))
-                .thenReturn(new PaymentCompensationQueryResponse(1L, List.of(payment), List.of()));
+                .thenReturn(new PaymentCompensationQueryResponse(
+                        1L,
+                        1,
+                        20,
+                        1L,
+                        List.of(new PaymentCompensationAggregateResponse(
+                                payment,
+                                1L,
+                                1L,
+                                OffsetDateTime.parse("2026-05-03T12:05:00+08:00"),
+                                List.of(attempt)
+                        ))
+                ));
 
         mockMvc.perform(post("/internal/payments/compensation-records/query")
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-payment-query")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "shopId", 1,
-                                "minAgeMinutes", 1,
-                                "limit", 100
+                                "paymentNo", "PAY-001",
+                                "result", "failed",
+                                "pageNo", 1,
+                                "pageSize", 20
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("PAYMENT_COMPENSATION_RECORDS_FETCHED"))
                 .andExpect(jsonPath("$.traceId").value("trace-payment-query"))
-                .andExpect(jsonPath("$.data.createdPayments[0].paymentNo").value("PAY-001"));
+                .andExpect(jsonPath("$.data.items[0].payment.paymentNo").value("PAY-001"))
+                .andExpect(jsonPath("$.data.items[0].attempts[0].trigger").value("scheduler"));
     }
 
     @Test
@@ -175,8 +208,9 @@ class InternalPaymentCompensationControllerTest {
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-payment-validation")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "minAgeMinutes", 0,
-                                "limit", 0
+                                "shopId", 1,
+                                "pageNo", 0,
+                                "pageSize", 0
                         ))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))

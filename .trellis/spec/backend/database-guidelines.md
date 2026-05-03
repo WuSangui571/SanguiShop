@@ -224,3 +224,4 @@ Rules:
 - `operator` is nullable for scheduler runs and required for manual single/bulk replay requests.
 - `reason` remains sanitized single-line operational text; do not persist stack traces or raw payloads.
 - Keep latest metadata on business rows for fast query APIs; the history table is the audit trail, not a replacement for the fast-path row snapshot.
+- History-backed ops query APIs should page by distinct business object (`order_id` or `payment_id`) and return the latest business-row snapshot together with ordered attempt details so on-call can drill down without a second fetch.

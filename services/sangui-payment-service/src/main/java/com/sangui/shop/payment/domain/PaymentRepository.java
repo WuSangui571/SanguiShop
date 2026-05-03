@@ -12,6 +12,22 @@ public interface PaymentRepository {
 
     List<PaymentOrderRecord> findFailedPayments(Long shopId, int limit);
 
+    default long countCompensationAttempts(PaymentCompensationAttemptQuery query) {
+        throw new UnsupportedOperationException("Compensation attempt history query is not implemented");
+    }
+
+    default List<PaymentCompensationAttemptSummary> findCompensationAttemptSummaries(
+            PaymentCompensationAttemptQuery query,
+            int offset,
+            int limit
+    ) {
+        throw new UnsupportedOperationException("Compensation attempt history query is not implemented");
+    }
+
+    default List<PaymentCompensationAttemptRecord> findCompensationAttemptsByPaymentIds(Long shopId, List<Long> paymentIds) {
+        throw new UnsupportedOperationException("Compensation attempt history query is not implemented");
+    }
+
     Optional<PaymentCallbackLogRecord> findCallbackLog(String channel, String channelTradeNo);
 
     Long createPaymentOrder(PaymentCreateDraft draft, PaymentStatus status);

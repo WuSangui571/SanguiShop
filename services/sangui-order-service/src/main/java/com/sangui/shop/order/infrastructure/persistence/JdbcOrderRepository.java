@@ -1,5 +1,8 @@
 package com.sangui.shop.order.infrastructure.persistence;
 
+import com.sangui.shop.order.domain.OrderCompensationAttemptQuery;
+import com.sangui.shop.order.domain.OrderCompensationAttemptRecord;
+import com.sangui.shop.order.domain.OrderCompensationAttemptSummary;
 import com.sangui.shop.order.domain.OrderCreateDraft;
 import com.sangui.shop.order.domain.OrderItemDraft;
 import com.sangui.shop.order.domain.OrderItemRecord;
@@ -10,6 +13,8 @@ import com.sangui.shop.order.domain.OrderStatus;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -51,6 +56,28 @@ public class JdbcOrderRepository implements OrderRepository {
             rs.getLong("price_cent"),
             rs.getInt("quantity"),
             rs.getLong("line_amount_cent")
+    );
+
+    private static final RowMapper<OrderCompensationAttemptSummary> ORDER_COMPENSATION_ATTEMPT_SUMMARY_ROW_MAPPER = (rs, rowNum) -> new OrderCompensationAttemptSummary(
+            rs.getLong("order_id"),
+            rs.getTimestamp("latest_attempt_at").toLocalDateTime(),
+            rs.getLong("matched_attempt_count")
+    );
+
+    private static final RowMapper<OrderCompensationAttemptRecord> ORDER_COMPENSATION_ATTEMPT_ROW_MAPPER = (rs, rowNum) -> new OrderCompensationAttemptRecord(
+            rs.getLong("id"),
+            rs.getLong("shop_id"),
+            rs.getLong("order_id"),
+            rs.getString("order_no"),
+            rs.getString("reservation_no"),
+            rs.getString("result"),
+            rs.getString("error_code"),
+            rs.getString("reason"),
+            rs.getString("trace_id"),
+            rs.getString("trigger_type"),
+            rs.getString("operator"),
+            rs.getTimestamp("created_at").toLocalDateTime(),
+            rs.getTimestamp("updated_at").toLocalDateTime()
     );
 
     private final JdbcTemplate jdbcTemplate;
@@ -139,6 +166,70 @@ public class JdbcOrderRepository implements OrderRepository {
                 shopId,
                 OrderStatus.CANCELLED.value(),
                 limit
+        );
+    }
+
+    @Override
+    public long countCompensationAttempts(OrderCompensationAttemptQuery query) {
+        QueryParts queryParts = buildCompensationAttemptWhereClause(query);
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(DISTINCT order_id) FROM oms_order_compensation_attempt " + queryParts.sql(),
+                Long.class,
+                queryParts.args().toArray()
+        );
+    }
+
+    @Override
+    public List<OrderCompensationAttemptSummary> findCompensationAttemptSummaries(
+            OrderCompensationAttemptQuery query,
+            int offset,
+            int limit
+    ) {
+        QueryParts queryParts = buildCompensationAttemptWhereClause(query);
+        List<Object> args = new ArrayList<>(queryParts.args());
+        args.add(limit);
+        args.add(offset);
+        return jdbcTemplate.query(
+                """
+                        SELECT order_id,
+                               MAX(created_at) AS latest_attempt_at,
+                               COUNT(*) AS matched_attempt_count
+                        FROM oms_order_compensation_attempt
+                        """
+                        + queryParts.sql()
+                        + """
+                        GROUP BY order_id
+                        ORDER BY latest_attempt_at DESC, order_id DESC
+                        LIMIT ? OFFSET ?
+                        """,
+                ORDER_COMPENSATION_ATTEMPT_SUMMARY_ROW_MAPPER,
+                args.toArray()
+        );
+    }
+
+    @Override
+    public List<OrderCompensationAttemptRecord> findCompensationAttemptsByOrderIds(Long shopId, List<Long> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            return List.of();
+        }
+        String placeholders = String.join(", ", Collections.nCopies(orderIds.size(), "?"));
+        List<Object> args = new ArrayList<>();
+        args.add(shopId);
+        args.addAll(orderIds);
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, order_id, order_no, reservation_no, result, error_code, reason, trace_id,
+                               trigger_type, operator, created_at, updated_at
+                        FROM oms_order_compensation_attempt
+                        WHERE shop_id = ? AND deleted = 0 AND order_id IN (
+                        """
+                        + placeholders
+                        + """
+                        )
+                        ORDER BY order_id ASC, created_at DESC, id DESC
+                        """,
+                ORDER_COMPENSATION_ATTEMPT_ROW_MAPPER,
+                args.toArray()
         );
     }
 
@@ -291,5 +382,43 @@ public class JdbcOrderRepository implements OrderRepository {
                     statement.setLong(8, item.lineAmountCent());
                 }
         );
+    }
+
+    private QueryParts buildCompensationAttemptWhereClause(OrderCompensationAttemptQuery query) {
+        StringBuilder sql = new StringBuilder("WHERE shop_id = ? AND deleted = 0");
+        List<Object> args = new ArrayList<>();
+        args.add(query.shopId());
+        if (query.orderId() != null) {
+            sql.append(" AND order_id = ?");
+            args.add(query.orderId());
+        }
+        if (query.trigger() != null) {
+            sql.append(" AND trigger_type = ?");
+            args.add(query.trigger());
+        }
+        if (query.result() != null) {
+            sql.append(" AND result = ?");
+            args.add(query.result());
+        }
+        if (query.operator() != null) {
+            sql.append(" AND operator = ?");
+            args.add(query.operator());
+        }
+        if (query.traceId() != null) {
+            sql.append(" AND trace_id = ?");
+            args.add(query.traceId());
+        }
+        if (query.fromTime() != null) {
+            sql.append(" AND created_at >= ?");
+            args.add(query.fromTime());
+        }
+        if (query.toTime() != null) {
+            sql.append(" AND created_at <= ?");
+            args.add(query.toTime());
+        }
+        return new QueryParts(sql.toString(), args);
+    }
+
+    private record QueryParts(String sql, List<Object> args) {
     }
 }

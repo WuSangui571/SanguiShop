@@ -16,6 +16,22 @@ public interface OrderRepository {
 
     List<OrderRecord> findCancelledOrders(Long shopId, int limit);
 
+    default long countCompensationAttempts(OrderCompensationAttemptQuery query) {
+        throw new UnsupportedOperationException("Compensation attempt history query is not implemented");
+    }
+
+    default List<OrderCompensationAttemptSummary> findCompensationAttemptSummaries(
+            OrderCompensationAttemptQuery query,
+            int offset,
+            int limit
+    ) {
+        throw new UnsupportedOperationException("Compensation attempt history query is not implemented");
+    }
+
+    default List<OrderCompensationAttemptRecord> findCompensationAttemptsByOrderIds(Long shopId, List<Long> orderIds) {
+        throw new UnsupportedOperationException("Compensation attempt history query is not implemented");
+    }
+
     Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft);
 
     int updateStatus(Long shopId, Long orderId, OrderStatus currentStatus, OrderStatus nextStatus);

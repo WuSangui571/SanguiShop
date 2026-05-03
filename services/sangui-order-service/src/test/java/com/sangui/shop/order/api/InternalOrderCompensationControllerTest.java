@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
+import com.sangui.shop.order.api.dto.OrderCompensationAggregateResponse;
+import com.sangui.shop.order.api.dto.OrderCompensationAttemptResponse;
 import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayResponse;
 import com.sangui.shop.order.api.dto.OrderCompensationQueryResponse;
 import com.sangui.shop.order.api.dto.OrderCompensationRecordResponse;
@@ -57,21 +59,50 @@ class InternalOrderCompensationControllerTest {
                 "ops-user",
                 OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
         );
+        OrderCompensationAttemptResponse attempt = new OrderCompensationAttemptResponse(
+                501L,
+                101L,
+                "ORD-001",
+                "ord:10001:req-001",
+                "cancelled",
+                null,
+                null,
+                "trace-order-manual",
+                "manual",
+                "ops-user",
+                OffsetDateTime.parse("2026-05-03T12:10:00+08:00"),
+                OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
+        );
         when(orderCompensationOpsService.queryRecords(any()))
-                .thenReturn(new OrderCompensationQueryResponse(1L, List.of(), List.of(order)));
+                .thenReturn(new OrderCompensationQueryResponse(
+                        1L,
+                        1,
+                        20,
+                        1L,
+                        List.of(new OrderCompensationAggregateResponse(
+                                order,
+                                1L,
+                                1L,
+                                OffsetDateTime.parse("2026-05-03T12:10:00+08:00"),
+                                List.of(attempt)
+                        ))
+                ));
 
         mockMvc.perform(post("/internal/orders/compensation-records/query")
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-order-query")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "shopId", 1,
-                                "timeoutMinutes", 15,
-                                "limit", 100
+                                "orderId", 101,
+                                "result", "cancelled",
+                                "pageNo", 1,
+                                "pageSize", 20
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("ORDER_COMPENSATION_RECORDS_FETCHED"))
                 .andExpect(jsonPath("$.traceId").value("trace-order-query"))
-                .andExpect(jsonPath("$.data.cancelledOrders[0].orderNo").value("ORD-001"));
+                .andExpect(jsonPath("$.data.items[0].order.orderNo").value("ORD-001"))
+                .andExpect(jsonPath("$.data.items[0].attempts[0].trigger").value("manual"));
     }
 
     @Test
@@ -177,5 +208,20 @@ class InternalOrderCompensationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.traceId").value("trace-order-validation"));
+    }
+
+    @Test
+    void queryRecordsValidatesRequest() throws Exception {
+        mockMvc.perform(post("/internal/orders/compensation-records/query")
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-order-query-validation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "pageNo", 0,
+                                "pageSize", 0
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.traceId").value("trace-order-query-validation"));
     }
 }

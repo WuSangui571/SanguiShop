@@ -4,7 +4,9 @@ import java.util.List;
 
 public record OrderCompensationQueryResponse(
         Long shopId,
-        List<OrderCompensationRecordResponse> timeoutOrders,
-        List<OrderCompensationRecordResponse> cancelledOrders
+        Integer pageNo,
+        Integer pageSize,
+        Long total,
+        List<OrderCompensationAggregateResponse> items
 ) {
 }
