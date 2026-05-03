@@ -734,3 +734,47 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Compensation Ops Surface / Manual Replay
+
+**Date**: 2026-05-03
+**Task**: Compensation Ops Surface / Manual Replay
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Payment Ops | Added internal compensation query API for `created` and `failed` payments plus single-payment manual reconcile replay. |
+| Order Ops | Added internal compensation query API for timeout-eligible `created` and `cancelled` orders plus single-order manual timeout replay. |
+| Persistence | Added V4 migrations and latest-compensation metadata columns on `pay_payment_order` and `oms_order` for result, reason, traceId, trigger, and timestamp. |
+| Observability | Reused the same compensation metrics family for manual runs and scheduler runs, and added structured audit logs for manual/scheduler compensation outcomes. |
+| Spec & Tests | Updated backend database/order/payment specs and added controller, service, and migration contract coverage for the ops surface. |
+
+**Verification**:
+- Human completed manual testing and committed `badf0d4 feat(compensation): add ops surface and manual replay`.
+- Task `05-03-compensation-ops-surface-manual-replay` was archived after record-session.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `badf0d4` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

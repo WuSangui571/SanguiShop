@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Internal compensation ops API contracts and response envelope."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Validation and error mapping for manual replay/query endpoints."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer checks for API, DB, metrics, and logs."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Structured compensation audit logging and traceId propagation."}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Payment reconcile replay/query contract and compensation behavior."}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order timeout replay/query contract and timeout compensation behavior."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "New order/payment compensation metadata columns and repository query rules."}
