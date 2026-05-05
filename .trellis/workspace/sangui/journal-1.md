@@ -1230,3 +1230,58 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 28: Compensation Ops Audit UI Component Tests
+
+**Date**: 2026-05-05
+**Task**: Compensation Ops Audit UI Component Tests
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Task Scope | Completed frontend quality enhancement for compensation ops audit observability actions without changing API contracts or audit query generation behavior. |
+| Component Coverage | Added component-level coverage for audit query open buttons, including disabled fallback when links are unavailable, enabled state when links exist, copied-state rendering, and emitted `AuditQueryKind` values for Kibana KQL, Kibana Lucene, and Loki LogQL. |
+| Window Open Coverage | Added `useCompensationDashboard` audit observability tests for real `openAuditQuery` behavior: no window open when links are unavailable, and configured Kibana/Loki links open with `_blank` and `noopener,noreferrer`. |
+| Testability Fix | Introduced optional `auditObservabilityConfig` injection for `useCompensationDashboard` so tests can exercise link behavior without mutating production env access; production default still reads `import.meta.env`. |
+| SFC Test Fix | Replaced the full-page SFC custom-renderer test, which failed in Vitest node mode due SFC SSR context injection, with a small `AuditQueryTemplateCard.ts` Vue component and focused component test. |
+| Task Tracking | Created and archived Trellis task `05-05-compensation-ops-audit-ui-component-tests`. |
+
+**Verification**:
+- Human ran `cmd /c npm run lint` successfully in `frontend/` on May 5, 2026.
+- Human ran `cmd /c npm run typecheck` successfully in `frontend/` on May 5, 2026.
+- Human ran `cmd /c npm run build` successfully in `frontend/` on May 5, 2026.
+- Human ran `cmd /c npm run test` successfully in `frontend/` on May 5, 2026: 5 test files passed, 18 tests passed.
+
+**Commits**:
+- `3a3d6f3`: added ops audit observability component and hook tests.
+- `9710bba`: fixed the audit component test by replacing the SFC custom-renderer path with a focused TS Vue component.
+
+**Status**:
+- Task `05-05-compensation-ops-audit-ui-component-tests` archived after commit `9710bba`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3a3d6f3` | (see git log) |
+| `9710bba` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
