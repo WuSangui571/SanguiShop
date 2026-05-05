@@ -1088,3 +1088,46 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: Compensation Ops Audit Search Planning
+
+**Date**: 2026-05-05
+**Task**: Compensation Ops Audit Search Planning
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Task Setup | Created Trellis task `05-05-compensation-ops-audit-search-export` for the compensation ops audit search/export panel. |
+| PRD | Defined fullstack scope, requirements, acceptance criteria, risks, and implementation plan for audit field contracts, Kibana/Loki templates, dashboard audit search, and replay/reconcile audit trace jumps. |
+| Context | Added backend logging/security/contracts/observability/order/payment specs and frontend API/type/component/quality specs into task implement/check context files. |
+| Verification Reported | Human ran frontend Vitest/typecheck/build and targeted Maven audit-controller tests successfully on May 5, 2026. |
+| Important Note | Commit `2ff97d2` contains Trellis task/context/PRD files only; no frontend/docs/backend business implementation files are present yet, so the implementation task remains active and should not be archived. |
+
+**Next Step**:
+- Continue the active task by implementing the PRD: repo-backed audit field/query-template documentation, dashboard audit search panel, and replay/reconcile "View audit trail" state flow.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2ff97d2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
