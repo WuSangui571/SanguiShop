@@ -1,0 +1,19 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Ops audit event fields and required audit behavior"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Payment compensation query/reconcile contract"}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Kibana/Loki and repo-backed observability guidance"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Compensation ops auth and permission boundaries"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order compensation query/replay contract"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Cross-layer API/envelope and trace contract"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Frontend admin module layout"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Async UI and component boundaries"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "API DTO and null/unknown fallback rules"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer traceability checks"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable/request state rules"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Gateway/httpClient contract"}
+{"file": "frontend/src/views/admin/compensationDashboardModel.ts", "reason": "Existing dashboard filters, URL persistence, export model"}
+{"file": "common/sangui-common-web/src/main/java/com/sangui/shop/common/web/OpsAuditLogger.java", "reason": "Existing unified audit logger and emitted fields"}
+{"file": "frontend/src/views/admin/CompensationDashboardView.vue", "reason": "Existing ops dashboard UI"}
+{"file": "frontend/src/composables/useCompensationDashboard.ts", "reason": "Existing dashboard state/actions/export composable"}

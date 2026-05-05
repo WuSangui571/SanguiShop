@@ -1,0 +1,10 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check no direct fetch and gateway API contract"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Check audit field names and sensitive data boundaries"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check trace and cross-layer filter consistency"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend final quality gate"}
+{"file": "frontend/src/views/admin/compensationDashboardModel.test.ts", "reason": "Existing dashboard model tests to extend"}
+{"file": "frontend/src/views/admin/compensationDashboardModel.ts", "reason": "Review generated audit query model"}
+{"file": "frontend/src/views/admin/CompensationDashboardView.vue", "reason": "Review dashboard UI changes"}
+{"file": "frontend/tests/compensationDashboardModel.spec.ts", "reason": "Existing frontend test coverage"}
