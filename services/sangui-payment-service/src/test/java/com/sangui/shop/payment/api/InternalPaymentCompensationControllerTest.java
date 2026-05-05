@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
@@ -25,6 +26,7 @@ import com.sangui.shop.payment.api.dto.PaymentCompensationAttemptResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationQueryResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationRecordResponse;
 import com.sangui.shop.payment.application.PaymentCompensationOpsService;
+import com.sangui.shop.payment.domain.PaymentErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -299,16 +301,60 @@ class InternalPaymentCompensationControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"));
 
-        assertThat(auditMessages())
-                .contains("action=ops.payment.compensation.query")
-                .contains("outcome=denied")
-                .contains("errorCode=AUTH_FORBIDDEN");
+        assertAuditMessageContains(
+                "Ops audit event.",
+                "action=ops.payment.compensation.query",
+                "outcome=denied",
+                "traceId=trace-payment-forbidden",
+                "method=POST",
+                "path=/internal/payments/compensation-records/query",
+                "shopId=1",
+                "userId=ops-admin",
+                "permission=" + SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
+                "errorCode=AUTH_FORBIDDEN"
+        );
+    }
+
+    @Test
+    void manualReconcileFailureLogsAuditEvent() throws Exception {
+        when(paymentCompensationOpsService.manualReconcile(any(), any(), any()))
+                .thenThrow(new SanguiException(PaymentErrorCode.PAYMENT_NOT_FOUND, 404));
+
+        mockMvc.perform(post("/internal/payments/reconciliations/manual")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-payment-manual-failed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "paymentNo", "PAY-001",
+                                "operator", "ops-user"
+                        ))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PAYMENT_NOT_FOUND"))
+                .andExpect(jsonPath("$.traceId").value("trace-payment-manual-failed"));
+
+        assertAuditMessageContains(
+                "Ops audit event.",
+                "action=ops.payment.reconcile.manual",
+                "outcome=failed",
+                "traceId=trace-payment-manual-failed",
+                "method=POST",
+                "path=/internal/payments/reconciliations/manual",
+                "shopId=1",
+                "userId=ops-admin",
+                "permission=" + SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
+                "errorCode=PAYMENT_NOT_FOUND"
+        );
     }
 
     private String auditMessages() {
         return auditAppender.list.stream()
                 .map(ILoggingEvent::getFormattedMessage)
                 .reduce("", (left, right) -> left + "\n" + right);
+    }
+
+    private void assertAuditMessageContains(String... fragments) {
+        assertThat(auditMessages()).contains(fragments);
     }
 
     @TestConfiguration

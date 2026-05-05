@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
@@ -25,6 +26,7 @@ import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayResponse;
 import com.sangui.shop.order.api.dto.OrderCompensationQueryResponse;
 import com.sangui.shop.order.api.dto.OrderCompensationRecordResponse;
 import com.sangui.shop.order.application.OrderCompensationOpsService;
+import com.sangui.shop.order.domain.OrderErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -308,16 +310,61 @@ class InternalOrderCompensationControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"));
 
-        assertThat(auditMessages())
-                .contains("action=ops.order.compensation.query")
-                .contains("outcome=denied")
-                .contains("errorCode=AUTH_FORBIDDEN");
+        assertAuditMessageContains(
+                "Ops audit event.",
+                "action=ops.order.compensation.query",
+                "outcome=denied",
+                "traceId=trace-order-forbidden",
+                "method=POST",
+                "path=/internal/orders/compensation-records/query",
+                "shopId=1",
+                "userId=ops-admin",
+                "permission=" + SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
+                "errorCode=AUTH_FORBIDDEN"
+        );
+    }
+
+    @Test
+    void manualReplayFailureLogsAuditEvent() throws Exception {
+        when(orderCompensationOpsService.manualReplay(any(), any(), any()))
+                .thenThrow(new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
+
+        mockMvc.perform(post("/internal/orders/timeout-replays/manual")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-order-manual-failed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "orderId", 101,
+                                "timeoutMinutes", 15,
+                                "operator", "ops-user"
+                        ))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
+                .andExpect(jsonPath("$.traceId").value("trace-order-manual-failed"));
+
+        assertAuditMessageContains(
+                "Ops audit event.",
+                "action=ops.order.timeout-replay.manual",
+                "outcome=failed",
+                "traceId=trace-order-manual-failed",
+                "method=POST",
+                "path=/internal/orders/timeout-replays/manual",
+                "shopId=1",
+                "userId=ops-admin",
+                "permission=" + SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
+                "errorCode=ORDER_NOT_FOUND"
+        );
     }
 
     private String auditMessages() {
         return auditAppender.list.stream()
                 .map(ILoggingEvent::getFormattedMessage)
                 .reduce("", (left, right) -> left + "\n" + right);
+    }
+
+    private void assertAuditMessageContains(String... fragments) {
+        assertThat(auditMessages()).contains(fragments);
     }
 
     @TestConfiguration
