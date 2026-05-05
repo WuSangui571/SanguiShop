@@ -11,6 +11,7 @@ import {
   resultOptions,
   triggerOptions,
 } from './compensationDashboardModel'
+import AuditQueryTemplateCard from './components/AuditQueryTemplateCard'
 import CompensationAggregateCard from './components/CompensationAggregateCard.vue'
 import SummaryCard from './components/SummaryCard.vue'
 
@@ -298,66 +299,42 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
         </label>
       </div>
       <div class="audit-template-grid">
-        <article class="audit-template-card">
-          <div class="template-head">
-            <h3>Kibana KQL</h3>
-            <div class="template-actions">
-              <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('kibanaKql')">
-                {{ copiedAuditQueryKey === 'kibanaKql' ? 'Copied' : 'Copy query' }}
-              </button>
-              <button
-                type="button"
-                class="secondary mini-button"
-                :disabled="!auditQueryLinks.kibanaKql"
-                :title="auditQueryLinks.kibanaKql ? 'Open in Kibana Discover' : 'Set VITE_KIBANA_DISCOVER_URL to enable'"
-                @click="handleOpenAuditQuery('kibanaKql')"
-              >
-                Open in Kibana
-              </button>
-            </div>
-          </div>
-          <textarea readonly :value="auditQueryTemplates.kibanaKql" />
-        </article>
-        <article class="audit-template-card">
-          <div class="template-head">
-            <h3>Kibana Lucene</h3>
-            <div class="template-actions">
-              <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('kibanaLucene')">
-                {{ copiedAuditQueryKey === 'kibanaLucene' ? 'Copied' : 'Copy query' }}
-              </button>
-              <button
-                type="button"
-                class="secondary mini-button"
-                :disabled="!auditQueryLinks.kibanaLucene"
-                :title="auditQueryLinks.kibanaLucene ? 'Open in Kibana Discover' : 'Set VITE_KIBANA_DISCOVER_URL to enable'"
-                @click="handleOpenAuditQuery('kibanaLucene')"
-              >
-                Open in Kibana
-              </button>
-            </div>
-          </div>
-          <textarea readonly :value="auditQueryTemplates.kibanaLucene" />
-        </article>
-        <article class="audit-template-card">
-          <div class="template-head">
-            <h3>Loki LogQL</h3>
-            <div class="template-actions">
-              <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('lokiLogql')">
-                {{ copiedAuditQueryKey === 'lokiLogql' ? 'Copied' : 'Copy query' }}
-              </button>
-              <button
-                type="button"
-                class="secondary mini-button"
-                :disabled="!auditQueryLinks.lokiLogql"
-                :title="auditQueryLinks.lokiLogql ? 'Open in Loki Explore' : 'Set VITE_LOKI_EXPLORE_URL to enable'"
-                @click="handleOpenAuditQuery('lokiLogql')"
-              >
-                Open in Loki
-              </button>
-            </div>
-          </div>
-          <textarea readonly :value="auditQueryTemplates.lokiLogql" />
-        </article>
+        <AuditQueryTemplateCard
+          title="Kibana KQL"
+          :template="auditQueryTemplates.kibanaKql"
+          :link="auditQueryLinks.kibanaKql"
+          kind="kibanaKql"
+          platform-label="Kibana"
+          :copied="copiedAuditQueryKey === 'kibanaKql'"
+          enabled-title="Open in Kibana Discover"
+          disabled-title="Set VITE_KIBANA_DISCOVER_URL to enable"
+          @copy="handleCopyAuditQuery"
+          @open="handleOpenAuditQuery"
+        />
+        <AuditQueryTemplateCard
+          title="Kibana Lucene"
+          :template="auditQueryTemplates.kibanaLucene"
+          :link="auditQueryLinks.kibanaLucene"
+          kind="kibanaLucene"
+          platform-label="Kibana"
+          :copied="copiedAuditQueryKey === 'kibanaLucene'"
+          enabled-title="Open in Kibana Discover"
+          disabled-title="Set VITE_KIBANA_DISCOVER_URL to enable"
+          @copy="handleCopyAuditQuery"
+          @open="handleOpenAuditQuery"
+        />
+        <AuditQueryTemplateCard
+          title="Loki LogQL"
+          :template="auditQueryTemplates.lokiLogql"
+          :link="auditQueryLinks.lokiLogql"
+          kind="lokiLogql"
+          platform-label="Loki"
+          :copied="copiedAuditQueryKey === 'lokiLogql'"
+          enabled-title="Open in Loki Explore"
+          disabled-title="Set VITE_LOKI_EXPLORE_URL to enable"
+          @copy="handleCopyAuditQuery"
+          @open="handleOpenAuditQuery"
+        />
       </div>
     </section>
 
