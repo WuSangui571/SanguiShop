@@ -112,6 +112,27 @@ Good/Base/Bad cases:
 - Bad: Gateway forwards user-supplied Sangui identity headers.
 - Bad: Gateway logs JWT values or accepts blank JWT secret.
 
+Internal compensation ops contract:
+
+| API | Gateway | Downstream service |
+| --- | --- | --- |
+| `POST /api/internal/orders/compensation-records/query` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/orders/timeout-replays/manual` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/orders/timeout-replays/bulk` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/payments/compensation-records/query` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/payments/reconciliations/manual` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/payments/reconciliations/bulk` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
+
+Validation and error matrix for internal compensation ops:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Missing or invalid bearer token | 401 | `AUTH_TOKEN_MISSING` or `SIGNATURE_INVALID` |
+| Expired token | 401 | `AUTH_TOKEN_EXPIRED` |
+| Trusted principal missing in downstream service | 401 | `AUTH_TOKEN_MISSING` |
+| Trusted principal is not `ADMIN` | 403 | `AUTH_FORBIDDEN` |
+| Trusted principal `shopId` differs from request `shopId` | 403 | `AUTH_FORBIDDEN` |
+
 ## Downstream Auth Context MVP
 
 Scope: `common/sangui-common-security` and `common/sangui-common-web`.

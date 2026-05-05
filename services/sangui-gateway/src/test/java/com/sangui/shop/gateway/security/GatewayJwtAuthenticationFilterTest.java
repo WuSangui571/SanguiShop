@@ -64,6 +64,21 @@ class GatewayJwtAuthenticationFilterTest {
     }
 
     @Test
+    void allowsCorsPreflightWithoutJwt() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.OPTIONS, "/api/internal/payments/compensation-records/query")
+                .header(HttpHeaders.ORIGIN, "http://localhost:5173")
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, HttpMethod.POST.name())
+        );
+        AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
+
+        filter.filter(exchange, capture(forwarded)).block();
+
+        assertThat(forwarded.get()).isNotNull();
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
     void rejectsProtectedApiRequestWithoutBearerToken() throws Exception {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
                 .get("/api/orders")

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
+import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.OrderCompensationQueryRequest;
 import com.sangui.shop.order.api.dto.OrderCompensationQueryResponse;
 import com.sangui.shop.order.domain.OrderCompensationAttemptQuery;
@@ -31,6 +32,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class OrderCompensationOpsServiceTest {
+
+    private static final SanguiPrincipal ADMIN_PRINCIPAL = new SanguiPrincipal(
+            "ops-admin",
+            1L,
+            java.util.Set.of("ADMIN"),
+            java.util.Set.of(),
+            "jwt-ops-1"
+    );
+    private static final SanguiPrincipal USER_PRINCIPAL = new SanguiPrincipal(
+            "ops-user",
+            1L,
+            java.util.Set.of("USER"),
+            java.util.Set.of(),
+            "jwt-ops-2"
+    );
 
     private static final Clock FIXED_CLOCK = Clock.fixed(
             Instant.parse("2026-05-03T06:00:00Z"),
@@ -91,7 +107,7 @@ class OrderCompensationOpsServiceTest {
                 LocalDateTime.of(2026, 5, 3, 12, 10)
         );
 
-        OrderCompensationQueryResponse response = orderCompensationOpsService.queryRecords(new OrderCompensationQueryRequest(
+        OrderCompensationQueryResponse response = orderCompensationOpsService.queryRecords(ADMIN_PRINCIPAL, new OrderCompensationQueryRequest(
                 1L,
                 101L,
                 null,
@@ -121,7 +137,7 @@ class OrderCompensationOpsServiceTest {
         orderRepository.seedAttempt(1L, 101L, "ORD-001", "ord:10001:req-001", "failed", null, null, "trace-101", "scheduler", null, LocalDateTime.of(2026, 5, 3, 12, 8));
         orderRepository.seedAttempt(2L, 102L, "ORD-002", "ord:10001:req-002", "failed", null, null, "trace-102", "scheduler", null, LocalDateTime.of(2026, 5, 3, 12, 12));
 
-        OrderCompensationQueryResponse response = orderCompensationOpsService.queryRecords(new OrderCompensationQueryRequest(
+        OrderCompensationQueryResponse response = orderCompensationOpsService.queryRecords(ADMIN_PRINCIPAL, new OrderCompensationQueryRequest(
                 1L,
                 null,
                 null,
@@ -142,7 +158,7 @@ class OrderCompensationOpsServiceTest {
 
     @Test
     void queryRecordsRejectsInvalidTimeRange() {
-        assertThatThrownBy(() -> orderCompensationOpsService.queryRecords(new OrderCompensationQueryRequest(
+        assertThatThrownBy(() -> orderCompensationOpsService.queryRecords(ADMIN_PRINCIPAL, new OrderCompensationQueryRequest(
                 1L,
                 null,
                 null,
@@ -159,6 +175,52 @@ class OrderCompensationOpsServiceTest {
                     SanguiException sanguiException = (SanguiException) exception;
                     assertThat(sanguiException.errorCode()).isEqualTo(CommonErrorCode.VALIDATION_FAILED);
                     assertThat(sanguiException.httpStatus()).isEqualTo(400);
+                });
+    }
+
+    @Test
+    void queryRecordsRejectsNonAdminPrincipal() {
+        assertThatThrownBy(() -> orderCompensationOpsService.queryRecords(USER_PRINCIPAL, new OrderCompensationQueryRequest(
+                1L,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                1,
+                10
+        )))
+                .isInstanceOf(SanguiException.class)
+                .satisfies(exception -> {
+                    SanguiException sanguiException = (SanguiException) exception;
+                    assertThat(sanguiException.errorCode()).isEqualTo(CommonErrorCode.AUTH_FORBIDDEN);
+                    assertThat(sanguiException.httpStatus()).isEqualTo(403);
+                });
+    }
+
+    @Test
+    void queryRecordsRejectsCrossShopPrincipal() {
+        SanguiPrincipal wrongShopAdmin = new SanguiPrincipal("ops-admin", 2L, java.util.Set.of("ADMIN"), java.util.Set.of(), "jwt-ops-3");
+
+        assertThatThrownBy(() -> orderCompensationOpsService.queryRecords(wrongShopAdmin, new OrderCompensationQueryRequest(
+                1L,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                1,
+                10
+        )))
+                .isInstanceOf(SanguiException.class)
+                .satisfies(exception -> {
+                    SanguiException sanguiException = (SanguiException) exception;
+                    assertThat(sanguiException.errorCode()).isEqualTo(CommonErrorCode.AUTH_FORBIDDEN);
+                    assertThat(sanguiException.httpStatus()).isEqualTo(403);
                 });
     }
 

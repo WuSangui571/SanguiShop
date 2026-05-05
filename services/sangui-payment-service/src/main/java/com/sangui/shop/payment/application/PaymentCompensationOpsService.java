@@ -2,6 +2,7 @@ package com.sangui.shop.payment.application;
 
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
+import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.payment.api.dto.BulkPaymentReconcileItemResponse;
 import com.sangui.shop.payment.api.dto.BulkPaymentReconcileRequest;
 import com.sangui.shop.payment.api.dto.BulkPaymentReconcileResponse;
@@ -36,6 +37,7 @@ import org.springframework.stereotype.Service;
 public class PaymentCompensationOpsService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentCompensationOpsService.class);
+    private static final String ADMIN_ROLE = "ADMIN";
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 500;
     private static final int DEFAULT_MIN_AGE_MINUTES = 1;
@@ -69,7 +71,8 @@ public class PaymentCompensationOpsService {
         this.clock = clock;
     }
 
-    public PaymentCompensationQueryResponse queryRecords(PaymentCompensationQueryRequest request) {
+    public PaymentCompensationQueryResponse queryRecords(SanguiPrincipal principal, PaymentCompensationQueryRequest request) {
+        requireAdminAccess(principal, request.shopId());
         PaymentCompensationAttemptQuery query = toAttemptQuery(request);
         int pageNo = normalizePageNo(request.pageNo());
         int pageSize = normalizePageSize(request.pageSize());
@@ -105,7 +108,12 @@ public class PaymentCompensationOpsService {
         return new PaymentCompensationQueryResponse(request.shopId(), pageNo, pageSize, total, items);
     }
 
-    public ManualPaymentReconcileResponse manualReconcile(ManualPaymentReconcileRequest request, String traceId) {
+    public ManualPaymentReconcileResponse manualReconcile(
+            SanguiPrincipal principal,
+            ManualPaymentReconcileRequest request,
+            String traceId
+    ) {
+        requireAdminAccess(principal, request.shopId());
         long startedAt = System.nanoTime();
         log.info(
                 "Starting manual payment reconcile. traceId={} shopId={} paymentNo={} operator={}",
@@ -145,7 +153,12 @@ public class PaymentCompensationOpsService {
         }
     }
 
-    public BulkPaymentReconcileResponse bulkReconcile(BulkPaymentReconcileRequest request, String traceId) {
+    public BulkPaymentReconcileResponse bulkReconcile(
+            SanguiPrincipal principal,
+            BulkPaymentReconcileRequest request,
+            String traceId
+    ) {
+        requireAdminAccess(principal, request.shopId());
         validateBulkRequest(request);
         int limit = normalizeLimit(request.limit());
         int minAgeMinutes = request.minAgeMinutes() == null ? DEFAULT_MIN_AGE_MINUTES : request.minAgeMinutes();
@@ -397,5 +410,14 @@ public class PaymentCompensationOpsService {
 
     private long elapsedMillis(long startedAt) {
         return (System.nanoTime() - startedAt) / 1_000_000L;
+    }
+
+    private void requireAdminAccess(SanguiPrincipal principal, Long requestedShopId) {
+        if (principal.roles() == null || !principal.roles().contains(ADMIN_ROLE)) {
+            throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
+        }
+        if (!principal.shopId().equals(requestedShopId)) {
+            throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
+        }
     }
 }

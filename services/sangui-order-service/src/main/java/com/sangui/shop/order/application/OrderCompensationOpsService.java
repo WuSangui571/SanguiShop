@@ -2,6 +2,7 @@ package com.sangui.shop.order.application;
 
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
+import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayRequest;
 import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayResponse;
 import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayItemResponse;
@@ -36,6 +37,7 @@ import org.springframework.stereotype.Service;
 public class OrderCompensationOpsService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderCompensationOpsService.class);
+    private static final String ADMIN_ROLE = "ADMIN";
     private static final int DEFAULT_TIMEOUT_MINUTES = 15;
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 500;
@@ -69,7 +71,8 @@ public class OrderCompensationOpsService {
         this.clock = clock;
     }
 
-    public OrderCompensationQueryResponse queryRecords(OrderCompensationQueryRequest request) {
+    public OrderCompensationQueryResponse queryRecords(SanguiPrincipal principal, OrderCompensationQueryRequest request) {
+        requireAdminAccess(principal, request.shopId());
         OrderCompensationAttemptQuery query = toAttemptQuery(request);
         int pageNo = normalizePageNo(request.pageNo());
         int pageSize = normalizePageSize(request.pageSize());
@@ -106,7 +109,12 @@ public class OrderCompensationOpsService {
         return new OrderCompensationQueryResponse(request.shopId(), pageNo, pageSize, total, items);
     }
 
-    public ManualOrderTimeoutReplayResponse manualReplay(ManualOrderTimeoutReplayRequest request, String traceId) {
+    public ManualOrderTimeoutReplayResponse manualReplay(
+            SanguiPrincipal principal,
+            ManualOrderTimeoutReplayRequest request,
+            String traceId
+    ) {
+        requireAdminAccess(principal, request.shopId());
         long startedAt = System.nanoTime();
         log.info(
                 "Starting manual order timeout replay. traceId={} shopId={} orderId={} timeoutMinutes={} operator={}",
@@ -148,7 +156,12 @@ public class OrderCompensationOpsService {
         }
     }
 
-    public BulkOrderTimeoutReplayResponse bulkReplay(BulkOrderTimeoutReplayRequest request, String traceId) {
+    public BulkOrderTimeoutReplayResponse bulkReplay(
+            SanguiPrincipal principal,
+            BulkOrderTimeoutReplayRequest request,
+            String traceId
+    ) {
+        requireAdminAccess(principal, request.shopId());
         validateBulkRequest(request);
         int limit = normalizeLimit(request.limit());
         int timeoutMinutes = request.timeoutMinutes() == null ? DEFAULT_TIMEOUT_MINUTES : request.timeoutMinutes();
@@ -392,5 +405,14 @@ public class OrderCompensationOpsService {
 
     private long elapsedMillis(long startedAt) {
         return (System.nanoTime() - startedAt) / 1_000_000L;
+    }
+
+    private void requireAdminAccess(SanguiPrincipal principal, Long requestedShopId) {
+        if (principal.roles() == null || !principal.roles().contains(ADMIN_ROLE)) {
+            throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
+        }
+        if (!principal.shopId().equals(requestedShopId)) {
+            throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
+        }
     }
 }

@@ -52,6 +52,24 @@
 
 ## Review Checklist
 
+## Internal Compensation Ops
+
+The compensation dashboard uses gateway-exposed internal APIs:
+
+- `POST /api/internal/orders/compensation-records/query`
+- `POST /api/internal/orders/timeout-replays/manual`
+- `POST /api/internal/orders/timeout-replays/bulk`
+- `POST /api/internal/payments/compensation-records/query`
+- `POST /api/internal/payments/reconciliations/manual`
+- `POST /api/internal/payments/reconciliations/bulk`
+
+Rules:
+
+- Gateway JWT authentication is required for all of the routes above.
+- Browser CORS preflight (`OPTIONS` with `Origin` and `Access-Control-Request-Method`) must pass without JWT rejection.
+- Gateway may stay coarse-grained; downstream services own RBAC and must reject non-`ADMIN` principals with `AUTH_FORBIDDEN`.
+- Downstream services must also reject trusted principal `shopId` mismatches with `AUTH_FORBIDDEN`.
+
 - [ ] 新 API 已归类 public/protected/admin/internal。
 - [ ] 有网关限流规则和服务内兜底保护。
 - [ ] 登录失败、管理操作、支付回调、权限拒绝有审计日志。

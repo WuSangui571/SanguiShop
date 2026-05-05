@@ -43,6 +43,16 @@ function resolveAuthToken(): string | null {
   return window.sessionStorage.getItem('sangui.admin.token')
 }
 
+function clearExpiredAuthToken(code: string) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (code === 'AUTH_TOKEN_EXPIRED') {
+    window.sessionStorage.removeItem('sangui.admin.token')
+  }
+}
+
 async function parseEnvelope<T>(response: Response): Promise<ApiResult<T> | null> {
   const contentType = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) {
@@ -86,6 +96,8 @@ async function requestJson<T>(path: string, init: RequestOptions = {}): Promise<
 
   const payload = await parseEnvelope<T>(response)
   const meta = toMeta(response, payload)
+
+  clearExpiredAuthToken(meta.code)
 
   if (!response.ok || !payload) {
     throw new HttpClientError(meta.message || 'Request failed.', {

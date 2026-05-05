@@ -77,7 +77,7 @@ public class GatewayJwtAuthenticationFilter implements GlobalFilter, Ordered {
         String traceId = traceId(exchange);
         ServerWebExchange sanitizedExchange = sanitizeTrustedHeaders(exchange, traceId);
 
-        if (!isApiRequest(sanitizedExchange) || isPublicAuthEndpoint(sanitizedExchange)) {
+        if (!isApiRequest(sanitizedExchange) || isCorsPreflightRequest(sanitizedExchange) || isPublicAuthEndpoint(sanitizedExchange)) {
             return chain.filter(sanitizedExchange);
         }
 
@@ -118,6 +118,13 @@ public class GatewayJwtAuthenticationFilter implements GlobalFilter, Ordered {
         String path = request.getPath().value();
         return request.getMethod() == HttpMethod.POST
                 && ("/api/users/register".equals(path) || "/api/users/login".equals(path));
+    }
+
+    private boolean isCorsPreflightRequest(ServerWebExchange exchange) {
+        ServerHttpRequest request = exchange.getRequest();
+        return request.getMethod() == HttpMethod.OPTIONS
+                && request.getHeaders().containsKey(HttpHeaders.ORIGIN)
+                && request.getHeaders().containsKey(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD);
     }
 
     private ServerWebExchange sanitizeTrustedHeaders(ServerWebExchange exchange, String traceId) {

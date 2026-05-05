@@ -40,10 +40,22 @@ spring:
           uri: lb://sangui-order
           predicates:
             - Path=/api/orders/**
+        - id: sangui-order-internal
+          uri: lb://sangui-order
+          predicates:
+            - Path=/api/internal/orders/**
+          filters:
+            - RewritePath=/api/internal/orders/(?<segment>.*), /internal/orders/${segment}
         - id: sangui-payment
           uri: lb://sangui-payment
           predicates:
             - Path=/api/payments/**
+        - id: sangui-payment-internal
+          uri: lb://sangui-payment
+          predicates:
+            - Path=/api/internal/payments/**
+          filters:
+            - RewritePath=/api/internal/payments/(?<segment>.*), /internal/payments/${segment}
         - id: sangui-logistics
           uri: lb://sangui-logistics
           predicates:

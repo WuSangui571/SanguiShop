@@ -2,6 +2,7 @@ package com.sangui.shop.payment.api;
 
 import com.sangui.shop.common.core.api.ApiResult;
 import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.payment.api.dto.BulkPaymentReconcileRequest;
 import com.sangui.shop.payment.api.dto.BulkPaymentReconcileResponse;
 import com.sangui.shop.payment.api.dto.ManualPaymentReconcileRequest;
@@ -31,30 +32,33 @@ public class InternalPaymentCompensationController {
     @PostMapping("/compensation-records/query")
     public ApiResult<PaymentCompensationQueryResponse> queryRecords(
             @Valid @RequestBody PaymentCompensationQueryRequest request,
+            SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
         String traceId = traceId(httpRequest);
-        PaymentCompensationQueryResponse response = paymentCompensationOpsService.queryRecords(request);
+        PaymentCompensationQueryResponse response = paymentCompensationOpsService.queryRecords(principal, request);
         return ApiResult.ok("PAYMENT_COMPENSATION_RECORDS_FETCHED", response, traceId);
     }
 
     @PostMapping("/reconciliations/manual")
     public ApiResult<ManualPaymentReconcileResponse> manualReconcile(
             @Valid @RequestBody ManualPaymentReconcileRequest request,
+            SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
         String traceId = traceId(httpRequest);
-        ManualPaymentReconcileResponse response = paymentCompensationOpsService.manualReconcile(request, traceId);
+        ManualPaymentReconcileResponse response = paymentCompensationOpsService.manualReconcile(principal, request, traceId);
         return ApiResult.ok("PAYMENT_RECONCILED_MANUALLY", response, traceId);
     }
 
     @PostMapping("/reconciliations/bulk")
     public ApiResult<BulkPaymentReconcileResponse> bulkReconcile(
             @Valid @RequestBody BulkPaymentReconcileRequest request,
+            SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
         String traceId = traceId(httpRequest);
-        BulkPaymentReconcileResponse response = paymentCompensationOpsService.bulkReconcile(request, traceId);
+        BulkPaymentReconcileResponse response = paymentCompensationOpsService.bulkReconcile(principal, request, traceId);
         return ApiResult.ok("PAYMENT_RECONCILED_IN_BULK", response, traceId);
     }
 

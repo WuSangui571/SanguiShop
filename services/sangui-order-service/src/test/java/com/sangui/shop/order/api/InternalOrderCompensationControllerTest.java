@@ -8,7 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPrincipal;
+import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
+import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.order.api.dto.OrderCompensationAggregateResponse;
 import com.sangui.shop.order.api.dto.OrderCompensationAttemptResponse;
 import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayResponse;
@@ -21,14 +24,26 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @WebMvcTest(InternalOrderCompensationController.class)
-@Import(GlobalApiExceptionHandler.class)
+@Import({GlobalApiExceptionHandler.class, InternalOrderCompensationControllerTest.ResolverConfig.class})
 class InternalOrderCompensationControllerTest {
+
+    private static final SanguiPrincipal ADMIN_PRINCIPAL = new SanguiPrincipal(
+            "ops-admin",
+            1L,
+            java.util.Set.of("ADMIN"),
+            java.util.Set.of(),
+            "jwt-ops-1"
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -73,7 +88,7 @@ class InternalOrderCompensationControllerTest {
                 OffsetDateTime.parse("2026-05-03T12:10:00+08:00"),
                 OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
         );
-        when(orderCompensationOpsService.queryRecords(any()))
+        when(orderCompensationOpsService.queryRecords(any(), any()))
                 .thenReturn(new OrderCompensationQueryResponse(
                         1L,
                         1,
@@ -89,6 +104,7 @@ class InternalOrderCompensationControllerTest {
                 ));
 
         mockMvc.perform(post("/internal/orders/compensation-records/query")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-order-query")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -125,10 +141,11 @@ class InternalOrderCompensationControllerTest {
                 "ops-user",
                 OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
         );
-        when(orderCompensationOpsService.manualReplay(any(), any()))
+        when(orderCompensationOpsService.manualReplay(any(), any(), any()))
                 .thenReturn(new ManualOrderTimeoutReplayResponse("cancelled", null, null, order));
 
         mockMvc.perform(post("/internal/orders/timeout-replays/manual")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-order-manual")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -163,7 +180,7 @@ class InternalOrderCompensationControllerTest {
                 "ops-user",
                 OffsetDateTime.parse("2026-05-03T12:10:00+08:00")
         );
-        when(orderCompensationOpsService.bulkReplay(any(), any()))
+        when(orderCompensationOpsService.bulkReplay(any(), any(), any()))
                 .thenReturn(new com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayResponse(
                         1L,
                         true,
@@ -181,6 +198,7 @@ class InternalOrderCompensationControllerTest {
                 ));
 
         mockMvc.perform(post("/internal/orders/timeout-replays/bulk")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-order-bulk")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -198,6 +216,7 @@ class InternalOrderCompensationControllerTest {
     @Test
     void manualReplayValidatesRequest() throws Exception {
         mockMvc.perform(post("/internal/orders/timeout-replays/manual")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-order-validation")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -213,6 +232,7 @@ class InternalOrderCompensationControllerTest {
     @Test
     void queryRecordsValidatesRequest() throws Exception {
         mockMvc.perform(post("/internal/orders/compensation-records/query")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-order-query-validation")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -223,5 +243,34 @@ class InternalOrderCompensationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.traceId").value("trace-order-query-validation"));
+    }
+
+    @Test
+    void queryRecordsRequiresTrustedPrincipal() throws Exception {
+        mockMvc.perform(post("/internal/orders/compensation-records/query")
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-order-auth-missing")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "pageNo", 1,
+                                "pageSize", 20
+                        ))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_TOKEN_MISSING"))
+                .andExpect(jsonPath("$.traceId").value("trace-order-auth-missing"));
+    }
+
+    @TestConfiguration
+    static class ResolverConfig {
+
+        @Bean
+        WebMvcConfigurer sanguiPrincipalResolverConfigurer() {
+            return new WebMvcConfigurer() {
+                @Override
+                public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+                    resolvers.add(new SanguiPrincipalArgumentResolver());
+                }
+            };
+        }
     }
 }

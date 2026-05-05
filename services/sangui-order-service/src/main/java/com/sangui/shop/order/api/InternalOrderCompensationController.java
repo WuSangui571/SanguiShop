@@ -2,6 +2,7 @@ package com.sangui.shop.order.api;
 
 import com.sangui.shop.common.core.api.ApiResult;
 import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayRequest;
 import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayResponse;
 import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayRequest;
@@ -31,30 +32,33 @@ public class InternalOrderCompensationController {
     @PostMapping("/compensation-records/query")
     public ApiResult<OrderCompensationQueryResponse> queryRecords(
             @Valid @RequestBody OrderCompensationQueryRequest request,
+            SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
         String traceId = traceId(httpRequest);
-        OrderCompensationQueryResponse response = orderCompensationOpsService.queryRecords(request);
+        OrderCompensationQueryResponse response = orderCompensationOpsService.queryRecords(principal, request);
         return ApiResult.ok("ORDER_COMPENSATION_RECORDS_FETCHED", response, traceId);
     }
 
     @PostMapping("/timeout-replays/manual")
     public ApiResult<ManualOrderTimeoutReplayResponse> manualReplay(
             @Valid @RequestBody ManualOrderTimeoutReplayRequest request,
+            SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
         String traceId = traceId(httpRequest);
-        ManualOrderTimeoutReplayResponse response = orderCompensationOpsService.manualReplay(request, traceId);
+        ManualOrderTimeoutReplayResponse response = orderCompensationOpsService.manualReplay(principal, request, traceId);
         return ApiResult.ok("ORDER_TIMEOUT_REPLAYED_MANUALLY", response, traceId);
     }
 
     @PostMapping("/timeout-replays/bulk")
     public ApiResult<BulkOrderTimeoutReplayResponse> bulkReplay(
             @Valid @RequestBody BulkOrderTimeoutReplayRequest request,
+            SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
         String traceId = traceId(httpRequest);
-        BulkOrderTimeoutReplayResponse response = orderCompensationOpsService.bulkReplay(request, traceId);
+        BulkOrderTimeoutReplayResponse response = orderCompensationOpsService.bulkReplay(principal, request, traceId);
         return ApiResult.ok("ORDER_TIMEOUT_REPLAYED_IN_BULK", response, traceId);
     }
 

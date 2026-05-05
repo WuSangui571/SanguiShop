@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCompensationDashboard } from '../../composables/useCompensationDashboard'
+import type { DashboardItem } from './compensationDashboardModel'
 import {
   getAggregateKey,
   getLastTraceId,
@@ -14,19 +15,34 @@ import SummaryCard from './components/SummaryCard.vue'
 const {
   activeView,
   filters,
+  replayControls,
   isLoading,
   response,
   lastMeta,
   error,
+  errorDescription,
+  actionError,
+  actionErrorDescription,
+  lastAction,
+  isBulkRunning,
   items,
   summaryCards,
   canGoPrev,
   canGoNext,
+  canRunReplay,
+  isAnyReplayRunning,
+  bulkTargetCount,
   submit,
   reset,
   setView,
   goToPage,
   setPageSize,
+  runManualReplay,
+  runBulkReplay,
+  isManualReplayPending,
+  copyTraceId,
+  isTraceCopied,
+  exportCurrentPage,
 } = useCompensationDashboard()
 
 const pageLabel = computed(() => {
@@ -63,6 +79,10 @@ function onReset() {
   void reset()
 }
 
+function onRunBulkReplay() {
+  void runBulkReplay()
+}
+
 function selectView(view: 'order' | 'payment') {
   void setView(view)
 }
@@ -70,6 +90,18 @@ function selectView(view: 'order' | 'payment') {
 function changePageSize(event: Event) {
   const target = event.target as HTMLSelectElement
   void setPageSize(Number(target.value))
+}
+
+function handleManualReplay(item: DashboardItem) {
+  void runManualReplay(item)
+}
+
+function handleCopyTrace(item: DashboardItem) {
+  void copyTraceId(item)
+}
+
+function handleExport() {
+  exportCurrentPage()
 }
 </script>
 
@@ -161,6 +193,47 @@ function changePageSize(event: Event) {
       </form>
     </section>
 
+    <section class="panel replay-panel">
+      <div class="panel-head compact-head">
+        <div>
+          <h2>Replay controls</h2>
+          <p class="meta">
+            Manual replay runs per card. Bulk replay uses the current page as explicit bounded scope.
+          </p>
+        </div>
+        <button type="button" class="secondary" :disabled="items.length === 0" @click="handleExport">
+          Export current page
+        </button>
+      </div>
+      <div class="replay-grid">
+        <label>
+          <span>Replay operator</span>
+          <input v-model="replayControls.operator" placeholder="ops-oncall" />
+        </label>
+        <label>
+          <span>Bulk limit</span>
+          <input v-model.number="replayControls.bulkLimit" type="number" min="1" inputmode="numeric" />
+        </label>
+        <label class="checkbox-field">
+          <span>Dry run</span>
+          <input v-model="replayControls.dryRun" type="checkbox" />
+        </label>
+        <div class="replay-actions">
+          <button
+            type="button"
+            class="primary"
+            :disabled="!canRunReplay || isAnyReplayRunning || items.length === 0 || isLoading"
+            @click="onRunBulkReplay"
+          >
+            {{ isBulkRunning ? 'Running bulk replay...' : replayControls.dryRun ? 'Run bulk dry-run' : 'Run bulk replay' }}
+          </button>
+          <p class="footnote compact-note">
+            Current bulk scope: {{ bulkTargetCount }} visible {{ activeView }} record(s).
+          </p>
+        </div>
+      </div>
+    </section>
+
     <section class="summary-grid">
       <SummaryCard
         v-for="card in summaryCards"
@@ -204,8 +277,30 @@ function changePageSize(event: Event) {
         </div>
       </div>
 
+      <div v-if="lastAction" class="message" :class="`message-${lastAction.tone}`">
+        <strong>{{ lastAction.title }}</strong>
+        <span>{{ lastAction.summary }}</span>
+        <span>
+          code {{ lastAction.code }}<template v-if="lastAction.traceId">
+            | trace {{ lastAction.traceId }}
+          </template>
+        </span>
+        <span v-for="detail in lastAction.details" :key="detail">{{ detail }}</span>
+      </div>
+
+      <div v-if="actionError" class="message error">
+        <strong>{{ actionError.message }}</strong>
+        <span>{{ actionErrorDescription }}</span>
+        <span>
+          code {{ actionError.code }}<template v-if="actionError.traceId">
+            | trace {{ actionError.traceId }}
+          </template>
+        </span>
+      </div>
+
       <div v-if="error" class="message error">
         <strong>{{ error.message }}</strong>
+        <span>{{ errorDescription }}</span>
         <span>
           code {{ error.code }}<template v-if="error.traceId">
             | trace {{ error.traceId }}
@@ -227,6 +322,11 @@ function changePageSize(event: Event) {
           :key="getAggregateKey(activeView, item)"
           :view="activeView"
           :item="item"
+          :manual-replay-disabled="!canRunReplay || isAnyReplayRunning || isLoading"
+          :manual-replay-pending="isManualReplayPending(item)"
+          :trace-copied="isTraceCopied(item)"
+          @manual-replay="handleManualReplay(item)"
+          @copy-trace="handleCopyTrace(item)"
         />
       </div>
 
@@ -310,6 +410,10 @@ h1 {
 }
 
 .filters-panel {
+  margin-bottom: 1.25rem;
+}
+
+.replay-panel {
   margin-bottom: 1.25rem;
 }
 
@@ -409,6 +513,34 @@ h2 {
   flex-wrap: wrap;
 }
 
+.compact-head {
+  margin-bottom: 1rem;
+}
+
+.replay-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+  align-items: end;
+}
+
+.replay-actions {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.checkbox-field {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkbox-field input {
+  width: auto;
+  min-height: auto;
+}
+
 .compact-field {
   min-width: 110px;
 }
@@ -446,6 +578,21 @@ h2 {
   color: #8d1f17;
 }
 
+.message-success {
+  background: rgba(15, 118, 110, 0.08);
+  color: #115e59;
+}
+
+.message-warning {
+  background: rgba(180, 112, 24, 0.08);
+  color: #9a5a12;
+}
+
+.message-danger {
+  background: rgba(180, 35, 24, 0.08);
+  color: #8d1f17;
+}
+
 .results-grid {
   display: grid;
   gap: 1rem;
@@ -455,6 +602,10 @@ h2 {
   margin: 1rem 0 0;
   color: #607089;
   font-size: 0.88rem;
+}
+
+.compact-note {
+  margin: 0;
 }
 
 @media (max-width: 860px) {

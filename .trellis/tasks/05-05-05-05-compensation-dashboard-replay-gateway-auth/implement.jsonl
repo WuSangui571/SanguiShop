@@ -1,0 +1,14 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Gateway internal compensation routes, JWT handling, and CORS preflight behavior."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Replay request/response contracts must stay aligned across frontend, gateway, and services."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "401/403/validation behavior and traceId propagation for ops APIs."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required backend validation, logging, and targeted test coverage."}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Gateway JWT claims and downstream auth context behavior for protected internal APIs."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Frontend must use gateway /api paths, inject auth headers, and interpret ApiResult errors consistently."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Replay DTOs and fallback handling for optional/unknown fields."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Replay/query logic should live in composables and services, not scattered in components."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Loading, error, and duplicate-submit handling for operator actions."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer consistency checklist for replay fields, auth, and operator flow."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Security and contract review checklist for gateway/auth/RBAC closure."}

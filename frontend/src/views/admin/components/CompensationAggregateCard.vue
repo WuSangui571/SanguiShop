@@ -16,6 +16,14 @@ import StatusPill from './StatusPill.vue'
 const props = defineProps<{
   view: CompensationView
   item: OrderCompensationAggregateResponse | PaymentCompensationAggregateResponse
+  manualReplayDisabled: boolean
+  manualReplayPending: boolean
+  traceCopied: boolean
+}>()
+
+const emit = defineEmits<{
+  (event: 'manual-replay'): void
+  (event: 'copy-trace'): void
 }>()
 
 const orderItem = computed(() => (
@@ -39,6 +47,17 @@ function toneOf(value: string | null): 'default' | 'success' | 'warning' | 'dang
 
   return 'default'
 }
+
+const latestTraceId = computed(() => {
+  if (orderItem.value) {
+    return orderItem.value.order.lastCompensationTraceId ?? orderItem.value.order.traceId
+  }
+  if (paymentItem.value) {
+    return paymentItem.value.payment.lastCompensationTraceId ?? paymentItem.value.payment.traceId
+  }
+
+  return null
+})
 </script>
 
 <template>
@@ -87,6 +106,19 @@ function toneOf(value: string | null): 'default' | 'success' | 'warning' | 'dang
         <span>Matched attempts: {{ orderItem.matchedAttemptCount }}</span>
         <span>Total attempts: {{ orderItem.totalAttemptCount }}</span>
         <span>Operator: {{ orderItem.order.lastCompensationOperator ?? '--' }}</span>
+      </div>
+      <div class="action-row">
+        <button type="button" class="ghost-button" :disabled="!latestTraceId" @click="emit('copy-trace')">
+          {{ traceCopied ? 'Copied trace' : 'Copy traceId' }}
+        </button>
+        <button
+          type="button"
+          class="action-button"
+          :disabled="manualReplayDisabled"
+          @click="emit('manual-replay')"
+        >
+          {{ manualReplayPending ? 'Replaying...' : 'Manual replay' }}
+        </button>
       </div>
       <details class="details">
         <summary>View attempt detail</summary>
@@ -138,6 +170,19 @@ function toneOf(value: string | null): 'default' | 'success' | 'warning' | 'dang
         <span>Matched attempts: {{ paymentItem.matchedAttemptCount }}</span>
         <span>Total attempts: {{ paymentItem.totalAttemptCount }}</span>
         <span>Operator: {{ paymentItem.payment.lastCompensationOperator ?? '--' }}</span>
+      </div>
+      <div class="action-row">
+        <button type="button" class="ghost-button" :disabled="!latestTraceId" @click="emit('copy-trace')">
+          {{ traceCopied ? 'Copied trace' : 'Copy traceId' }}
+        </button>
+        <button
+          type="button"
+          class="action-button"
+          :disabled="manualReplayDisabled"
+          @click="emit('manual-replay')"
+        >
+          {{ manualReplayPending ? 'Replaying...' : 'Manual replay' }}
+        </button>
       </div>
       <details class="details">
         <summary>View attempt detail</summary>
@@ -218,6 +263,38 @@ dd {
 .details {
   display: grid;
   gap: 0.9rem;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.action-button,
+.ghost-button {
+  min-height: 2.7rem;
+  border-radius: 0.9rem;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  border: 1px solid rgba(20, 32, 50, 0.08);
+}
+
+.action-button {
+  background: linear-gradient(135deg, #0f766e, #1d4ed8);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.ghost-button {
+  background: rgba(20, 32, 50, 0.03);
+  color: #20324d;
+}
+
+.action-button:disabled,
+.ghost-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 summary {
