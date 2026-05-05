@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Frontend env contract for Kibana and Loki observability URLs"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component UI state and event behavior for audit open buttons"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Typed mocks and no any in component tests"}

@@ -1,0 +1,6 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend test and quality completion checklist"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review component state and click behavior coverage"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review typed test fixtures and mocks"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Review observability env fallback contract remains unchanged"}

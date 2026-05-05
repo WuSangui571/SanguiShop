@@ -38,6 +38,7 @@ import {
   readDashboardStateFromSearch,
   serializeDashboardState,
   summarizeBulkReplay,
+  type AuditObservabilityConfig,
   type AuditFilters,
   type AuditQueryKind,
   type AuditQueryTemplates,
@@ -60,9 +61,13 @@ interface ActionFeedback {
 const STORAGE_KEY = 'sangui.compensation.dashboard.state'
 const COPY_FEEDBACK_MS = 1800
 
-export function useCompensationDashboard() {
+interface UseCompensationDashboardOptions {
+  auditObservabilityConfig?: AuditObservabilityConfig
+}
+
+export function useCompensationDashboard(options: UseCompensationDashboardOptions = {}) {
   const defaults = createDefaultDashboardState()
-  const auditObservabilityConfig = createAuditObservabilityConfig()
+  const auditObservabilityConfig = options.auditObservabilityConfig ?? createAuditObservabilityConfig()
   const activeView = ref<CompensationView>(defaults.view)
   const filters = reactive(defaults.filters)
   const replayControls = reactive(defaults.replayControls)
