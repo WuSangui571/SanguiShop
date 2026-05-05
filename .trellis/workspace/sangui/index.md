@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
+- **Total Sessions**: 23
 - **Last Active**: 2026-05-05
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~956 | Active |
+| `journal-1.md` | ~1046 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 23 | 2026-05-05 | Compensation Ops Admin Permission Model And Environment Rollout | `c375654` | `main` |
+| 22 | 2026-05-05 | Compensation Ops Dashboard Auth Session Closure | `a84fafa` | `main` |
 | 21 | 2026-05-05 | Compensation Dashboard Replay Wiring and Gateway Auth Hardening | `cec6495` | `main` |
 | 20 | 2026-05-03 | Compensation Dashboard Query Wiring | `eba9baa`, `d9b3cda` | `main` |
 | 19 | 2026-05-03 | Compensation Attempt History Query Surface | `aa9f853` | `main` |

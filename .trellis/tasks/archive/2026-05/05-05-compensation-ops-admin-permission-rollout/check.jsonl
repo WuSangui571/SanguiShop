@@ -1,0 +1,6 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Validate public/protected route rules and downstream RBAC boundary"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Validate stable API/auth error envelope and claim changes"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review tests, spec sync, and forbidden patterns before completion"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Validate ops token claim and config contract updates"}

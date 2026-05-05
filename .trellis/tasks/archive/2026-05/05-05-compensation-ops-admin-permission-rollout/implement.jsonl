@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Ops login/refresh token claims, config keys, and compensation ops auth contract"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "JWT, RBAC boundary, public ops login path, and protected internal ops routes"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Need least-privilege auth model and executable rollout/rollback design"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Response envelope, auth/error matrix, and cross-service DTO stability for ops auth changes"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Task spans auth claims, service authorization, config, and rollout docs"}

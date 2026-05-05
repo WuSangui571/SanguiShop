@@ -954,3 +954,93 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: Compensation Ops Dashboard Auth Session Closure
+
+**Date**: 2026-05-05
+**Task**: Compensation Ops Dashboard Auth Session Closure
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Ops Auth Contract | Added dedicated ops login and session refresh endpoints in user-service so compensation dashboard access no longer depends on manual browser token injection. |
+| Admin Identity Model | Introduced config-driven ops admin identity mapping via `sangui.security.ops.admins[]`, keeping internal compensation ops on the existing `ADMIN` role baseline. |
+| Frontend Session UX | Added auth shell, login page, forbidden page, persisted session restore, proactive refresh, sign-out, and unified 401/403 behavior for the dashboard. |
+| Gateway/Auth Alignment | Treated `/api/users/ops/login` as a public auth path at gateway level while keeping JWT protection for refresh and existing internal compensation APIs. |
+| Verification | Human verified frontend `lint`, `typecheck`, `build`, and Vitest all passed; AI verified targeted user-service and gateway Maven tests with workspace-local Maven repo. |
+
+**Verification**:
+- Human committed `a84fafa feat(compensation): close ops dashboard auth session loop`.
+- Human ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run test` successfully in `frontend/` on May 5, 2026.
+- Human ran targeted Maven tests for user-service ops auth and gateway JWT filter successfully from repository root on May 5, 2026.
+- Manual browser acceptance checklist was added at `frontend/ops-auth-manual-checklist.md`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a84fafa` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 23: Compensation Ops Admin Permission Model And Environment Rollout
+
+**Date**: 2026-05-05
+**Task**: Compensation Ops Admin Permission Model And Environment Rollout
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Ops Permission Model | Replaced broad compensation ops `ADMIN` issuance with dedicated `OPS_COMPENSATION_ADMIN` permission claims so ops dashboard sessions are least-privilege. |
+| User-Service Access Config | Introduced `sangui.security.ops.bindings[]` as the target environment contract, while keeping legacy `sangui.security.ops.admins[]` as a rollback-compatible fallback. |
+| Downstream Authorization | Updated order-service and payment-service compensation ops paths to require the dedicated ops permission plus trusted `shopId` match instead of direct `ADMIN` role checks. |
+| Rollout Documentation | Added executable rollout guidance for Nacos YAML, environment variables, verification, and rollback in `docs/compensation-ops-admin-rollout.md`, and synced auth/security specs and local sample config. |
+| Verification | Human ran targeted Maven tests and compile successfully after the implementation, then committed `c375654 feat(compensation): formalize ops permission rollout`. |
+
+**Verification**:
+- Human ran `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -pl services/sangui-user-service,services/sangui-order-service,services/sangui-payment-service -am "-Dtest=OpsAuthControllerTest,OpsAuthServiceTest,OrderCompensationOpsServiceTest,PaymentCompensationOpsServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` successfully on May 5, 2026.
+- Human ran `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -pl services/sangui-user-service,services/sangui-order-service,services/sangui-payment-service -am -DskipTests compile` successfully on May 5, 2026.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c375654` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
