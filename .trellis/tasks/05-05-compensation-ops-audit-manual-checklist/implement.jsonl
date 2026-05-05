@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Frontend observability env URL contract"}
+{"file": ".trellis\\spec\\backend\\logging-guidelines.md", "reason": "Compensation ops audit event fields and query contract"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Ops permission and denied audit requirements"}
+{"file": ".trellis\\spec\\backend\\observability-devops.md", "reason": "Real environment observability and configuration guidance"}

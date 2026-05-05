@@ -4,6 +4,8 @@ This document defines how operators search `Ops audit event.` logs emitted by th
 
 The dashboard generates copyable templates and can open configured Kibana Discover or Loki Explore URLs. It does not query Elasticsearch, Kibana, Loki, or business history tables directly.
 
+For real-environment operator acceptance, use `docs/compensation-ops-audit-manual-checklist.md`.
+
 ## Canonical Fields
 
 | Field | Required | Meaning | Example |
@@ -56,6 +58,8 @@ The frontend reads these optional Vite environment variables:
 | `VITE_LOKI_EXPLORE_URL` | Grafana/Loki Explore base URL. The dashboard appends a `left` Explore state with the generated LogQL expression. | `https://grafana.example/explore` |
 
 If a URL is absent or not an absolute `http`/`https` URL, the dashboard keeps `Copy query` enabled and leaves the matching open action disabled. These values are public client configuration, not secrets.
+
+Credential-bearing URLs, such as `https://user:token@kibana.example/app/discover#/`, are invalid and must degrade to the same copy-only behavior.
 
 ### Kibana KQL
 

@@ -33,6 +33,10 @@ Default local dev URL:
 - `VITE_LOKI_EXPLORE_URL`
   - Optional Grafana/Loki Explore base URL used by the ops audit panel `Open in Loki` action.
 
+Credential-bearing observability URLs are rejected by the dashboard. Missing, invalid, non-HTTP(S), or credential-bearing values leave the open buttons disabled while keeping `Copy query` available.
+
+See `../docs/compensation-ops-audit-manual-checklist.md` for the real-environment operator checklist.
+
 ## Frontend Rules
 
 - All HTTP traffic goes through gateway paths under `/api/...`.
