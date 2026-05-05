@@ -1285,3 +1285,36 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: Compensation Ops Audit Manual Acceptance Checklist
+
+**Date**: 2026-05-05
+**Task**: Compensation Ops Audit Manual Acceptance Checklist
+**Branch**: `main`
+
+### Summary
+
+Added the real-environment operator checklist for compensation ops audit observability, covering Kibana/Loki env configuration, button states, View audit trail success and failure filters, Kibana/Loki query verification, denied audit checks, and copy-only fallback. Human verified frontend lint, typecheck, build, and Vitest: 5 files passed, 18 tests passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a013f3a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
