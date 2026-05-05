@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildAuditQueryLinks,
   buildAuditQueryTemplates,
   buildDashboardSearchParams,
   buildOrderBulkReplayRequest,
@@ -116,6 +117,48 @@ describe('compensationDashboardModel', () => {
     expect(templates.lokiLogql).toContain('|= "outcome=success"')
   })
 
+  it('builds observability links only when platform URLs are configured', () => {
+    const templates = buildAuditQueryTemplates({
+      shopId: '1',
+      traceId: 'trace-payment-manual',
+      operator: 'ops-user',
+      action: 'ops.payment.reconcile.manual',
+      outcome: 'success',
+    })
+
+    expect(buildAuditQueryLinks(templates, {})).toEqual({
+      kibanaKql: '',
+      kibanaLucene: '',
+      lokiLogql: '',
+    })
+    expect(buildAuditQueryLinks(templates, {
+      kibanaDiscoverUrl: 'not-a-url',
+      lokiExploreUrl: 'https://token@grafana.example/explore',
+    })).toEqual({
+      kibanaKql: '',
+      kibanaLucene: '',
+      lokiLogql: '',
+    })
+
+    const links = buildAuditQueryLinks(templates, {
+      kibanaDiscoverUrl: 'https://kibana.example/app/discover#/',
+      lokiExploreUrl: 'https://grafana.example/explore',
+    })
+    const kibanaParams = readHashSearchParams(links.kibanaKql)
+    const kibanaState = kibanaParams.get('_a') ?? ''
+    const lokiUrl = new URL(links.lokiLogql)
+    const lokiState = JSON.parse(lokiUrl.searchParams.get('left') ?? '{}') as {
+      datasource?: string
+      queries?: Array<{ expr?: string }>
+    }
+
+    expect(kibanaState).toContain('language:kuery')
+    expect(kibanaState).toContain('traceId : "trace-payment-manual"')
+    expect(new URL(links.kibanaLucene).hash).toContain('_a=')
+    expect(lokiState.datasource).toBe('Loki')
+    expect(lokiState.queries?.[0]?.expr).toBe(templates.lokiLogql)
+  })
+
   it('maps replay feedback to audit trail filters', () => {
     const filters = buildReplayAuditFilters(
       'payment',
@@ -136,3 +179,9 @@ describe('compensationDashboardModel', () => {
     })
   })
 })
+
+function readHashSearchParams(value: string): URLSearchParams {
+  const hash = new URL(value).hash.slice(1)
+  const queryIndex = hash.indexOf('?')
+  return new URLSearchParams(queryIndex >= 0 ? hash.slice(queryIndex + 1) : '')
+}

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCompensationDashboard } from '../../composables/useCompensationDashboard'
-import type { DashboardItem } from './compensationDashboardModel'
+import type { AuditQueryKind, DashboardItem } from './compensationDashboardModel'
 import {
   auditActionOptions,
   auditOutcomeOptions,
@@ -20,6 +20,7 @@ const {
   replayControls,
   auditFilters,
   auditQueryTemplates,
+  auditQueryLinks,
   isLoading,
   response,
   lastMeta,
@@ -48,6 +49,7 @@ const {
   copyTraceId,
   isTraceCopied,
   copyAuditQuery,
+  openAuditQuery,
   copiedAuditQueryKey,
   applyAuditTrail,
   exportCurrentPage,
@@ -112,8 +114,12 @@ function handleExport() {
   exportCurrentPage()
 }
 
-function handleCopyAuditQuery(kind: 'kibanaKql' | 'kibanaLucene' | 'lokiLogql') {
+function handleCopyAuditQuery(kind: AuditQueryKind) {
   void copyAuditQuery(kind)
+}
+
+function handleOpenAuditQuery(kind: AuditQueryKind) {
+  openAuditQuery(kind)
 }
 
 function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0]) {
@@ -295,27 +301,60 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
         <article class="audit-template-card">
           <div class="template-head">
             <h3>Kibana KQL</h3>
-            <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('kibanaKql')">
-              {{ copiedAuditQueryKey === 'kibanaKql' ? 'Copied' : 'Copy' }}
-            </button>
+            <div class="template-actions">
+              <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('kibanaKql')">
+                {{ copiedAuditQueryKey === 'kibanaKql' ? 'Copied' : 'Copy query' }}
+              </button>
+              <button
+                type="button"
+                class="secondary mini-button"
+                :disabled="!auditQueryLinks.kibanaKql"
+                :title="auditQueryLinks.kibanaKql ? 'Open in Kibana Discover' : 'Set VITE_KIBANA_DISCOVER_URL to enable'"
+                @click="handleOpenAuditQuery('kibanaKql')"
+              >
+                Open in Kibana
+              </button>
+            </div>
           </div>
           <textarea readonly :value="auditQueryTemplates.kibanaKql" />
         </article>
         <article class="audit-template-card">
           <div class="template-head">
             <h3>Kibana Lucene</h3>
-            <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('kibanaLucene')">
-              {{ copiedAuditQueryKey === 'kibanaLucene' ? 'Copied' : 'Copy' }}
-            </button>
+            <div class="template-actions">
+              <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('kibanaLucene')">
+                {{ copiedAuditQueryKey === 'kibanaLucene' ? 'Copied' : 'Copy query' }}
+              </button>
+              <button
+                type="button"
+                class="secondary mini-button"
+                :disabled="!auditQueryLinks.kibanaLucene"
+                :title="auditQueryLinks.kibanaLucene ? 'Open in Kibana Discover' : 'Set VITE_KIBANA_DISCOVER_URL to enable'"
+                @click="handleOpenAuditQuery('kibanaLucene')"
+              >
+                Open in Kibana
+              </button>
+            </div>
           </div>
           <textarea readonly :value="auditQueryTemplates.kibanaLucene" />
         </article>
         <article class="audit-template-card">
           <div class="template-head">
             <h3>Loki LogQL</h3>
-            <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('lokiLogql')">
-              {{ copiedAuditQueryKey === 'lokiLogql' ? 'Copied' : 'Copy' }}
-            </button>
+            <div class="template-actions">
+              <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('lokiLogql')">
+                {{ copiedAuditQueryKey === 'lokiLogql' ? 'Copied' : 'Copy query' }}
+              </button>
+              <button
+                type="button"
+                class="secondary mini-button"
+                :disabled="!auditQueryLinks.lokiLogql"
+                :title="auditQueryLinks.lokiLogql ? 'Open in Loki Explore' : 'Set VITE_LOKI_EXPLORE_URL to enable'"
+                @click="handleOpenAuditQuery('lokiLogql')"
+              >
+                Open in Loki
+              </button>
+            </div>
           </div>
           <textarea readonly :value="auditQueryTemplates.lokiLogql" />
         </article>
@@ -676,7 +715,7 @@ h2 {
 
 .template-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
 }
@@ -684,6 +723,13 @@ h2 {
 .template-head h3 {
   margin: 0;
   font-size: 0.95rem;
+}
+
+.template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
 }
 
 textarea {

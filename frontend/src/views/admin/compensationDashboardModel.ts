@@ -78,6 +78,19 @@ export interface AuditQueryTemplates {
   lokiLogql: string
 }
 
+export type AuditQueryKind = keyof AuditQueryTemplates
+
+export interface AuditObservabilityConfig {
+  kibanaDiscoverUrl?: string
+  lokiExploreUrl?: string
+}
+
+export interface AuditQueryLinks {
+  kibanaKql: string
+  kibanaLucene: string
+  lokiLogql: string
+}
+
 export type DashboardResponse = OrderCompensationQueryResponse | PaymentCompensationQueryResponse
 export type DashboardItem = OrderCompensationAggregateResponse | PaymentCompensationAggregateResponse
 
@@ -489,6 +502,24 @@ export function buildAuditQueryTemplates(filters: AuditFilters): AuditQueryTempl
   }
 }
 
+export function createAuditObservabilityConfig(env: ImportMetaEnv = import.meta.env): AuditObservabilityConfig {
+  return {
+    kibanaDiscoverUrl: normalizeOptional(env.VITE_KIBANA_DISCOVER_URL ?? ''),
+    lokiExploreUrl: normalizeOptional(env.VITE_LOKI_EXPLORE_URL ?? ''),
+  }
+}
+
+export function buildAuditQueryLinks(
+  templates: AuditQueryTemplates,
+  config: AuditObservabilityConfig,
+): AuditQueryLinks {
+  return {
+    kibanaKql: buildKibanaDiscoverUrl(config.kibanaDiscoverUrl, templates.kibanaKql, 'kuery'),
+    kibanaLucene: buildKibanaDiscoverUrl(config.kibanaDiscoverUrl, templates.kibanaLucene, 'lucene'),
+    lokiLogql: buildLokiExploreUrl(config.lokiExploreUrl, templates.lokiLogql),
+  }
+}
+
 export function buildReplayAuditFilters(
   view: CompensationView,
   mode: 'manual' | 'bulk',
@@ -675,6 +706,73 @@ function escapeLucene(value: string): string {
 
 function escapeLoki(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function buildKibanaDiscoverUrl(baseUrl: string | undefined, query: string, language: 'kuery' | 'lucene'): string {
+  const url = parseConfiguredUrl(baseUrl)
+  if (!url) {
+    return ''
+  }
+
+  const appState = `(query:(language:${language},query:'${escapeRisonString(query)}'))`
+  return setUrlParam(url, '_a', appState)
+}
+
+function buildLokiExploreUrl(baseUrl: string | undefined, query: string): string {
+  const url = parseConfiguredUrl(baseUrl)
+  if (!url) {
+    return ''
+  }
+
+  return setUrlParam(url, 'left', JSON.stringify({
+    datasource: 'Loki',
+    queries: [
+      {
+        refId: 'A',
+        expr: query,
+      },
+    ],
+    range: {
+      from: 'now-24h',
+      to: 'now',
+    },
+  }))
+}
+
+function parseConfiguredUrl(value: string | undefined): URL | null {
+  if (!value) {
+    return null
+  }
+
+  try {
+    const url = new URL(value)
+    if (url.username || url.password) {
+      return null
+    }
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url : null
+  } catch {
+    return null
+  }
+}
+
+function setUrlParam(url: URL, key: string, value: string): string {
+  if (url.hash) {
+    const hashValue = url.hash.slice(1)
+    const queryIndex = hashValue.indexOf('?')
+    const hashPath = queryIndex >= 0 ? hashValue.slice(0, queryIndex) : hashValue
+    const hashSearch = queryIndex >= 0 ? hashValue.slice(queryIndex + 1) : ''
+    const params = new URLSearchParams(hashSearch)
+    params.set(key, value)
+    url.hash = `${hashPath || '/'}?${params.toString()}`
+    return url.toString()
+  }
+
+  url.searchParams.set(key, value)
+  return url.toString()
+}
+
+function escapeRisonString(value: string): string {
+  return value.replace(/!/g, '!!').replace(/'/g, "!'")
 }
 
 function toIsoDateTime(value: string): string | undefined {

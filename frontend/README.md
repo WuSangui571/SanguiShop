@@ -28,6 +28,10 @@ Default local dev URL:
   - Optional gateway origin prefix. Leave empty to use the same origin.
 - `VITE_DEFAULT_SHOP_ID`
   - Optional default `shopId` used to seed the dashboard filter form.
+- `VITE_KIBANA_DISCOVER_URL`
+  - Optional Kibana Discover base URL used by the ops audit panel `Open in Kibana` actions.
+- `VITE_LOKI_EXPLORE_URL`
+  - Optional Grafana/Loki Explore base URL used by the ops audit panel `Open in Loki` action.
 
 ## Frontend Rules
 

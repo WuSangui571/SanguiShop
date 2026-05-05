@@ -2,7 +2,7 @@
 
 This document defines how operators search `Ops audit event.` logs emitted by the compensation ops surfaces.
 
-The dashboard generates copyable templates only. It does not query Elasticsearch, Kibana, Loki, or business history tables directly.
+The dashboard generates copyable templates and can open configured Kibana Discover or Loki Explore URLs. It does not query Elasticsearch, Kibana, Loki, or business history tables directly.
 
 ## Canonical Fields
 
@@ -45,6 +45,17 @@ The dashboard generates copyable templates only. It does not query Elasticsearch
 ## Query Templates
 
 Use these templates as baselines. Adjust index names, labels, or service filters to match the deployed log pipeline.
+
+## Dashboard Observability Links
+
+The frontend reads these optional Vite environment variables:
+
+| Variable | Meaning | Example |
+| --- | --- | --- |
+| `VITE_KIBANA_DISCOVER_URL` | Kibana Discover base URL. The dashboard appends `_a=(query:(language:...,query:'...'))` for KQL or Lucene. | `https://kibana.example/app/discover#/` |
+| `VITE_LOKI_EXPLORE_URL` | Grafana/Loki Explore base URL. The dashboard appends a `left` Explore state with the generated LogQL expression. | `https://grafana.example/explore` |
+
+If a URL is absent or not an absolute `http`/`https` URL, the dashboard keeps `Copy query` enabled and leaves the matching open action disabled. These values are public client configuration, not secrets.
 
 ### Kibana KQL
 

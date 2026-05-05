@@ -17,6 +17,7 @@ import type {
 } from '../types/api/compensation'
 import {
   buildAuditQueryTemplates,
+  buildAuditQueryLinks,
   buildDashboardSearchParams,
   buildExportRows,
   buildOrderBulkReplayRequest,
@@ -27,6 +28,7 @@ import {
   buildPaymentManualReplayRequest,
   buildPaymentQuery,
   createDefaultDashboardState,
+  createAuditObservabilityConfig,
   describeDashboardError,
   deriveSummaryCards,
   deserializeDashboardState,
@@ -37,6 +39,7 @@ import {
   serializeDashboardState,
   summarizeBulkReplay,
   type AuditFilters,
+  type AuditQueryKind,
   type AuditQueryTemplates,
   type CompensationView,
   type DashboardItem,
@@ -59,6 +62,7 @@ const COPY_FEEDBACK_MS = 1800
 
 export function useCompensationDashboard() {
   const defaults = createDefaultDashboardState()
+  const auditObservabilityConfig = createAuditObservabilityConfig()
   const activeView = ref<CompensationView>(defaults.view)
   const filters = reactive(defaults.filters)
   const replayControls = reactive(defaults.replayControls)
@@ -82,6 +86,7 @@ export function useCompensationDashboard() {
   const items = computed(() => response.value?.items ?? [])
   const summaryCards = computed(() => deriveSummaryCards(activeView.value, response.value))
   const auditQueryTemplates = computed(() => buildAuditQueryTemplates(auditFilters))
+  const auditQueryLinks = computed(() => buildAuditQueryLinks(auditQueryTemplates.value, auditObservabilityConfig))
   const canGoPrev = computed(() => (response.value?.pageNo ?? 1) > 1)
   const canGoNext = computed(() => {
     if (!response.value) {
@@ -333,7 +338,7 @@ export function useCompensationDashboard() {
     }, COPY_FEEDBACK_MS)
   }
 
-  async function copyAuditQuery(kind: keyof AuditQueryTemplates) {
+  async function copyAuditQuery(kind: AuditQueryKind) {
     if (typeof window === 'undefined' || !window.navigator?.clipboard) {
       return
     }
@@ -347,6 +352,19 @@ export function useCompensationDashboard() {
       copiedAuditQueryKey.value = null
       copiedAuditQueryTimer = null
     }, COPY_FEEDBACK_MS)
+  }
+
+  function openAuditQuery(kind: AuditQueryKind) {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const url = auditQueryLinks.value[kind]
+    if (!url) {
+      return
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   function applyAuditTrail(nextFilters: AuditFilters | null) {
@@ -451,6 +469,7 @@ export function useCompensationDashboard() {
     replayControls,
     auditFilters,
     auditQueryTemplates,
+    auditQueryLinks,
     isLoading,
     response,
     lastMeta,
@@ -479,6 +498,7 @@ export function useCompensationDashboard() {
     copyTraceId,
     isTraceCopied,
     copyAuditQuery,
+    openAuditQuery,
     copiedAuditQueryKey,
     applyAuditTrail,
     exportCurrentPage,

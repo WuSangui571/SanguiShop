@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Dashboard UI action controls"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Typed env and query URL helpers"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Vite environment URL contract"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend verification criteria"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Ops audit query contract"}

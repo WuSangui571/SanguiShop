@@ -49,6 +49,8 @@ Search contract:
 
 - Repo-backed operator guide: `docs/compensation-ops-audit-search.md`.
 - Dashboard audit filters generate Kibana KQL, Kibana Lucene, and Loki LogQL templates from `traceId`, `operator`, `action`, `outcome`, and `shopId`.
+- Dashboard observability links are frontend environment driven: `VITE_KIBANA_DISCOVER_URL` opens Kibana Discover with the generated KQL/Lucene query, and `VITE_LOKI_EXPLORE_URL` opens Grafana/Loki Explore with the generated LogQL query.
+- Missing or invalid observability URLs must degrade to copy-only templates; the dashboard must not hardcode Kibana, Grafana, or Loki hosts.
 - Query templates target log pipelines. They must not call a compensation service endpoint or read order/payment history tables directly.
 - Kibana KQL base: `message : "Ops audit event." and traceId : "<traceId>" and action : "<action>" and outcome : "<outcome>"`.
 - Kibana Lucene base: `message:"Ops audit event." AND traceId:"<traceId>" AND action:"<action>" AND outcome:"<outcome>"`.

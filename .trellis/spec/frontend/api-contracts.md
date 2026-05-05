@@ -33,3 +33,12 @@ const request: SubmitSeckillRequest = {
   requestId: crypto.randomUUID(),
 }
 ```
+
+## Public Environment Configuration
+
+- `VITE_API_BASE_URL`: optional gateway origin prefix; empty means same origin.
+- `VITE_DEFAULT_SHOP_ID`: optional dashboard default `shopId`.
+- `VITE_KIBANA_DISCOVER_URL`: optional absolute Kibana Discover URL for compensation ops audit search links.
+- `VITE_LOKI_EXPLORE_URL`: optional absolute Grafana/Loki Explore URL for compensation ops audit search links.
+- Observability URLs are public client configuration and must not contain credentials, API keys, or secrets.
+- Missing or invalid observability URLs must degrade to copy-only query templates.
