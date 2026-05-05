@@ -1131,3 +1131,52 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: Compensation Ops Audit Search Workflow
+
+**Date**: 2026-05-05
+**Task**: Compensation Ops Audit Search Workflow
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Audit Search Contract | Added `docs/compensation-ops-audit-search.md` with canonical `Ops audit event.` fields, supported action values, Kibana KQL/Lucene templates, Loki LogQL templates, common searches, and Good/Base/Bad cases. |
+| Backend Spec Sync | Updated `.trellis/spec/backend/logging-guidelines.md` so audit-search fields, query templates, and dashboard trace-jump behavior are part of the executable logging contract. |
+| Dashboard Audit Entry | Added an ops dashboard audit search panel with filters for `shopId`, `traceId`, `operator`, `action`, and `outcome`, generating copyable Kibana KQL, Kibana Lucene, and Loki LogQL queries. |
+| Replay Traceability | Wired manual/bulk replay and payment reconcile feedback to a `View audit trail` flow that fills audit filters from response/error `traceId`, replay operator, mapped audit action, and outcome without rerunning compensation operations. |
+| Frontend State/Test Coverage | Extended dashboard model state persistence, URL params, audit query generation, replay-action mapping, and model tests. |
+
+**Verification**:
+- AI verified `cmd /c npm run typecheck` and `cmd /c npm run build` passed in `frontend/`.
+- AI could not run Vitest in sandbox because Vite/esbuild spawn failed with `EPERM`; elevation request was blocked by unavailable approval review.
+- Human verified `cd frontend; cmd /c npm run typecheck; cmd /c npm run build` passed on May 5, 2026.
+- No Java source changed; backend change was spec/docs only, so no Maven test was required for this implementation pass.
+
+**Status**:
+- Task `05-05-compensation-ops-audit-search-export` archived after commit `b279d63 feat(compensation): add ops audit search workflow`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b279d63` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
