@@ -1,8 +1,9 @@
 package com.sangui.shop.payment.api;
 
 import com.sangui.shop.common.core.api.ApiResult;
-import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
+import com.sangui.shop.common.web.OpsAuditLogger;
 import com.sangui.shop.payment.api.dto.BulkPaymentReconcileRequest;
 import com.sangui.shop.payment.api.dto.BulkPaymentReconcileResponse;
 import com.sangui.shop.payment.api.dto.ManualPaymentReconcileRequest;
@@ -35,7 +36,7 @@ public class InternalPaymentCompensationController {
             SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
-        String traceId = traceId(httpRequest);
+        String traceId = OpsAuditLogger.traceId(httpRequest);
         PaymentCompensationQueryResponse response = paymentCompensationOpsService.queryRecords(principal, request);
         return ApiResult.ok("PAYMENT_COMPENSATION_RECORDS_FETCHED", response, traceId);
     }
@@ -46,9 +47,30 @@ public class InternalPaymentCompensationController {
             SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
-        String traceId = traceId(httpRequest);
-        ManualPaymentReconcileResponse response = paymentCompensationOpsService.manualReconcile(principal, request, traceId);
-        return ApiResult.ok("PAYMENT_RECONCILED_MANUALLY", response, traceId);
+        String traceId = OpsAuditLogger.traceId(httpRequest);
+        try {
+            ManualPaymentReconcileResponse response = paymentCompensationOpsService.manualReconcile(principal, request, traceId);
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.payment.reconcile.manual")
+                    .outcome("success")
+                    .result(response.result())
+                    .operator(request.operator())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .targetType("payment")
+                    .targetId(request.paymentNo())
+                    .build());
+            return ApiResult.ok("PAYMENT_RECONCILED_MANUALLY", response, traceId);
+        } catch (RuntimeException exception) {
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.payment.reconcile.manual")
+                    .outcome(OpsAuditLogger.outcome(exception))
+                    .operator(request.operator())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .targetType("payment")
+                    .targetId(request.paymentNo())
+                    .errorCode(OpsAuditLogger.errorCode(exception))
+                    .reason(OpsAuditLogger.reason(exception))
+                    .build());
+            throw exception;
+        }
     }
 
     @PostMapping("/reconciliations/bulk")
@@ -57,16 +79,31 @@ public class InternalPaymentCompensationController {
             SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
-        String traceId = traceId(httpRequest);
-        BulkPaymentReconcileResponse response = paymentCompensationOpsService.bulkReconcile(principal, request, traceId);
-        return ApiResult.ok("PAYMENT_RECONCILED_IN_BULK", response, traceId);
-    }
-
-    private String traceId(HttpServletRequest request) {
-        Object attribute = request.getAttribute(TraceConstants.TRACE_ID);
-        if (attribute instanceof String value && !value.isBlank()) {
-            return value;
+        String traceId = OpsAuditLogger.traceId(httpRequest);
+        try {
+            BulkPaymentReconcileResponse response = paymentCompensationOpsService.bulkReconcile(principal, request, traceId);
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.payment.reconcile.bulk")
+                    .outcome("success")
+                    .result(Boolean.TRUE.equals(request.dryRun()) ? "dry-run" : "completed")
+                    .operator(request.operator())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .targetType("payment")
+                    .targetCount(response.matchedCount())
+                    .dryRun(request.dryRun())
+                    .build());
+            return ApiResult.ok("PAYMENT_RECONCILED_IN_BULK", response, traceId);
+        } catch (RuntimeException exception) {
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.payment.reconcile.bulk")
+                    .outcome(OpsAuditLogger.outcome(exception))
+                    .operator(request.operator())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .targetType("payment")
+                    .targetCount(request.paymentNos() == null ? null : request.paymentNos().size())
+                    .dryRun(request.dryRun())
+                    .errorCode(OpsAuditLogger.errorCode(exception))
+                    .reason(OpsAuditLogger.reason(exception))
+                    .build());
+            throw exception;
         }
-        return request.getHeader(TraceConstants.TRACE_ID_HEADER);
     }
 }

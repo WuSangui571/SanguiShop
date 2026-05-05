@@ -1,16 +1,23 @@
 package com.sangui.shop.payment.api;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sangui.shop.common.core.error.CommonErrorCode;
+import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
+import com.sangui.shop.common.web.OpsAuditLogger;
 import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.payment.api.dto.ManualPaymentReconcileResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationAggregateResponse;
@@ -18,10 +25,12 @@ import com.sangui.shop.payment.api.dto.PaymentCompensationAttemptResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationQueryResponse;
 import com.sangui.shop.payment.api.dto.PaymentCompensationRecordResponse;
 import com.sangui.shop.payment.application.PaymentCompensationOpsService;
+import org.junit.jupiter.api.BeforeEach;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -53,6 +62,15 @@ class InternalPaymentCompensationControllerTest {
 
     @MockBean
     private PaymentCompensationOpsService paymentCompensationOpsService;
+    private ListAppender<ILoggingEvent> auditAppender;
+
+    @BeforeEach
+    void attachAuditAppender() {
+        Logger auditLogger = (Logger) LoggerFactory.getLogger(OpsAuditLogger.class);
+        auditAppender = new ListAppender<>();
+        auditAppender.start();
+        auditLogger.addAppender(auditAppender);
+    }
 
     @Test
     void queryRecordsReturnsStableEnvelope() throws Exception {
@@ -163,6 +181,12 @@ class InternalPaymentCompensationControllerTest {
                 .andExpect(jsonPath("$.code").value("PAYMENT_RECONCILED_MANUALLY"))
                 .andExpect(jsonPath("$.data.result").value("settled"))
                 .andExpect(jsonPath("$.data.payment.lastCompensationTrigger").value("manual"));
+
+        assertThat(auditMessages())
+                .contains("action=ops.payment.reconcile.manual")
+                .contains("outcome=success")
+                .contains("result=settled")
+                .contains("targetId=PAY-001");
     }
 
     @Test
@@ -218,6 +242,13 @@ class InternalPaymentCompensationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("PAYMENT_RECONCILED_IN_BULK"))
                 .andExpect(jsonPath("$.data.items[0].result").value("skipped"));
+
+        assertThat(auditMessages())
+                .contains("action=ops.payment.reconcile.bulk")
+                .contains("outcome=success")
+                .contains("result=dry-run")
+                .contains("targetCount=1")
+                .contains("dryRun=true");
     }
 
     @Test
@@ -249,6 +280,35 @@ class InternalPaymentCompensationControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_TOKEN_MISSING"))
                 .andExpect(jsonPath("$.traceId").value("trace-payment-auth-missing"));
+    }
+
+    @Test
+    void queryForbiddenLogsAuditEvent() throws Exception {
+        when(paymentCompensationOpsService.queryRecords(any(), any()))
+                .thenThrow(new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403));
+
+        mockMvc.perform(post("/internal/payments/compensation-records/query")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-payment-forbidden")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "pageNo", 1,
+                                "pageSize", 20
+                        ))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"));
+
+        assertThat(auditMessages())
+                .contains("action=ops.payment.compensation.query")
+                .contains("outcome=denied")
+                .contains("errorCode=AUTH_FORBIDDEN");
+    }
+
+    private String auditMessages() {
+        return auditAppender.list.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .reduce("", (left, right) -> left + "\n" + right);
     }
 
     @TestConfiguration

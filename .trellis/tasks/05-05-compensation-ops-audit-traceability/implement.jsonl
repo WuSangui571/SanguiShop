@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Structured logging and audit field requirements"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "403/401 mapping and traceId behavior"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Cross-service audit contract consistency"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer traceability and failure visibility checklist"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Ops auth, protected routes, 403 audit expectations, and compensation ops security rules"}

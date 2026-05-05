@@ -3,17 +3,22 @@ package com.sangui.shop.user.api;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
+import com.sangui.shop.common.web.OpsAuditLogger;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.user.api.dto.OpsSessionResponse;
@@ -22,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -39,6 +45,7 @@ class OpsAuthControllerTest {
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private OpsAuthService opsAuthService;
+    private ListAppender<ILoggingEvent> auditAppender;
 
     @BeforeEach
     void setUp() {
@@ -48,6 +55,10 @@ class OpsAuthControllerTest {
                 .setControllerAdvice(new GlobalApiExceptionHandler())
                 .setCustomArgumentResolvers(new SanguiPrincipalArgumentResolver())
                 .build();
+        Logger auditLogger = (Logger) LoggerFactory.getLogger(OpsAuditLogger.class);
+        auditAppender = new ListAppender<>();
+        auditAppender.start();
+        auditLogger.addAppender(auditAppender);
     }
 
     @Test
@@ -78,6 +89,13 @@ class OpsAuthControllerTest {
                 .andExpect(jsonPath("$.traceId").value("trace-ops-login"))
                 .andExpect(jsonPath("$.data.username").value("ops-admin"))
                 .andExpect(jsonPath("$.data.permissions[0]").value(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN));
+
+        assertThat(auditMessages())
+                .contains("action=ops.auth.login")
+                .contains("outcome=success")
+                .contains("result=issued")
+                .contains("userIdentifier=ops-admin")
+                .contains("permission=OPS_COMPENSATION_ADMIN");
     }
 
     @Test
@@ -96,6 +114,12 @@ class OpsAuthControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("AUTH_FORBIDDEN"))
                 .andExpect(jsonPath("$.traceId").value("trace-ops-forbidden"));
+
+        assertThat(auditMessages())
+                .contains("action=ops.auth.login")
+                .contains("outcome=denied")
+                .contains("errorCode=AUTH_FORBIDDEN")
+                .contains("userIdentifier=alice");
     }
 
     @Test
@@ -119,6 +143,12 @@ class OpsAuthControllerTest {
                 .andExpect(jsonPath("$.code").value("OPS_SESSION_REFRESHED"))
                 .andExpect(jsonPath("$.traceId").value("trace-ops-refresh"))
                 .andExpect(jsonPath("$.data.accessToken").value("jwt-admin-token-2"));
+
+        assertThat(auditMessages())
+                .contains("action=ops.auth.refresh")
+                .contains("outcome=success")
+                .contains("result=issued")
+                .contains("jwtId=jwt-ops-1");
     }
 
     @Test
@@ -128,5 +158,16 @@ class OpsAuthControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_TOKEN_MISSING"))
                 .andExpect(jsonPath("$.traceId").value("trace-ops-missing"));
+
+        assertThat(auditMessages())
+                .contains("action=ops.auth.refresh")
+                .contains("outcome=failed")
+                .contains("errorCode=AUTH_TOKEN_MISSING");
+    }
+
+    private String auditMessages() {
+        return auditAppender.list.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .reduce("", (left, right) -> left + "\n" + right);
     }
 }

@@ -1,8 +1,9 @@
 package com.sangui.shop.user.api;
 
 import com.sangui.shop.common.core.api.ApiResult;
-import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
+import com.sangui.shop.common.web.OpsAuditLogger;
 import com.sangui.shop.user.api.dto.LoginUserRequest;
 import com.sangui.shop.user.api.dto.OpsSessionResponse;
 import com.sangui.shop.user.application.OpsAuthService;
@@ -28,8 +29,30 @@ public class OpsAuthController {
             @Valid @RequestBody LoginUserRequest request,
             HttpServletRequest httpRequest
     ) {
-        OpsSessionResponse response = opsAuthService.login(request);
-        return ApiResult.ok("OPS_USER_LOGGED_IN", response, traceId(httpRequest));
+        try {
+            OpsSessionResponse response = opsAuthService.login(request);
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.auth.login")
+                    .outcome("success")
+                    .result("issued")
+                    .shopId(request.shopId())
+                    .userId(String.valueOf(response.userId()))
+                    .username(response.username())
+                    .userIdentifier(request.usernameOrMobile())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .build());
+            return ApiResult.ok("OPS_USER_LOGGED_IN", response, OpsAuditLogger.traceId(httpRequest));
+        } catch (RuntimeException exception) {
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.auth.login")
+                    .outcome(OpsAuditLogger.outcome(exception))
+                    .result("rejected")
+                    .shopId(request.shopId())
+                    .userIdentifier(request.usernameOrMobile())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .errorCode(OpsAuditLogger.errorCode(exception))
+                    .reason(OpsAuditLogger.reason(exception))
+                    .build());
+            throw exception;
+        }
     }
 
     @PostMapping("/session/refresh")
@@ -37,15 +60,24 @@ public class OpsAuthController {
             SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
-        OpsSessionResponse response = opsAuthService.refresh(principal);
-        return ApiResult.ok("OPS_SESSION_REFRESHED", response, traceId(httpRequest));
-    }
-
-    private String traceId(HttpServletRequest request) {
-        Object attribute = request.getAttribute(TraceConstants.TRACE_ID);
-        if (attribute instanceof String value && !value.isBlank()) {
-            return value;
+        try {
+            OpsSessionResponse response = opsAuthService.refresh(principal);
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.auth.refresh")
+                    .outcome("success")
+                    .result("issued")
+                    .username(response.username())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .build());
+            return ApiResult.ok("OPS_SESSION_REFRESHED", response, OpsAuditLogger.traceId(httpRequest));
+        } catch (RuntimeException exception) {
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.auth.refresh")
+                    .outcome(OpsAuditLogger.outcome(exception))
+                    .result("rejected")
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .errorCode(OpsAuditLogger.errorCode(exception))
+                    .reason(OpsAuditLogger.reason(exception))
+                    .build());
+            throw exception;
         }
-        return request.getHeader(TraceConstants.TRACE_ID_HEADER);
     }
 }

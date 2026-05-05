@@ -1,8 +1,9 @@
 package com.sangui.shop.order.api;
 
 import com.sangui.shop.common.core.api.ApiResult;
-import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
+import com.sangui.shop.common.web.OpsAuditLogger;
 import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayRequest;
 import com.sangui.shop.order.api.dto.BulkOrderTimeoutReplayResponse;
 import com.sangui.shop.order.api.dto.ManualOrderTimeoutReplayRequest;
@@ -35,7 +36,7 @@ public class InternalOrderCompensationController {
             SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
-        String traceId = traceId(httpRequest);
+        String traceId = OpsAuditLogger.traceId(httpRequest);
         OrderCompensationQueryResponse response = orderCompensationOpsService.queryRecords(principal, request);
         return ApiResult.ok("ORDER_COMPENSATION_RECORDS_FETCHED", response, traceId);
     }
@@ -46,9 +47,30 @@ public class InternalOrderCompensationController {
             SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
-        String traceId = traceId(httpRequest);
-        ManualOrderTimeoutReplayResponse response = orderCompensationOpsService.manualReplay(principal, request, traceId);
-        return ApiResult.ok("ORDER_TIMEOUT_REPLAYED_MANUALLY", response, traceId);
+        String traceId = OpsAuditLogger.traceId(httpRequest);
+        try {
+            ManualOrderTimeoutReplayResponse response = orderCompensationOpsService.manualReplay(principal, request, traceId);
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.order.timeout-replay.manual")
+                    .outcome("success")
+                    .result(response.result())
+                    .operator(request.operator())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .targetType("order")
+                    .targetId(String.valueOf(request.orderId()))
+                    .build());
+            return ApiResult.ok("ORDER_TIMEOUT_REPLAYED_MANUALLY", response, traceId);
+        } catch (RuntimeException exception) {
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.order.timeout-replay.manual")
+                    .outcome(OpsAuditLogger.outcome(exception))
+                    .operator(request.operator())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .targetType("order")
+                    .targetId(String.valueOf(request.orderId()))
+                    .errorCode(OpsAuditLogger.errorCode(exception))
+                    .reason(OpsAuditLogger.reason(exception))
+                    .build());
+            throw exception;
+        }
     }
 
     @PostMapping("/timeout-replays/bulk")
@@ -57,16 +79,31 @@ public class InternalOrderCompensationController {
             SanguiPrincipal principal,
             HttpServletRequest httpRequest
     ) {
-        String traceId = traceId(httpRequest);
-        BulkOrderTimeoutReplayResponse response = orderCompensationOpsService.bulkReplay(principal, request, traceId);
-        return ApiResult.ok("ORDER_TIMEOUT_REPLAYED_IN_BULK", response, traceId);
-    }
-
-    private String traceId(HttpServletRequest request) {
-        Object attribute = request.getAttribute(TraceConstants.TRACE_ID);
-        if (attribute instanceof String value && !value.isBlank()) {
-            return value;
+        String traceId = OpsAuditLogger.traceId(httpRequest);
+        try {
+            BulkOrderTimeoutReplayResponse response = orderCompensationOpsService.bulkReplay(principal, request, traceId);
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.order.timeout-replay.bulk")
+                    .outcome("success")
+                    .result(Boolean.TRUE.equals(request.dryRun()) ? "dry-run" : "completed")
+                    .operator(request.operator())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .targetType("order")
+                    .targetCount(response.matchedCount())
+                    .dryRun(request.dryRun())
+                    .build());
+            return ApiResult.ok("ORDER_TIMEOUT_REPLAYED_IN_BULK", response, traceId);
+        } catch (RuntimeException exception) {
+            OpsAuditLogger.log(httpRequest, OpsAuditLogger.event(httpRequest, "ops.order.timeout-replay.bulk")
+                    .outcome(OpsAuditLogger.outcome(exception))
+                    .operator(request.operator())
+                    .permission(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                    .targetType("order")
+                    .targetCount(request.orderIds() == null ? null : request.orderIds().size())
+                    .dryRun(request.dryRun())
+                    .errorCode(OpsAuditLogger.errorCode(exception))
+                    .reason(OpsAuditLogger.reason(exception))
+                    .build());
+            throw exception;
         }
-        return request.getHeader(TraceConstants.TRACE_ID_HEADER);
     }
 }

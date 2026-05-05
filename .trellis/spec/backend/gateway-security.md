@@ -73,6 +73,9 @@ Rules:
 - Browser CORS preflight (`OPTIONS` with `Origin` and `Access-Control-Request-Method`) must pass without JWT rejection.
 - Gateway may stay coarse-grained; downstream services own RBAC and must reject principals missing `OPS_COMPENSATION_ADMIN` with `AUTH_FORBIDDEN`.
 - Downstream services must also reject trusted principal `shopId` mismatches with `AUTH_FORBIDDEN`.
+- These routes must emit a unified `Ops audit event.` line for login success/failure, refresh success/failure, manual replay / reconcile success/failure, bulk replay / reconcile success/failure, and any `403` denial on ops auth or protected compensation endpoints, including query endpoints.
+- Audit events must include `traceId`, `path`, `shopId`, `userId`, `permission=OPS_COMPENSATION_ADMIN`, outcome, and sanitized error context; login failures must additionally log `userIdentifier` and `ip`.
+- Controller-layer failures that are already audited must not be duplicated by the global exception handler; use a request marker or equivalent guard.
 
 - [ ] 新 API 已归类 public/protected/admin/internal。
 - [ ] 有网关限流规则和服务内兜底保护。
