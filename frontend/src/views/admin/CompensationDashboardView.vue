@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { useCompensationDashboard } from '../../composables/useCompensationDashboard'
 import type { DashboardItem } from './compensationDashboardModel'
 import {
+  auditActionOptions,
+  auditOutcomeOptions,
   getAggregateKey,
   getLastTraceId,
   pageSizeOptions,
@@ -16,12 +18,15 @@ const {
   activeView,
   filters,
   replayControls,
+  auditFilters,
+  auditQueryTemplates,
   isLoading,
   response,
   lastMeta,
   error,
   errorDescription,
   actionError,
+  actionErrorAuditFilters,
   actionErrorDescription,
   lastAction,
   isBulkRunning,
@@ -42,6 +47,9 @@ const {
   isManualReplayPending,
   copyTraceId,
   isTraceCopied,
+  copyAuditQuery,
+  copiedAuditQueryKey,
+  applyAuditTrail,
   exportCurrentPage,
 } = useCompensationDashboard()
 
@@ -102,6 +110,14 @@ function handleCopyTrace(item: DashboardItem) {
 
 function handleExport() {
   exportCurrentPage()
+}
+
+function handleCopyAuditQuery(kind: 'kibanaKql' | 'kibanaLucene' | 'lokiLogql') {
+  void copyAuditQuery(kind)
+}
+
+function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0]) {
+  applyAuditTrail(nextFilters)
 }
 </script>
 
@@ -234,6 +250,78 @@ function handleExport() {
       </div>
     </section>
 
+    <section class="panel audit-panel" aria-labelledby="audit-search-heading">
+      <div class="panel-head compact-head">
+        <div>
+          <p class="kicker">Log search</p>
+          <h2 id="audit-search-heading">Ops audit search templates</h2>
+          <p class="meta">
+            These filters target structured `Ops audit event.` logs in Kibana or Loki. They do not query
+            compensation history tables.
+          </p>
+        </div>
+      </div>
+      <div class="audit-grid">
+        <label>
+          <span>Audit shop ID</span>
+          <input v-model="auditFilters.shopId" type="number" min="1" inputmode="numeric" placeholder="1" />
+        </label>
+        <label>
+          <span>Audit trace ID</span>
+          <input v-model="auditFilters.traceId" placeholder="trace-payment-manual" />
+        </label>
+        <label>
+          <span>Audit operator</span>
+          <input v-model="auditFilters.operator" placeholder="ops-user" />
+        </label>
+        <label>
+          <span>Audit action</span>
+          <select v-model="auditFilters.action">
+            <option v-for="option in auditActionOptions" :key="option.label" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label>
+          <span>Audit outcome</span>
+          <select v-model="auditFilters.outcome">
+            <option v-for="option in auditOutcomeOptions" :key="option.label" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+      </div>
+      <div class="audit-template-grid">
+        <article class="audit-template-card">
+          <div class="template-head">
+            <h3>Kibana KQL</h3>
+            <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('kibanaKql')">
+              {{ copiedAuditQueryKey === 'kibanaKql' ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <textarea readonly :value="auditQueryTemplates.kibanaKql" />
+        </article>
+        <article class="audit-template-card">
+          <div class="template-head">
+            <h3>Kibana Lucene</h3>
+            <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('kibanaLucene')">
+              {{ copiedAuditQueryKey === 'kibanaLucene' ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <textarea readonly :value="auditQueryTemplates.kibanaLucene" />
+        </article>
+        <article class="audit-template-card">
+          <div class="template-head">
+            <h3>Loki LogQL</h3>
+            <button type="button" class="secondary mini-button" @click="handleCopyAuditQuery('lokiLogql')">
+              {{ copiedAuditQueryKey === 'lokiLogql' ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <textarea readonly :value="auditQueryTemplates.lokiLogql" />
+        </article>
+      </div>
+    </section>
+
     <section class="summary-grid">
       <SummaryCard
         v-for="card in summaryCards"
@@ -286,6 +374,14 @@ function handleExport() {
           </template>
         </span>
         <span v-for="detail in lastAction.details" :key="detail">{{ detail }}</span>
+        <button
+          v-if="lastAction.auditFilters"
+          type="button"
+          class="secondary inline-action"
+          @click="handleApplyAuditTrail(lastAction.auditFilters)"
+        >
+          View audit trail
+        </button>
       </div>
 
       <div v-if="actionError" class="message error">
@@ -296,6 +392,14 @@ function handleExport() {
             | trace {{ actionError.traceId }}
           </template>
         </span>
+        <button
+          v-if="actionErrorAuditFilters"
+          type="button"
+          class="secondary inline-action"
+          @click="handleApplyAuditTrail(actionErrorAuditFilters)"
+        >
+          View audit trail
+        </button>
       </div>
 
       <div v-if="error" class="message error">
@@ -417,6 +521,13 @@ h1 {
   margin-bottom: 1.25rem;
 }
 
+.audit-panel {
+  margin-bottom: 1.25rem;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(29, 78, 216, 0.07)),
+    var(--bg-panel);
+}
+
 .filters-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -438,11 +549,16 @@ label span {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
-  min-height: 2.8rem;
   border-radius: 0.85rem;
   border: 1px solid rgba(20, 32, 50, 0.12);
+}
+
+input,
+select {
+  min-height: 2.8rem;
   background: rgba(255, 255, 255, 0.95);
   padding: 0.7rem 0.85rem;
   color: #142032;
@@ -473,6 +589,18 @@ select {
   background: rgba(20, 32, 50, 0.04);
   color: #20324d;
   border-color: rgba(20, 32, 50, 0.08);
+}
+
+.mini-button {
+  min-height: 2.25rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.inline-action {
+  justify-self: start;
+  min-height: 2.35rem;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.8rem;
 }
 
 .primary:disabled,
@@ -522,6 +650,49 @@ h2 {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.9rem;
   align-items: end;
+}
+
+.audit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.audit-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.9rem;
+}
+
+.audit-template-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(20, 32, 50, 0.08);
+}
+
+.template-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.template-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+textarea {
+  min-height: 7rem;
+  resize: vertical;
+  background: rgba(15, 23, 42, 0.94);
+  color: #d8f7ee;
+  padding: 0.8rem;
+  font: 0.82rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .replay-actions {

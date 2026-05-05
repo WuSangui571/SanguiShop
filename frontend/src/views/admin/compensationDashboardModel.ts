@@ -37,10 +37,19 @@ export interface ReplayControls {
   bulkLimit: number
 }
 
+export interface AuditFilters {
+  shopId: string
+  traceId: string
+  operator: string
+  action: string
+  outcome: string
+}
+
 export interface DashboardStateSnapshot {
   view: CompensationView
   filters: DashboardFilters
   replayControls: ReplayControls
+  auditFilters: AuditFilters
 }
 
 export interface SummaryCardModel {
@@ -63,6 +72,12 @@ export interface ExportRow {
   totalAttemptCount: string
 }
 
+export interface AuditQueryTemplates {
+  kibanaKql: string
+  kibanaLucene: string
+  lokiLogql: string
+}
+
 export type DashboardResponse = OrderCompensationQueryResponse | PaymentCompensationQueryResponse
 export type DashboardItem = OrderCompensationAggregateResponse | PaymentCompensationAggregateResponse
 
@@ -70,6 +85,7 @@ interface DashboardStatePatch {
   view?: CompensationView
   filters?: Partial<DashboardFilters>
   replayControls?: Partial<ReplayControls>
+  auditFilters?: Partial<AuditFilters>
 }
 
 const DEFAULT_PAGE_NO = 1
@@ -92,6 +108,25 @@ export const resultOptions = [
 ] as const
 
 export const pageSizeOptions = [10, 20, 50, 100] as const
+
+export const auditActionOptions = [
+  { label: 'All audit actions', value: '' },
+  { label: 'Ops login', value: 'ops.auth.login' },
+  { label: 'Ops refresh', value: 'ops.auth.refresh' },
+  { label: 'Order query', value: 'ops.order.compensation.query' },
+  { label: 'Order manual replay', value: 'ops.order.timeout-replay.manual' },
+  { label: 'Order bulk replay', value: 'ops.order.timeout-replay.bulk' },
+  { label: 'Payment query', value: 'ops.payment.compensation.query' },
+  { label: 'Payment manual reconcile', value: 'ops.payment.reconcile.manual' },
+  { label: 'Payment bulk reconcile', value: 'ops.payment.reconcile.bulk' },
+] as const
+
+export const auditOutcomeOptions = [
+  { label: 'All outcomes', value: '' },
+  { label: 'Success', value: 'success' },
+  { label: 'Failed', value: 'failed' },
+  { label: 'Denied', value: 'denied' },
+] as const
 
 export function createDefaultFilters(now: Date = new Date()): DashboardFilters {
   return {
@@ -117,11 +152,22 @@ export function createDefaultReplayControls(): ReplayControls {
   }
 }
 
+export function createDefaultAuditFilters(): AuditFilters {
+  return {
+    shopId: String(import.meta.env.VITE_DEFAULT_SHOP_ID ?? '1'),
+    traceId: '',
+    operator: '',
+    action: '',
+    outcome: '',
+  }
+}
+
 export function createDefaultDashboardState(now: Date = new Date()): DashboardStateSnapshot {
   return {
     view: 'payment',
     filters: createDefaultFilters(now),
     replayControls: createDefaultReplayControls(),
+    auditFilters: createDefaultAuditFilters(),
   }
 }
 
@@ -346,6 +392,11 @@ export function buildDashboardSearchParams(state: DashboardStateSnapshot): URLSe
   setIfPresent(params, 'replayOperator', state.replayControls.operator)
   params.set('dryRun', String(state.replayControls.dryRun))
   params.set('bulkLimit', String(state.replayControls.bulkLimit))
+  setIfPresent(params, 'auditShopId', state.auditFilters.shopId)
+  setIfPresent(params, 'auditTraceId', state.auditFilters.traceId)
+  setIfPresent(params, 'auditOperator', state.auditFilters.operator)
+  setIfPresent(params, 'auditAction', state.auditFilters.action)
+  setIfPresent(params, 'auditOutcome', state.auditFilters.outcome)
   return params
 }
 
@@ -375,7 +426,9 @@ export function deserializeDashboardState(serialized: string | null, now: Date =
 
 export function readDashboardStateFromSearch(search: string, now: Date = new Date()): DashboardStateSnapshot | null {
   const params = new URLSearchParams(search)
-  if (!params.has('view') && !params.has('shopId') && !params.has('replayOperator')) {
+  const hasAuditParams = ['auditShopId', 'auditTraceId', 'auditOperator', 'auditAction', 'auditOutcome']
+    .some((key) => params.has(key))
+  if (!params.has('view') && !params.has('shopId') && !params.has('replayOperator') && !hasAuditParams) {
     return null
   }
 
@@ -399,9 +452,66 @@ export function readDashboardStateFromSearch(search: string, now: Date = new Dat
       dryRun: parseBoolean(params.get('dryRun')),
       bulkLimit: parsePositiveInt(params.get('bulkLimit')),
     },
+    auditFilters: {
+      shopId: params.get('auditShopId') ?? undefined,
+      traceId: params.get('auditTraceId') ?? undefined,
+      operator: params.get('auditOperator') ?? undefined,
+      action: params.get('auditAction') ?? undefined,
+      outcome: params.get('auditOutcome') ?? undefined,
+    },
   }
 
   return mergeDashboardState(createDefaultDashboardState(now), patch)
+}
+
+export function buildAuditQueryTemplates(filters: AuditFilters): AuditQueryTemplates {
+  const normalizedFilters = normalizeAuditFilters(filters)
+  const structuredPairs = Object.entries(normalizedFilters)
+    .filter((entry): entry is [string, string] => Boolean(entry[1]))
+
+  const kqlClauses = [
+    'message : "Ops audit event."',
+    ...structuredPairs.map(([field, value]) => `${field} : "${escapeKql(value)}"`),
+  ]
+  const luceneClauses = [
+    'message:"Ops audit event."',
+    ...structuredPairs.map(([field, value]) => `${field}:"${escapeLucene(value)}"`),
+  ]
+  const lokiClauses = [
+    '{app=~"sangui-.*"} |= "Ops audit event."',
+    ...structuredPairs.map(([field, value]) => `|= "${field}=${escapeLoki(value)}"`),
+  ]
+
+  return {
+    kibanaKql: kqlClauses.join(' and '),
+    kibanaLucene: luceneClauses.join(' AND '),
+    lokiLogql: lokiClauses.join(' '),
+  }
+}
+
+export function buildReplayAuditFilters(
+  view: CompensationView,
+  mode: 'manual' | 'bulk',
+  traceId: string | null,
+  operator: string,
+  outcome: string,
+  shopId: string,
+): AuditFilters {
+  return {
+    shopId,
+    traceId: traceId ?? '',
+    operator: operator.trim(),
+    action: getReplayAuditAction(view, mode),
+    outcome,
+  }
+}
+
+export function getReplayAuditAction(view: CompensationView, mode: 'manual' | 'bulk'): string {
+  if (view === 'order') {
+    return mode === 'manual' ? 'ops.order.timeout-replay.manual' : 'ops.order.timeout-replay.bulk'
+  }
+
+  return mode === 'manual' ? 'ops.payment.reconcile.manual' : 'ops.payment.reconcile.bulk'
 }
 
 export function buildExportRows(view: CompensationView, items: DashboardItem[]): ExportRow[] {
@@ -470,6 +580,13 @@ function mergeDashboardState(
       bulkLimit: parsePositiveInt((partialReplayControls.bulkLimit ?? defaults.replayControls.bulkLimit).toString())
         ?? defaults.replayControls.bulkLimit,
     },
+    auditFilters: {
+      shopId: partial.auditFilters?.shopId ?? defaults.auditFilters.shopId,
+      traceId: partial.auditFilters?.traceId ?? defaults.auditFilters.traceId,
+      operator: partial.auditFilters?.operator ?? defaults.auditFilters.operator,
+      action: normalizeAuditAction(partial.auditFilters?.action) ?? defaults.auditFilters.action,
+      outcome: normalizeAuditOutcome(partial.auditFilters?.outcome) ?? defaults.auditFilters.outcome,
+    },
   }
 }
 
@@ -518,6 +635,46 @@ function parseBoolean(value: string | null): boolean | undefined {
   }
 
   return undefined
+}
+
+function normalizeAuditFilters(filters: AuditFilters): Record<string, string> {
+  return {
+    shopId: normalizeOptional(filters.shopId) ?? '',
+    traceId: normalizeOptional(filters.traceId) ?? '',
+    operator: normalizeOptional(filters.operator) ?? '',
+    action: normalizeAuditAction(filters.action) ?? '',
+    outcome: normalizeAuditOutcome(filters.outcome) ?? '',
+  }
+}
+
+function normalizeAuditAction(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+  return auditActionOptions.some((option) => option.value === trimmed) ? trimmed : undefined
+}
+
+function normalizeAuditOutcome(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+  return auditOutcomeOptions.some((option) => option.value === trimmed) ? trimmed : undefined
+}
+
+function escapeKql(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function escapeLucene(value: string): string {
+  return value.replace(/([+\-!(){}[\]^"~*?:\\/])/g, '\\$1')
+}
+
+function escapeLoki(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
 function toIsoDateTime(value: string): string | undefined {

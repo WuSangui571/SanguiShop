@@ -16,10 +16,12 @@ import type {
   PaymentCompensationQueryResponse,
 } from '../types/api/compensation'
 import {
+  buildAuditQueryTemplates,
   buildDashboardSearchParams,
   buildExportRows,
   buildOrderBulkReplayRequest,
   buildOrderManualReplayRequest,
+  buildReplayAuditFilters,
   buildOrderQuery,
   buildPaymentBulkReplayRequest,
   buildPaymentManualReplayRequest,
@@ -34,6 +36,8 @@ import {
   readDashboardStateFromSearch,
   serializeDashboardState,
   summarizeBulkReplay,
+  type AuditFilters,
+  type AuditQueryTemplates,
   type CompensationView,
   type DashboardItem,
 } from '../views/admin/compensationDashboardModel'
@@ -47,6 +51,7 @@ interface ActionFeedback {
   summary: string
   details: string[]
   tone: 'success' | 'warning' | 'danger'
+  auditFilters: AuditFilters | null
 }
 
 const STORAGE_KEY = 'sangui.compensation.dashboard.state'
@@ -57,21 +62,26 @@ export function useCompensationDashboard() {
   const activeView = ref<CompensationView>(defaults.view)
   const filters = reactive(defaults.filters)
   const replayControls = reactive(defaults.replayControls)
+  const auditFilters = reactive(defaults.auditFilters)
   const isLoading = ref(false)
   const response = ref<DashboardResponse | null>(null)
   const lastMeta = ref<ApiResponseMeta | null>(null)
   const error = ref<HttpClientError | null>(null)
   const actionError = ref<HttpClientError | null>(null)
+  const actionErrorAuditFilters = ref<AuditFilters | null>(null)
   const lastAction = ref<ActionFeedback | null>(null)
   const isBulkRunning = ref(false)
   const pendingManualKey = ref<string | null>(null)
   const copiedTraceKey = ref<string | null>(null)
+  const copiedAuditQueryKey = ref<string | null>(null)
   const isReady = ref(false)
 
   let copiedTraceTimer: number | null = null
+  let copiedAuditQueryTimer: number | null = null
 
   const items = computed(() => response.value?.items ?? [])
   const summaryCards = computed(() => deriveSummaryCards(activeView.value, response.value))
+  const auditQueryTemplates = computed(() => buildAuditQueryTemplates(auditFilters))
   const canGoPrev = computed(() => (response.value?.pageNo ?? 1) > 1)
   const canGoNext = computed(() => {
     if (!response.value) {
@@ -178,10 +188,13 @@ export function useCompensationDashboard() {
 
     pendingManualKey.value = actionKey
     actionError.value = null
+    actionErrorAuditFilters.value = null
     lastAction.value = null
+    const currentView = activeView.value
+    const operator = replayControls.operator.trim()
 
     try {
-      if (activeView.value === 'order') {
+      if (currentView === 'order') {
         const result = await replayOrderTimeoutManually(buildOrderManualReplayRequest(
           filters,
           item as OrderCompensationAggregateResponse,
@@ -191,13 +204,14 @@ export function useCompensationDashboard() {
           title: `Order replay ${humanize(result.data.result)}`,
           code: result.meta.code,
           traceId: result.meta.traceId || null,
-          summary: `${getDashboardItemLabel(activeView.value, item)} replay result ${humanize(result.data.result)}.`,
+          summary: `${getDashboardItemLabel(currentView, item)} replay result ${humanize(result.data.result)}.`,
           details: compact([
-            `Operator ${replayControls.operator.trim()}`,
+            `Operator ${operator}`,
             result.data.errorCode ? `Error ${result.data.errorCode}` : null,
             result.data.reason ?? null,
           ]),
           tone: result.data.result === 'failed' ? 'danger' : result.data.result === 'skipped' ? 'warning' : 'success',
+          auditFilters: buildReplayAuditFilters(currentView, 'manual', result.meta.traceId || null, operator, 'success', filters.shopId),
         }
       } else {
         const result = await reconcilePaymentManually(buildPaymentManualReplayRequest(
@@ -209,19 +223,24 @@ export function useCompensationDashboard() {
           title: `Payment replay ${humanize(result.data.result)}`,
           code: result.meta.code,
           traceId: result.meta.traceId || null,
-          summary: `${getDashboardItemLabel(activeView.value, item)} replay result ${humanize(result.data.result)}.`,
+          summary: `${getDashboardItemLabel(currentView, item)} replay result ${humanize(result.data.result)}.`,
           details: compact([
-            `Operator ${replayControls.operator.trim()}`,
+            `Operator ${operator}`,
             result.data.errorCode ? `Error ${result.data.errorCode}` : null,
             result.data.reason ?? null,
           ]),
           tone: result.data.result === 'failed' ? 'danger' : result.data.result === 'skipped' ? 'warning' : 'success',
+          auditFilters: buildReplayAuditFilters(currentView, 'manual', result.meta.traceId || null, operator, 'success', filters.shopId),
         }
       }
 
       await fetchRecords({ resetResponseOnError: false })
     } catch (caught) {
-      actionError.value = toHttpClientError(caught, 'Manual replay failed.')
+      const httpError = toHttpClientError(caught, 'Manual replay failed.')
+      actionError.value = httpError
+      actionErrorAuditFilters.value = httpError.traceId
+        ? buildReplayAuditFilters(currentView, 'manual', httpError.traceId, operator, 'failed', filters.shopId)
+        : null
     } finally {
       pendingManualKey.value = null
     }
@@ -237,10 +256,13 @@ export function useCompensationDashboard() {
 
     isBulkRunning.value = true
     actionError.value = null
+    actionErrorAuditFilters.value = null
     lastAction.value = null
+    const currentView = activeView.value
+    const operator = replayControls.operator.trim()
 
     try {
-      if (activeView.value === 'order') {
+      if (currentView === 'order') {
         const result = await replayOrderTimeoutInBulk(buildOrderBulkReplayRequest(
           filters,
           items.value as OrderCompensationAggregateResponse[],
@@ -257,6 +279,7 @@ export function useCompensationDashboard() {
             return `${target}: ${humanize(entry.result)}${failure}`
           }),
           tone: replayControls.dryRun ? 'warning' : result.data.failedCount > 0 ? 'danger' : 'success',
+          auditFilters: buildReplayAuditFilters(currentView, 'bulk', result.meta.traceId || null, operator, 'success', filters.shopId),
         }
       } else {
         const result = await reconcilePaymentsInBulk(buildPaymentBulkReplayRequest(
@@ -275,6 +298,7 @@ export function useCompensationDashboard() {
             return `${target}: ${humanize(entry.result)}${failure}`
           }),
           tone: replayControls.dryRun ? 'warning' : result.data.failedCount > 0 ? 'danger' : 'success',
+          auditFilters: buildReplayAuditFilters(currentView, 'bulk', result.meta.traceId || null, operator, 'success', filters.shopId),
         }
       }
 
@@ -282,7 +306,11 @@ export function useCompensationDashboard() {
         await fetchRecords({ resetResponseOnError: false })
       }
     } catch (caught) {
-      actionError.value = toHttpClientError(caught, 'Bulk replay failed.')
+      const httpError = toHttpClientError(caught, 'Bulk replay failed.')
+      actionError.value = httpError
+      actionErrorAuditFilters.value = httpError.traceId
+        ? buildReplayAuditFilters(currentView, 'bulk', httpError.traceId, operator, 'failed', filters.shopId)
+        : null
     } finally {
       isBulkRunning.value = false
     }
@@ -303,6 +331,30 @@ export function useCompensationDashboard() {
       copiedTraceKey.value = null
       copiedTraceTimer = null
     }, COPY_FEEDBACK_MS)
+  }
+
+  async function copyAuditQuery(kind: keyof AuditQueryTemplates) {
+    if (typeof window === 'undefined' || !window.navigator?.clipboard) {
+      return
+    }
+
+    await window.navigator.clipboard.writeText(auditQueryTemplates.value[kind])
+    copiedAuditQueryKey.value = kind
+    if (copiedAuditQueryTimer !== null) {
+      window.clearTimeout(copiedAuditQueryTimer)
+    }
+    copiedAuditQueryTimer = window.setTimeout(() => {
+      copiedAuditQueryKey.value = null
+      copiedAuditQueryTimer = null
+    }, COPY_FEEDBACK_MS)
+  }
+
+  function applyAuditTrail(nextFilters: AuditFilters | null) {
+    if (!nextFilters) {
+      return
+    }
+
+    Object.assign(auditFilters, nextFilters)
   }
 
   function isManualReplayPending(item: DashboardItem): boolean {
@@ -357,9 +409,10 @@ export function useCompensationDashboard() {
     activeView.value = nextState.view
     Object.assign(filters, nextState.filters)
     Object.assign(replayControls, nextState.replayControls)
+    Object.assign(auditFilters, nextState.auditFilters)
   }
 
-  watch([activeView, filters, replayControls], () => {
+  watch([activeView, filters, replayControls, auditFilters], () => {
     if (!isReady.value || typeof window === 'undefined') {
       return
     }
@@ -368,6 +421,7 @@ export function useCompensationDashboard() {
       view: activeView.value,
       filters: { ...filters },
       replayControls: { ...replayControls },
+      auditFilters: { ...auditFilters },
     }
     window.localStorage.setItem(STORAGE_KEY, serializeDashboardState(state))
     const params = buildDashboardSearchParams(state)
@@ -386,18 +440,24 @@ export function useCompensationDashboard() {
     if (copiedTraceTimer !== null && typeof window !== 'undefined') {
       window.clearTimeout(copiedTraceTimer)
     }
+    if (copiedAuditQueryTimer !== null && typeof window !== 'undefined') {
+      window.clearTimeout(copiedAuditQueryTimer)
+    }
   })
 
   return {
     activeView,
     filters,
     replayControls,
+    auditFilters,
+    auditQueryTemplates,
     isLoading,
     response,
     lastMeta,
     error,
     errorDescription,
     actionError,
+    actionErrorAuditFilters,
     actionErrorDescription,
     lastAction,
     isBulkRunning,
@@ -418,6 +478,9 @@ export function useCompensationDashboard() {
     isManualReplayPending,
     copyTraceId,
     isTraceCopied,
+    copyAuditQuery,
+    copiedAuditQueryKey,
+    applyAuditTrail,
     exportCurrentPage,
   }
 }

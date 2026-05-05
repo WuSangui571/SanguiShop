@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildAuditQueryTemplates,
   buildDashboardSearchParams,
   buildOrderBulkReplayRequest,
+  buildReplayAuditFilters,
   createDefaultDashboardState,
   deserializeDashboardState,
+  getReplayAuditAction,
   readDashboardStateFromSearch,
   serializeDashboardState,
 } from './compensationDashboardModel'
@@ -74,6 +77,10 @@ describe('compensationDashboardModel', () => {
     state.replayControls.operator = 'ops-b'
     state.replayControls.bulkLimit = 7
     state.replayControls.dryRun = false
+    state.auditFilters.traceId = 'trace-audit-1'
+    state.auditFilters.operator = 'ops-b'
+    state.auditFilters.action = 'ops.order.timeout-replay.bulk'
+    state.auditFilters.outcome = 'success'
 
     const serialized = serializeDashboardState(state)
     const fromStorage = deserializeDashboardState(serialized, new Date('2026-05-05T12:30:00Z'))
@@ -89,5 +96,43 @@ describe('compensationDashboardModel', () => {
     expect(fromSearch?.filters.shopId).toBe('3')
     expect(fromSearch?.replayControls.bulkLimit).toBe(7)
     expect(fromSearch?.replayControls.dryRun).toBe(false)
+    expect(fromSearch?.auditFilters.traceId).toBe('trace-audit-1')
+    expect(fromSearch?.auditFilters.action).toBe('ops.order.timeout-replay.bulk')
+  })
+
+  it('builds copyable audit queries from structured filters', () => {
+    const templates = buildAuditQueryTemplates({
+      shopId: '1',
+      traceId: 'trace-payment-manual',
+      operator: 'ops-user',
+      action: 'ops.payment.reconcile.manual',
+      outcome: 'success',
+    })
+
+    expect(templates.kibanaKql).toContain('message : "Ops audit event."')
+    expect(templates.kibanaKql).toContain('traceId : "trace-payment-manual"')
+    expect(templates.kibanaLucene).toContain('action:"ops.payment.reconcile.manual"')
+    expect(templates.lokiLogql).toContain('|= "operator=ops-user"')
+    expect(templates.lokiLogql).toContain('|= "outcome=success"')
+  })
+
+  it('maps replay feedback to audit trail filters', () => {
+    const filters = buildReplayAuditFilters(
+      'payment',
+      'bulk',
+      'trace-payment-bulk',
+      ' ops-oncall ',
+      'success',
+      '9',
+    )
+
+    expect(getReplayAuditAction('order', 'manual')).toBe('ops.order.timeout-replay.manual')
+    expect(filters).toEqual({
+      shopId: '9',
+      traceId: 'trace-payment-bulk',
+      operator: 'ops-oncall',
+      action: 'ops.payment.reconcile.bulk',
+      outcome: 'success',
+    })
   })
 })
