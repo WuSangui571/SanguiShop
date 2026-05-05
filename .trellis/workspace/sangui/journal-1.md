@@ -1044,3 +1044,47 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: Compensation Ops Audit Logging And Operation Traceability
+
+**Date**: 2026-05-05
+**Task**: Compensation Ops Audit Logging And Operation Traceability
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Unified Ops Audit | Added a shared `OpsAuditLogger` in common-web so ops auth and compensation actions now emit one consistent `Ops audit event.` shape with trace, identity, permission, target, outcome, and sanitized error context. |
+| Auth Audit Coverage | Wired `POST /api/users/ops/login` and `POST /api/users/ops/session/refresh` to log success, failure, and denial outcomes without exposing secrets or raw JWT content. |
+| Compensation Action Audit | Wired order manual/bulk timeout replay and payment manual/bulk reconcile endpoints to emit operator-scoped audit events for both success and failure paths, including `dryRun` and target scope. |
+| Forbidden Audit Boundary | Extended the global API exception handler to emit ops-specific `403` audit events for protected auth and compensation surfaces while avoiding duplicate logging when a controller already recorded the event. |
+| Spec And Verification | Updated backend logging/security specs with the executable ops audit contract and added controller tests asserting audit log emission for auth, success, bulk dry-run, and forbidden cases. |
+
+**Verification**:
+- Human confirmed the three Maven verification commands completed without errors on May 5, 2026.
+- Human completed manual testing and committed `30cde02 feat(compensation): unify ops audit events`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `30cde02` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
