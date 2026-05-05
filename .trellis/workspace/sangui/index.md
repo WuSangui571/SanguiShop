@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 20
-- **Last Active**: 2026-05-03
+- **Total Sessions**: 21
+- **Last Active**: 2026-05-05
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~912 | Active |
+| `journal-1.md` | ~956 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 21 | 2026-05-05 | Compensation Dashboard Replay Wiring and Gateway Auth Hardening | `cec6495` | `main` |
 | 20 | 2026-05-03 | Compensation Dashboard Query Wiring | `eba9baa`, `d9b3cda` | `main` |
 | 19 | 2026-05-03 | Compensation Attempt History Query Surface | `aa9f853` | `main` |
 | 18 | 2026-05-03 | Compensation task closure and CI fix | `18a67d2` | `main` |

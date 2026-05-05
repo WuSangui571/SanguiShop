@@ -910,3 +910,47 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: Compensation Dashboard Replay Wiring and Gateway Auth Hardening
+
+**Date**: 2026-05-05
+**Task**: Compensation Dashboard Replay Wiring and Gateway Auth Hardening
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Frontend Replay Wiring | Wired manual replay and bounded bulk replay into the existing compensation dashboard, including operator input, dry-run, per-action feedback, duplicate-submit guards, URL/localStorage state restore, export, and traceId copy. |
+| Gateway Routing & CORS | Exposed `/api/internal/orders/**` and `/api/internal/payments/**` through gateway, added load-balancer support, and allowed browser CORS preflight requests to pass without JWT rejection. |
+| Auth & RBAC Closure | Moved internal compensation ops onto trusted `SanguiPrincipal` flow and enforced `ADMIN` role plus `shopId` match in order/payment compensation services. |
+| Tests & Spec Sync | Added frontend model tests, updated gateway and compensation controller/service tests, and synced backend auth/gateway specs for internal compensation ops behavior. |
+
+**Verification**:
+- Human committed `cec6495 feat(compensation): wire dashboard replay and tighten gateway auth`.
+- Human ran `npm run lint`, `npm run typecheck`, `npm run build`, and `npm run test` successfully in `frontend/` on May 5, 2026.
+- Human ran targeted Maven tests for order/payment compensation ops and `GatewayJwtAuthenticationFilterTest` successfully from the repository root on May 5, 2026.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cec6495` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
