@@ -6,7 +6,7 @@ Use this checklist when validating the compensation dashboard auth/session loop 
 
 - `frontend/` is running with `npm run dev`.
 - Gateway and user-service are reachable from the dashboard.
-- `sangui.security.ops.admins[]` contains at least one real `{ shopId, username }` entry.
+- `sangui.security.ops.bindings[]` contains at least one real `{ shopId, username, permissions[] }` entry that grants `OPS_COMPENSATION_ADMIN`.
 - A non-ops user also exists for the same shop.
 
 ## Good
@@ -24,9 +24,9 @@ Use this checklist when validating the compensation dashboard auth/session loop 
 
 ## Forbidden
 
-1. Sign in with valid credentials for a user who is not present in `sangui.security.ops.admins[]`.
+1. Sign in with valid credentials for a user who is not present in `sangui.security.ops.bindings[]` or legacy `sangui.security.ops.admins[]`.
 2. Verify login fails with `AUTH_FORBIDDEN` semantics and does not create a dashboard session.
-3. Sign in as an ops admin, then remove that admin mapping from config and reload config.
+3. Sign in as an ops admin, then remove that binding or legacy admin mapping from config and reload config.
 4. Trigger `Refresh session` or any dashboard query.
 5. Verify the app switches to the forbidden state and offers `Retry refresh` plus `Sign out`.
 

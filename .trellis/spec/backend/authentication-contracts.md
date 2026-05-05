@@ -24,8 +24,9 @@ JWT issuance:
 - Config keys: `sangui.security.jwt.secret` from `SANGUI_JWT_SECRET`; `sangui.security.jwt.ttl-seconds` from `SANGUI_JWT_TTL_SECONDS`; `sangui.security.jwt.issuer` from `SANGUI_JWT_ISSUER`, defaulting to `sanguishop`.
 - Required claims: `sub`, `iss`, `shop_id`, `roles`, `permissions`, `iat`, `exp`, `jti`.
 - Blank secret must fail during token issuer configuration with `CONFIG_SECRET_MISSING`; never issue unsigned or empty-secret tokens.
-- Ops admin identities come from `sangui.security.ops.admins[]`, each entry containing `shopId` and `username`. The list defaults to empty and must be supplied from Nacos or environment-specific config.
-- Ops login and refresh currently issue `roles=["ADMIN"]` and `permissions=[]`; internal compensation ops remain `ADMIN`-gated.
+- Ops access comes from `sangui.security.ops.bindings[]`, each entry containing `shopId`, `username`, and `permissions[]`. The list defaults to empty and must be supplied from Nacos or environment-specific config.
+- Legacy rollback compatibility may continue to read `sangui.security.ops.admins[]`, each entry containing `shopId` and `username`; user-service maps each legacy admin identity to `permissions=["OPS_COMPENSATION_ADMIN"]`.
+- Ops login and refresh for the compensation dashboard currently issue `roles=[]` and `permissions=["OPS_COMPENSATION_ADMIN"]`; downstream compensation ops are permission-gated, not broad-`ADMIN` gated.
 
 Validation and error matrix:
 
@@ -35,20 +36,20 @@ Validation and error matrix:
 | Duplicate username in same shop | 409 | `USER_USERNAME_EXISTS` |
 | Duplicate mobile in same shop | 409 | `USER_MOBILE_EXISTS` |
 | Unknown identity or wrong password | 401 | `AUTH_INVALID_CREDENTIALS` |
-| Valid identity without configured ops admin access on `POST /api/users/ops/login` | 403 | `AUTH_FORBIDDEN` |
-| Trusted ops principal no longer mapped in `sangui.security.ops.admins[]` on refresh | 403 | `AUTH_FORBIDDEN` |
+| Valid identity without configured `OPS_COMPENSATION_ADMIN` access on `POST /api/users/ops/login` | 403 | `AUTH_FORBIDDEN` |
+| Trusted ops principal no longer mapped in `sangui.security.ops.bindings[]` or legacy `admins[]` on refresh | 403 | `AUTH_FORBIDDEN` |
 | Blank JWT secret or issuer during token issuer configuration | 500 | `CONFIG_SECRET_MISSING` |
 
 Required tests:
 
 ```powershell
-mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-Dtest=UserAuthControllerTest,UserAuthServiceTest,OpsAuthControllerTest,OpsAuthServiceTest,HmacJwtUserTokenIssuerTest" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-Dtest=UserAuthControllerTest,UserAuthServiceTest,OpsAuthControllerTest,OpsAuthServiceTest,HmacJwtUserTokenIssuerTest,OrderCompensationOpsServiceTest,PaymentCompensationOpsServiceTest" test
 ```
 
 Good/Base/Bad cases:
 
 - Good: register stores only `password_hash`; login returns a Bearer token with all required claims.
-- Good: ops login and refresh reuse `ums_user` credentials, but only configured ops admin identities receive `ADMIN` tokens.
+- Good: ops login and refresh reuse `ums_user` credentials, but only configured compensation ops identities receive `permissions=["OPS_COMPENSATION_ADMIN"]`.
 - Good: duplicate username/mobile and invalid credentials return stable API error codes through `ApiResult`.
 - Base: user-service owns `ums_user`; no frontend client is required for this MVP.
 - Bad: token payload omits `iss`, `shop_id`, `roles`, `iat`, `exp`, or `jti`.
@@ -130,13 +131,13 @@ Internal compensation ops contract:
 | API | Gateway | Downstream service |
 | --- | --- | --- |
 | `POST /api/users/ops/login` | public login path; spoofed identity headers must be stripped | user-service authenticates credentials and rejects non-ops users with `AUTH_FORBIDDEN`. |
-| `POST /api/users/ops/session/refresh` | JWT required | user-service requires trusted `SanguiPrincipal`, re-checks configured ops admin mapping, and reissues an `ADMIN` token. |
-| `POST /api/internal/orders/compensation-records/query` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
-| `POST /api/internal/orders/timeout-replays/manual` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
-| `POST /api/internal/orders/timeout-replays/bulk` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
-| `POST /api/internal/payments/compensation-records/query` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
-| `POST /api/internal/payments/reconciliations/manual` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
-| `POST /api/internal/payments/reconciliations/bulk` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/users/ops/session/refresh` | JWT required | user-service requires trusted `SanguiPrincipal`, re-checks configured compensation ops mapping, and reissues a token with `permissions=["OPS_COMPENSATION_ADMIN"]`. |
+| `POST /api/internal/orders/compensation-records/query` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `OPS_COMPENSATION_ADMIN` permission required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/orders/timeout-replays/manual` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `OPS_COMPENSATION_ADMIN` permission required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/orders/timeout-replays/bulk` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `OPS_COMPENSATION_ADMIN` permission required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/payments/compensation-records/query` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `OPS_COMPENSATION_ADMIN` permission required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/payments/reconciliations/manual` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `OPS_COMPENSATION_ADMIN` permission required; `principal.shopId()` must equal request `shopId`. |
+| `POST /api/internal/payments/reconciliations/bulk` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `OPS_COMPENSATION_ADMIN` permission required; `principal.shopId()` must equal request `shopId`. |
 
 Validation and error matrix for internal compensation ops:
 
@@ -145,7 +146,7 @@ Validation and error matrix for internal compensation ops:
 | Missing or invalid bearer token | 401 | `AUTH_TOKEN_MISSING` or `SIGNATURE_INVALID` |
 | Expired token | 401 | `AUTH_TOKEN_EXPIRED` |
 | Trusted principal missing in downstream service | 401 | `AUTH_TOKEN_MISSING` |
-| Trusted principal is not `ADMIN` | 403 | `AUTH_FORBIDDEN` |
+| Trusted principal lacks `OPS_COMPENSATION_ADMIN` | 403 | `AUTH_FORBIDDEN` |
 | Trusted principal `shopId` differs from request `shopId` | 403 | `AUTH_FORBIDDEN` |
 
 ## Downstream Auth Context MVP

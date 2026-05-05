@@ -3,6 +3,7 @@ package com.sangui.shop.user.application;
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.security.SanguiPrincipal;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.user.api.dto.LoginUserRequest;
 import com.sangui.shop.user.api.dto.OpsSessionResponse;
 import com.sangui.shop.user.domain.UserAccount;
@@ -15,24 +16,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OpsAuthService {
 
-    private static final List<String> OPS_ADMIN_ROLES = List.of("ADMIN");
-    private static final List<String> OPS_ADMIN_PERMISSIONS = List.of();
+    private static final List<String> OPS_SESSION_ROLES = List.of();
 
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
     private final UserTokenIssuer tokenIssuer;
-    private final OpsAdminIdentityRegistry opsAdminIdentityRegistry;
+    private final OpsAccessRegistry opsAccessRegistry;
 
     public OpsAuthService(
             UserRepository userRepository,
             PasswordHasher passwordHasher,
             UserTokenIssuer tokenIssuer,
-            OpsAdminIdentityRegistry opsAdminIdentityRegistry
+            OpsAccessRegistry opsAccessRegistry
     ) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.tokenIssuer = tokenIssuer;
-        this.opsAdminIdentityRegistry = opsAdminIdentityRegistry;
+        this.opsAccessRegistry = opsAccessRegistry;
     }
 
     @Transactional
@@ -41,9 +41,9 @@ public class OpsAuthService {
                 .filter(account -> passwordHasher.matches(request.password(), account.passwordHash()))
                 .orElseThrow(() -> new SanguiException(UserErrorCode.AUTH_INVALID_CREDENTIALS, 401));
 
-        requireOpsAdmin(user.shopId(), user.username());
+        OpsAccessRegistry.ResolvedOpsAccess access = requireCompensationOpsAccess(user.shopId(), user.username());
         userRepository.markLoginSuccess(user.id());
-        return issueSession(user);
+        return issueSession(user, access);
     }
 
     public OpsSessionResponse refresh(SanguiPrincipal principal) {
@@ -52,12 +52,13 @@ public class OpsAuthService {
         if (!user.shopId().equals(principal.shopId())) {
             throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
         }
-        requireOpsAdmin(user.shopId(), user.username());
-        return issueSession(user);
+        OpsAccessRegistry.ResolvedOpsAccess access = requireCompensationOpsAccess(user.shopId(), user.username());
+        return issueSession(user, access);
     }
 
-    private OpsSessionResponse issueSession(UserAccount user) {
-        TokenInfo token = tokenIssuer.issue(user.id(), user.shopId(), OPS_ADMIN_ROLES, OPS_ADMIN_PERMISSIONS);
+    private OpsSessionResponse issueSession(UserAccount user, OpsAccessRegistry.ResolvedOpsAccess access) {
+        List<String> permissions = access.permissions();
+        TokenInfo token = tokenIssuer.issue(user.id(), user.shopId(), OPS_SESSION_ROLES, permissions);
         return new OpsSessionResponse(
                 user.id(),
                 user.shopId(),
@@ -65,15 +66,18 @@ public class OpsAuthService {
                 token.accessToken(),
                 "Bearer",
                 token.expiresInSeconds(),
-                OPS_ADMIN_ROLES,
-                OPS_ADMIN_PERMISSIONS
+                OPS_SESSION_ROLES,
+                permissions
         );
     }
 
-    private void requireOpsAdmin(Long shopId, String username) {
-        if (!opsAdminIdentityRegistry.isOpsAdmin(shopId, username)) {
+    private OpsAccessRegistry.ResolvedOpsAccess requireCompensationOpsAccess(Long shopId, String username) {
+        OpsAccessRegistry.ResolvedOpsAccess access = opsAccessRegistry.resolve(shopId, username)
+                .orElseThrow(() -> new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403));
+        if (!access.permissions().contains(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)) {
             throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
         }
+        return access;
     }
 
     private Long parsePrincipalUserId(SanguiPrincipal principal) {

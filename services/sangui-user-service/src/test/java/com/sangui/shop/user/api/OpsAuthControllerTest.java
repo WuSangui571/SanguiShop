@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.core.trace.TraceConstants;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
@@ -30,8 +31,8 @@ class OpsAuthControllerTest {
     private static final SanguiPrincipal ADMIN_PRINCIPAL = new SanguiPrincipal(
             "10001",
             1L,
-            java.util.Set.of("ADMIN"),
             java.util.Set.of(),
+            java.util.Set.of(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN),
             "jwt-ops-1"
     );
 
@@ -59,8 +60,8 @@ class OpsAuthControllerTest {
                         "jwt-admin-token",
                         "Bearer",
                         3600,
-                        List.of("ADMIN"),
-                        List.of()
+                        List.of(),
+                        List.of(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
                 ));
 
         mockMvc.perform(post("/api/users/ops/login")
@@ -76,7 +77,7 @@ class OpsAuthControllerTest {
                 .andExpect(jsonPath("$.code").value("OPS_USER_LOGGED_IN"))
                 .andExpect(jsonPath("$.traceId").value("trace-ops-login"))
                 .andExpect(jsonPath("$.data.username").value("ops-admin"))
-                .andExpect(jsonPath("$.data.roles[0]").value("ADMIN"));
+                .andExpect(jsonPath("$.data.permissions[0]").value(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN));
     }
 
     @Test
@@ -107,8 +108,8 @@ class OpsAuthControllerTest {
                         "jwt-admin-token-2",
                         "Bearer",
                         3600,
-                        List.of("ADMIN"),
-                        List.of()
+                        List.of(),
+                        List.of(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
                 ));
 
         mockMvc.perform(post("/api/users/ops/session/refresh")

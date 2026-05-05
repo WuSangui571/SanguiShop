@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.payment.api.dto.PaymentCompensationQueryRequest;
 import com.sangui.shop.payment.api.dto.PaymentCompensationQueryResponse;
@@ -34,11 +35,11 @@ import org.junit.jupiter.api.Test;
 
 class PaymentCompensationOpsServiceTest {
 
-    private static final SanguiPrincipal ADMIN_PRINCIPAL = new SanguiPrincipal(
+    private static final SanguiPrincipal OPS_PRINCIPAL = new SanguiPrincipal(
             "ops-admin",
             1L,
-            java.util.Set.of("ADMIN"),
             java.util.Set.of(),
+            java.util.Set.of(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN),
             "jwt-ops-1"
     );
     private static final SanguiPrincipal USER_PRINCIPAL = new SanguiPrincipal(
@@ -113,7 +114,7 @@ class PaymentCompensationOpsServiceTest {
                 LocalDateTime.of(2026, 5, 3, 12, 7)
         );
 
-        PaymentCompensationQueryResponse response = paymentCompensationOpsService.queryRecords(ADMIN_PRINCIPAL, new PaymentCompensationQueryRequest(
+        PaymentCompensationQueryResponse response = paymentCompensationOpsService.queryRecords(OPS_PRINCIPAL, new PaymentCompensationQueryRequest(
                 1L,
                 null,
                 "PAY-001",
@@ -144,7 +145,7 @@ class PaymentCompensationOpsServiceTest {
         paymentRepository.seedAttempt(1L, 201L, 101L, "PAY-001", "ORD-001", "ord:10001:req-001", "failed", null, null, "trace-201", "scheduler", null, LocalDateTime.of(2026, 5, 3, 12, 9));
         paymentRepository.seedAttempt(2L, 202L, 102L, "PAY-002", "ORD-002", "ord:10001:req-002", "failed", null, null, "trace-202", "scheduler", null, LocalDateTime.of(2026, 5, 3, 12, 12));
 
-        PaymentCompensationQueryResponse response = paymentCompensationOpsService.queryRecords(ADMIN_PRINCIPAL, new PaymentCompensationQueryRequest(
+        PaymentCompensationQueryResponse response = paymentCompensationOpsService.queryRecords(OPS_PRINCIPAL, new PaymentCompensationQueryRequest(
                 1L,
                 null,
                 null,
@@ -166,7 +167,7 @@ class PaymentCompensationOpsServiceTest {
 
     @Test
     void queryRecordsRejectsBlankPaymentNo() {
-        assertThatThrownBy(() -> paymentCompensationOpsService.queryRecords(ADMIN_PRINCIPAL, new PaymentCompensationQueryRequest(
+        assertThatThrownBy(() -> paymentCompensationOpsService.queryRecords(OPS_PRINCIPAL, new PaymentCompensationQueryRequest(
                 1L,
                 null,
                 "   ",
@@ -188,7 +189,7 @@ class PaymentCompensationOpsServiceTest {
     }
 
     @Test
-    void queryRecordsRejectsNonAdminPrincipal() {
+    void queryRecordsRejectsPrincipalWithoutCompensationPermission() {
         assertThatThrownBy(() -> paymentCompensationOpsService.queryRecords(USER_PRINCIPAL, new PaymentCompensationQueryRequest(
                 1L,
                 null,
@@ -212,7 +213,13 @@ class PaymentCompensationOpsServiceTest {
 
     @Test
     void queryRecordsRejectsCrossShopPrincipal() {
-        SanguiPrincipal wrongShopAdmin = new SanguiPrincipal("ops-admin", 2L, java.util.Set.of("ADMIN"), java.util.Set.of(), "jwt-ops-3");
+        SanguiPrincipal wrongShopAdmin = new SanguiPrincipal(
+                "ops-admin",
+                2L,
+                java.util.Set.of(),
+                java.util.Set.of(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN),
+                "jwt-ops-3"
+        );
 
         assertThatThrownBy(() -> paymentCompensationOpsService.queryRecords(wrongShopAdmin, new PaymentCompensationQueryRequest(
                 1L,
