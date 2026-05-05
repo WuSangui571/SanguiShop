@@ -314,13 +314,13 @@ export function humanizeCode(value: string | null | undefined): string {
 
 export function describeDashboardError(error: HttpClientError): string {
   if (error.code === 'AUTH_TOKEN_EXPIRED') {
-    return 'Session expired. Sign in again with an admin token and retry.'
+    return 'Session expired. Sign in again and retry the compensation operation.'
   }
   if (error.code === 'AUTH_FORBIDDEN') {
-    return 'Current token is authenticated but lacks compensation operations access.'
+    return 'Current session is authenticated but lacks compensation operations access.'
   }
   if (error.code === 'AUTH_TOKEN_MISSING' || error.code === 'SIGNATURE_INVALID') {
-    return 'A valid admin bearer token is required for this gateway-backed dashboard.'
+    return 'A valid compensation ops session is required for this gateway-backed dashboard.'
   }
   if (error.code === 'VALIDATION_FAILED') {
     return 'The request was rejected by validation. Check filters, operator, and replay scope.'

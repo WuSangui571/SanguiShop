@@ -117,7 +117,9 @@ public class GatewayJwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
         return request.getMethod() == HttpMethod.POST
-                && ("/api/users/register".equals(path) || "/api/users/login".equals(path));
+                && ("/api/users/register".equals(path)
+                || "/api/users/login".equals(path)
+                || "/api/users/ops/login".equals(path));
     }
 
     private boolean isCorsPreflightRequest(ServerWebExchange exchange) {

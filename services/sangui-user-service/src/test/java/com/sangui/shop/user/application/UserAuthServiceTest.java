@@ -162,6 +162,11 @@ class UserAuthServiceTest {
         private final List<Long> loginSuccessIds = new ArrayList<>();
 
         @Override
+        public Optional<UserAccount> findById(Long userId) {
+            return Optional.ofNullable(usersById.get(userId));
+        }
+
+        @Override
         public Optional<UserAccount> findByUsername(Long shopId, String username) {
             return usersById.values().stream()
                     .filter(user -> user.shopId().equals(shopId))

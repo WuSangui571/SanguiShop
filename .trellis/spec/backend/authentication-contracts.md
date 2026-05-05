@@ -10,6 +10,13 @@ Public endpoints:
 | --- | --- | --- | --- |
 | `POST /api/users/register` | `shopId`, `username`, `mobile`, `password` | `USER_REGISTERED` | `userId`, `shopId`, `username`, `mobile`, `roles` |
 | `POST /api/users/login` | `shopId`, `usernameOrMobile`, `password` | `USER_LOGGED_IN` | `userId`, `shopId`, `accessToken`, `tokenType`, `expiresInSeconds`, `roles` |
+| `POST /api/users/ops/login` | `shopId`, `usernameOrMobile`, `password` | `OPS_USER_LOGGED_IN` | `userId`, `shopId`, `username`, `accessToken`, `tokenType`, `expiresInSeconds`, `roles`, `permissions` |
+
+Protected ops session endpoint:
+
+| API | Auth | Success code | Response data |
+| --- | --- | --- | --- |
+| `POST /api/users/ops/session/refresh` | trusted `SanguiPrincipal` required | `OPS_SESSION_REFRESHED` | `userId`, `shopId`, `username`, `accessToken`, `tokenType`, `expiresInSeconds`, `roles`, `permissions` |
 
 JWT issuance:
 
@@ -17,6 +24,8 @@ JWT issuance:
 - Config keys: `sangui.security.jwt.secret` from `SANGUI_JWT_SECRET`; `sangui.security.jwt.ttl-seconds` from `SANGUI_JWT_TTL_SECONDS`; `sangui.security.jwt.issuer` from `SANGUI_JWT_ISSUER`, defaulting to `sanguishop`.
 - Required claims: `sub`, `iss`, `shop_id`, `roles`, `permissions`, `iat`, `exp`, `jti`.
 - Blank secret must fail during token issuer configuration with `CONFIG_SECRET_MISSING`; never issue unsigned or empty-secret tokens.
+- Ops admin identities come from `sangui.security.ops.admins[]`, each entry containing `shopId` and `username`. The list defaults to empty and must be supplied from Nacos or environment-specific config.
+- Ops login and refresh currently issue `roles=["ADMIN"]` and `permissions=[]`; internal compensation ops remain `ADMIN`-gated.
 
 Validation and error matrix:
 
@@ -26,17 +35,20 @@ Validation and error matrix:
 | Duplicate username in same shop | 409 | `USER_USERNAME_EXISTS` |
 | Duplicate mobile in same shop | 409 | `USER_MOBILE_EXISTS` |
 | Unknown identity or wrong password | 401 | `AUTH_INVALID_CREDENTIALS` |
+| Valid identity without configured ops admin access on `POST /api/users/ops/login` | 403 | `AUTH_FORBIDDEN` |
+| Trusted ops principal no longer mapped in `sangui.security.ops.admins[]` on refresh | 403 | `AUTH_FORBIDDEN` |
 | Blank JWT secret or issuer during token issuer configuration | 500 | `CONFIG_SECRET_MISSING` |
 
 Required tests:
 
 ```powershell
-mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-Dtest=UserAuthControllerTest,UserAuthServiceTest,HmacJwtUserTokenIssuerTest" test
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-Dtest=UserAuthControllerTest,UserAuthServiceTest,OpsAuthControllerTest,OpsAuthServiceTest,HmacJwtUserTokenIssuerTest" test
 ```
 
 Good/Base/Bad cases:
 
 - Good: register stores only `password_hash`; login returns a Bearer token with all required claims.
+- Good: ops login and refresh reuse `ums_user` credentials, but only configured ops admin identities receive `ADMIN` tokens.
 - Good: duplicate username/mobile and invalid credentials return stable API error codes through `ApiResult`.
 - Base: user-service owns `ums_user`; no frontend client is required for this MVP.
 - Bad: token payload omits `iss`, `shop_id`, `roles`, `iat`, `exp`, or `jti`.
@@ -52,6 +64,7 @@ Public endpoints:
 | --- | --- | --- |
 | `POST /api/users/register` | public | Pass through to `sangui-user` after removing incoming Sangui identity headers. |
 | `POST /api/users/login` | public | Pass through to `sangui-user` after removing incoming Sangui identity headers. |
+| `POST /api/users/ops/login` | public | Pass through to `sangui-user` after removing incoming Sangui identity headers. |
 
 Protected endpoints:
 
@@ -116,6 +129,8 @@ Internal compensation ops contract:
 
 | API | Gateway | Downstream service |
 | --- | --- | --- |
+| `POST /api/users/ops/login` | public login path; spoofed identity headers must be stripped | user-service authenticates credentials and rejects non-ops users with `AUTH_FORBIDDEN`. |
+| `POST /api/users/ops/session/refresh` | JWT required | user-service requires trusted `SanguiPrincipal`, re-checks configured ops admin mapping, and reissues an `ADMIN` token. |
 | `POST /api/internal/orders/compensation-records/query` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
 | `POST /api/internal/orders/timeout-replays/manual` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |
 | `POST /api/internal/orders/timeout-replays/bulk` | JWT required; CORS preflight must pass | `SanguiPrincipal` required; `ADMIN` role required; `principal.shopId()` must equal request `shopId`. |

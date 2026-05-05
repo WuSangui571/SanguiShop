@@ -1,0 +1,11 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Executable auth/login/JWT/downstream principal contracts relevant to new ops login/session endpoints."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "API envelopes and auth-related HTTP/code matrix for new endpoints and frontend integration."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Frontend HTTP client must centralize auth token injection and 401/403 handling."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Session state belongs in an auth store/composable boundary, not scattered through pages."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable boundaries for auth/session lifecycle, loading/error/retry, and cleanup."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "New auth DTOs and frontend state must stay typed and contract-aligned."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "This is a frontend + gateway + user-service + internal ops cross-layer auth flow."}
+t states."}

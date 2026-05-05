@@ -1,4 +1,5 @@
 import type { ApiResponseMeta, ApiResult } from '../types/api/common'
+import { readPersistedOpsAccessToken } from './opsSessionStorage'
 
 export class HttpClientError extends Error {
   readonly code: string
@@ -16,12 +17,20 @@ export class HttpClientError extends Error {
 
 interface RequestOptions {
   body?: unknown
+  suppressAuthStateChange?: boolean
 }
 
 interface JsonResponse<T> {
   data: T
   meta: ApiResponseMeta
 }
+
+interface AuthFailureEvent {
+  type: 'unauthorized' | 'forbidden'
+  error: HttpClientError
+}
+
+let authFailureHandler: ((event: AuthFailureEvent) => void) | null = null
 
 function resolveBaseUrl(): string {
   return (import.meta.env.VITE_API_BASE_URL ?? '').trim()
@@ -36,21 +45,11 @@ function createRequestTraceId(): string {
 }
 
 function resolveAuthToken(): string | null {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  return window.sessionStorage.getItem('sangui.admin.token')
+  return readPersistedOpsAccessToken()
 }
 
-function clearExpiredAuthToken(code: string) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  if (code === 'AUTH_TOKEN_EXPIRED') {
-    window.sessionStorage.removeItem('sangui.admin.token')
-  }
+export function setAuthFailureHandler(handler: ((event: AuthFailureEvent) => void) | null) {
+  authFailureHandler = handler
 }
 
 async function parseEnvelope<T>(response: Response): Promise<ApiResult<T> | null> {
@@ -96,15 +95,21 @@ async function requestJson<T>(path: string, init: RequestOptions = {}): Promise<
 
   const payload = await parseEnvelope<T>(response)
   const meta = toMeta(response, payload)
-
-  clearExpiredAuthToken(meta.code)
+  const error = new HttpClientError(meta.message || 'Request failed.', {
+    code: meta.code,
+    status: meta.status,
+    traceId: meta.traceId || null,
+  })
 
   if (!response.ok || !payload) {
-    throw new HttpClientError(meta.message || 'Request failed.', {
-      code: meta.code,
-      status: meta.status,
-      traceId: meta.traceId || null,
-    })
+    if (!init.suppressAuthStateChange && authFailureHandler) {
+      if (meta.status === 401) {
+        authFailureHandler({ type: 'unauthorized', error })
+      } else if (meta.status === 403 || meta.code === 'AUTH_FORBIDDEN') {
+        authFailureHandler({ type: 'forbidden', error })
+      }
+    }
+    throw error
   }
 
   return {
@@ -113,6 +118,10 @@ async function requestJson<T>(path: string, init: RequestOptions = {}): Promise<
   }
 }
 
-export async function postJson<T>(path: string, body: unknown): Promise<JsonResponse<T>> {
-  return requestJson<T>(path, { body })
+export async function postJson<T>(
+  path: string,
+  body: unknown,
+  options: { suppressAuthStateChange?: boolean } = {},
+): Promise<JsonResponse<T>> {
+  return requestJson<T>(path, { body, suppressAuthStateChange: options.suppressAuthStateChange })
 }

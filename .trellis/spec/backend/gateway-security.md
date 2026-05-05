@@ -56,6 +56,8 @@
 
 The compensation dashboard uses gateway-exposed internal APIs:
 
+- `POST /api/users/ops/login`
+- `POST /api/users/ops/session/refresh`
 - `POST /api/internal/orders/compensation-records/query`
 - `POST /api/internal/orders/timeout-replays/manual`
 - `POST /api/internal/orders/timeout-replays/bulk`
@@ -65,6 +67,8 @@ The compensation dashboard uses gateway-exposed internal APIs:
 
 Rules:
 
+- `POST /api/users/ops/login` is public at gateway level, but user-service must reject authenticated non-ops users with `AUTH_FORBIDDEN`.
+- `POST /api/users/ops/session/refresh` is JWT-protected and should only mint a new token for principals that still resolve to configured ops admins.
 - Gateway JWT authentication is required for all of the routes above.
 - Browser CORS preflight (`OPTIONS` with `Origin` and `Access-Control-Request-Method`) must pass without JWT rejection.
 - Gateway may stay coarse-grained; downstream services own RBAC and must reject non-`ADMIN` principals with `AUTH_FORBIDDEN`.

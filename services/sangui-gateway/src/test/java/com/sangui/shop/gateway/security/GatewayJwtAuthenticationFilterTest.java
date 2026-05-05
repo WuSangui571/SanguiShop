@@ -64,6 +64,22 @@ class GatewayJwtAuthenticationFilterTest {
     }
 
     @Test
+    void allowsPublicOpsLoginWithoutTokenAndRemovesSpoofedIdentityHeaders() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.POST, "/api/users/ops/login")
+                .header(SanguiIdentityHeaderNames.USER_ID, "spoofed-admin")
+        );
+        AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
+
+        filter.filter(exchange, capture(forwarded)).block();
+
+        assertThat(forwarded.get()).isNotNull();
+        assertThat(forwarded.get().getRequest().getHeaders().containsKey(SanguiIdentityHeaderNames.USER_ID))
+                .isFalse();
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
     void allowsCorsPreflightWithoutJwt() {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
                 .method(HttpMethod.OPTIONS, "/api/internal/payments/compensation-records/query")

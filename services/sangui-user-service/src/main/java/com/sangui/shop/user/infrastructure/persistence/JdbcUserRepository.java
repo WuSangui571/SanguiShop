@@ -30,6 +30,20 @@ public class JdbcUserRepository implements UserRepository {
     }
 
     @Override
+    public Optional<UserAccount> findById(Long userId) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, username, mobile, password_hash, status
+                        FROM ums_user
+                        WHERE id = ? AND deleted = 0
+                        LIMIT 1
+                        """,
+                USER_ROW_MAPPER,
+                userId
+        ).stream().findFirst();
+    }
+
+    @Override
     public Optional<UserAccount> findByUsername(Long shopId, String username) {
         return jdbcTemplate.query(
                 """

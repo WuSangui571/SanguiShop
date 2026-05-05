@@ -1,0 +1,7 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Review gateway/auth and internal ops RBAC behavior."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Review 401/403/error envelope behavior."}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Review auth contracts, JWT claims, and downstream principal behavior."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Review frontend auth token injection and error handling."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Review loading/error/permission states and test coverage expectations."}
