@@ -1180,3 +1180,53 @@ Implemented the Product Catalog MVP with Flyway schema, public/admin APIs, Sangu
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: Compensation Ops Audit Observability Links
+
+**Date**: 2026-05-05
+**Task**: Compensation Ops Audit Observability Links
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Observability Link Closure | Added configured `Open in Kibana` and `Open in Loki` actions to the compensation ops audit panel while keeping `Copy query` as the always-available fallback. |
+| Frontend Env Contract | Introduced typed `VITE_KIBANA_DISCOVER_URL` and `VITE_LOKI_EXPLORE_URL` handling, validating absolute `http`/`https` URLs and rejecting missing, invalid, or credential-bearing URLs. |
+| Query URL Generation | Reused generated Kibana KQL, Kibana Lucene, and Loki LogQL templates as the canonical source, then encoded them into Kibana Discover `_a` state or Grafana/Loki Explore `left` state. |
+| UI Behavior | Disabled open buttons when the matching platform URL is unavailable and kept copy feedback unchanged for operator workflows. |
+| Docs And Spec Sync | Updated the audit search runbook, frontend README, frontend API env contract, and backend logging guidelines with executable observability-link behavior. |
+| Verification | Human verified frontend lint, typecheck, production build, and Vitest all passed after commit `44acbf6`. |
+
+**Verification**:
+- Human ran `cmd /c npm run lint` successfully in `frontend/` on May 5, 2026.
+- Human ran `cmd /c npm run typecheck` successfully in `frontend/` on May 5, 2026.
+- Human ran `cmd /c npm run build` successfully in `frontend/` on May 5, 2026.
+- Human ran `cmd /c npm run test` successfully in `frontend/` on May 5, 2026: 3 test files passed, 13 tests passed.
+
+**Status**:
+- Task `05-05-compensation-ops-audit-observability-links` archived after commit `44acbf6 feat(compensation): add ops audit observability links`.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `44acbf6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
