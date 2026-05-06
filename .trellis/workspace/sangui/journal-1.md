@@ -1318,3 +1318,36 @@ Added the real-environment operator checklist for compensation ops audit observa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: Compensation Ops Bulk Failed Audit Assertions
+
+**Date**: 2026-05-06
+**Task**: Compensation Ops Bulk Failed Audit Assertions
+**Branch**: `main`
+
+### Summary
+
+Added backend controller tests for order bulk timeout replay and payment bulk reconcile failed paths, asserting unified Ops audit event fields including outcome=failed, targetCount, dryRun, errorCode, path, and method. Human verified the targeted Maven reactor command passed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e9d3981` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
