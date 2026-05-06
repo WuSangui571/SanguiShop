@@ -1472,3 +1472,68 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 34: Compensation Ops Audit Manual GitHub Workflow Acceptance
+
+**Date**: 2026-05-06
+**Task**: Compensation Ops Audit Manual GitHub Workflow Acceptance
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Manual GitHub Workflow Acceptance | Completed real GitHub Actions `workflow_dispatch` acceptance for `Compensation Ops Audit` with `service=all` on `main`. Final run passed with no warnings and no errors. |
+| Node Runtime Compatibility | Upgraded `.github/workflows/compensation-ops-audit.yml` from `actions/checkout@v4` / `actions/setup-java@v4` to `actions/checkout@v6` / `actions/setup-java@v5` after GitHub warned about Node.js 20 action runtime deprecation. |
+| Checkout Permissions | Added workflow-level `permissions: contents: read` for explicit read-only repository checkout. |
+| Checkout Credential Cleanup | Added `persist-credentials: false` because this manual Maven verification workflow does not need authenticated git operations after checkout. |
+| Submodule Metadata Fix | Fixed checkout failure `No url found for submodule path 'Trellis' in .gitmodules` by adding root `.gitmodules` metadata for the tracked `Trellis` gitlink and setting workflow checkout `submodules: false`. |
+| Runbook / Spec Sync | Updated `docs/compensation-ops-audit-search.md` and `.trellis/spec/backend/quality-guidelines.md` with Node 24-compatible action versions, checkout settings, and checkout/submodule failure diagnosis guidance. |
+| Verification | Local script dry-run and full targeted Windows Maven test path passed; final GitHub Actions manual run passed with no warnings/errors. |
+
+**Commits**:
+- `8e40f43` chore(compensation): ?? ops ???? workflow ????
+- `1eaab21` chore(compensation): ?? ops ???? workflow checkout ???
+- `ab2758c` chore(compensation): ?? ops ?? workflow checkout warning
+- `0b956bb` chore(compensation): ???? workflow submodule checkout
+
+**GitHub Acceptance**:
+- Workflow: `Compensation Ops Audit`
+- Trigger: `workflow_dispatch`
+- Branch: `main`
+- Service input: `all`
+- Result: Success
+- Warnings/errors: none after final fix
+
+**Final Acceptance Points**:
+- `Maven executable: ./mvnw` confirmed on GitHub runner.
+- Module selector matched `service=all`: `services/sangui-order-service,services/sangui-payment-service`.
+- Test selector matched target controller tests: `InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest`.
+- Maven output confirmed both target test classes executed.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8e40f43` | (see git log) |
+| `1eaab21` | (see git log) |
+| `ab2758c` | (see git log) |
+| `0b956bb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
