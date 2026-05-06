@@ -66,6 +66,8 @@ Public endpoints:
 | `POST /api/users/register` | public | Pass through to `sangui-user` after removing incoming Sangui identity headers. |
 | `POST /api/users/login` | public | Pass through to `sangui-user` after removing incoming Sangui identity headers. |
 | `POST /api/users/ops/login` | public | Pass through to `sangui-user` after removing incoming Sangui identity headers. |
+| `GET /api/products` | public | Pass through to `sangui-product` after removing incoming Sangui identity headers. |
+| `GET /api/products/{productId}` | public | Pass through to `sangui-product` after removing incoming Sangui identity headers. |
 
 Protected endpoints:
 

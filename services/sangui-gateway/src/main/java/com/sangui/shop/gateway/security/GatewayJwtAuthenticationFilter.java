@@ -77,7 +77,7 @@ public class GatewayJwtAuthenticationFilter implements GlobalFilter, Ordered {
         String traceId = traceId(exchange);
         ServerWebExchange sanitizedExchange = sanitizeTrustedHeaders(exchange, traceId);
 
-        if (!isApiRequest(sanitizedExchange) || isCorsPreflightRequest(sanitizedExchange) || isPublicAuthEndpoint(sanitizedExchange)) {
+        if (!isApiRequest(sanitizedExchange) || isCorsPreflightRequest(sanitizedExchange) || isPublicEndpoint(sanitizedExchange)) {
             return chain.filter(sanitizedExchange);
         }
 
@@ -113,13 +113,22 @@ public class GatewayJwtAuthenticationFilter implements GlobalFilter, Ordered {
         return exchange.getRequest().getPath().value().startsWith("/api/");
     }
 
-    private boolean isPublicAuthEndpoint(ServerWebExchange exchange) {
+    private boolean isPublicEndpoint(ServerWebExchange exchange) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
+        return isPublicAuthEndpoint(request, path) || isPublicProductReadEndpoint(request, path);
+    }
+
+    private boolean isPublicAuthEndpoint(ServerHttpRequest request, String path) {
         return request.getMethod() == HttpMethod.POST
                 && ("/api/users/register".equals(path)
-                || "/api/users/login".equals(path)
-                || "/api/users/ops/login".equals(path));
+                        || "/api/users/login".equals(path)
+                        || "/api/users/ops/login".equals(path));
+    }
+
+    private boolean isPublicProductReadEndpoint(ServerHttpRequest request, String path) {
+        return request.getMethod() == HttpMethod.GET
+                && ("/api/products".equals(path) || path.matches("^/api/products/\\d+$"));
     }
 
     private boolean isCorsPreflightRequest(ServerWebExchange exchange) {

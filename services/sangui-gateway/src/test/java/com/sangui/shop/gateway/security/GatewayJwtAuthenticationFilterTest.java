@@ -80,6 +80,52 @@ class GatewayJwtAuthenticationFilterTest {
     }
 
     @Test
+    void allowsPublicProductListWithoutTokenAndRemovesSpoofedIdentityHeaders() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.GET, "/api/products")
+                .header(SanguiIdentityHeaderNames.USER_ID, "spoofed")
+                .header(TraceConstants.TRACE_ID_HEADER, "trace-products")
+        );
+        AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
+
+        filter.filter(exchange, capture(forwarded)).block();
+
+        assertThat(forwarded.get()).isNotNull();
+        assertThat(forwarded.get().getRequest().getHeaders().containsKey(SanguiIdentityHeaderNames.USER_ID))
+                .isFalse();
+        assertThat(forwarded.get().getRequest().getHeaders().getFirst(TraceConstants.TRACE_ID_HEADER))
+                .isEqualTo("trace-products");
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
+    void allowsPublicProductDetailWithoutTokenAndKeepsAdminProductWriteProtected() throws Exception {
+        MockServerWebExchange detailExchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.GET, "/api/products/101")
+        );
+        AtomicReference<ServerWebExchange> forwardedDetail = new AtomicReference<>();
+
+        filter.filter(detailExchange, capture(forwardedDetail)).block();
+
+        assertThat(forwardedDetail.get()).isNotNull();
+        assertThat(detailExchange.getResponse().getStatusCode()).isNull();
+
+        MockServerWebExchange adminExchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.POST, "/api/admin/products")
+                .header(TraceConstants.TRACE_ID_HEADER, "trace-admin-product")
+        );
+        AtomicReference<ServerWebExchange> forwardedAdmin = new AtomicReference<>();
+
+        filter.filter(adminExchange, capture(forwardedAdmin)).block();
+
+        assertThat(forwardedAdmin.get()).isNull();
+        assertThat(adminExchange.getResponse().getStatusCode().value()).isEqualTo(401);
+        JsonNode body = objectMapper.readTree(adminExchange.getResponse().getBodyAsString().block());
+        assertThat(body.get("code").asText()).isEqualTo(CommonErrorCode.AUTH_TOKEN_MISSING.code());
+        assertThat(body.get("traceId").asText()).isEqualTo("trace-admin-product");
+    }
+
+    @Test
     void allowsCorsPreflightWithoutJwt() {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
                 .method(HttpMethod.OPTIONS, "/api/internal/payments/compensation-records/query")
