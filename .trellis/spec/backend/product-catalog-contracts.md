@@ -166,6 +166,83 @@ Required constraints / indexes:
 mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service" -am "-Dtest=ProductCatalogServiceTest,ProductInventoryServiceTest,ProductCatalogControllerTest,InternalProductSnapshotControllerTest,InternalProductInventoryControllerTest,ProductMigrationContractTest,ProductInventoryMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
+## Local Mall Demo Seed
+
+The local demo seed is an explicit developer command, not a production startup hook.
+
+Command:
+
+```powershell
+.\scripts\seed-mall-demo.ps1
+```
+
+Environment overrides:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SANGUI_DEMO_SHOP_ID` | `1` | Demo `shopId`. |
+| `SANGUI_DEMO_USER_BASE_URL` | `http://localhost:8101` | Direct user-service origin. |
+| `SANGUI_DEMO_PRODUCT_BASE_URL` | `http://localhost:8102` | Direct product-service origin. |
+| `SANGUI_DEMO_USERNAME` | `mall_demo_user` | Mall login username. |
+| `SANGUI_DEMO_MOBILE` | `13800001001` | Mall login mobile. |
+| `SANGUI_DEMO_PASSWORD` | `Passw0rd!` | Local demo password only. |
+| `SANGUI_DEMO_ADMIN_USER_ID` | `dev-seed-admin` | Local direct product-service admin operator id. |
+| `SANGUI_DEMO_PRODUCT_NAME` | `Sangui Demo Trainer` | Demo product name used for idempotent lookup. |
+
+Seed behavior:
+
+- User creation uses `POST /api/users/register`, then verifies credentials with `POST /api/users/login`.
+- Duplicate demo username or mobile is accepted only when login with the configured demo credentials succeeds.
+- Product creation uses direct product-service `POST /api/admin/products` and `POST /api/admin/products/{productId}/publish`.
+- The product request carries trusted local headers: `X-Sangui-User-Id`, `X-Sangui-Shop-Id`, `X-Sangui-Roles=ADMIN`, and `X-Sangui-Jwt-Id`.
+- The command is intended for direct local service URLs. Gateway routes do not expose `/api/admin/products` in this MVP.
+- Product idempotency is based on active public catalog lookup by `productName`, followed by detail validation of expected SKU codes, names, prices, and positive `availableStock`.
+- If the demo SKU codes already exist on a hidden draft/inactive product or with a conflicting payload, the command must fail clearly instead of silently overwriting non-demo data.
+
+Seed payload:
+
+```json
+{
+  "productName": "Sangui Demo Trainer",
+  "productDescription": "Local demo product for the SanguiShop mall cart and checkout flow.",
+  "skus": [
+    {
+      "skuCode": "demo-trainer-42",
+      "skuName": "Size 42",
+      "priceCent": 59900,
+      "availableStock": 20
+    },
+    {
+      "skuCode": "demo-trainer-43",
+      "skuName": "Size 43",
+      "priceCent": 62900,
+      "availableStock": 15
+    }
+  ]
+}
+```
+
+Validation and error matrix:
+
+| Case | Expected behavior |
+| --- | --- |
+| Services are not running | Command fails with the failing URL and API error context. |
+| User already exists with same credentials | Command logs existing user and continues. |
+| User exists with different password | Command fails during login verification. |
+| Active demo product exists with matching SKU payload | Command logs existing product and does not create duplicates. |
+| Matching product name exists with missing/conflicting SKU data | Command fails with a conflict message. |
+| SKU code exists on a non-public product | Admin create returns `PRODUCT_SKU_CODE_EXISTS`; command fails instead of overwriting. |
+
+Good/Base/Bad cases:
+
+- Good: repeated `.\scripts\seed-mall-demo.ps1` runs do not create duplicate active products or duplicate users.
+- Good: seeded product appears through `GET /api/products` and `GET /api/products/{productId}` with two SKUs and positive `availableStock`.
+- Good: the command is explicitly invoked by a developer and never runs from a production profile automatically.
+- Base: a developer may override service origins or demo fields via environment variables for a non-default local environment.
+- Bad: service startup automatically creates demo products in production.
+- Bad: order-service or payment-service writes `pms_*` tables for seed data.
+- Bad: the seed command silently overwrites an existing non-demo product or user.
+
 ## Good / Base / Bad Cases
 
 - Good: admin create/update/publish derive `shopId` and operator from principal.

@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Product catalog public/admin API, DTO, validation, and test contract"}
+{"file": ".trellis/spec/backend/inventory-reserve-contracts.md", "reason": "SKU stock ownership and availableStock/reservedStock rules"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "DB/migration/seed idempotency and shop_id rules"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Admin principal and dev-only seed safety boundaries"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer shopId, API, DB, and frontend demo-flow risk review"}
+{"file": "services/sangui-product-service/src/main/java/com/sangui/shop/product/application/ProductCatalogService.java", "reason": "Existing product create/update/publish and ADMIN principal pattern"}
+{"file": "services/sangui-product-service/src/main/java/com/sangui/shop/product/infrastructure/persistence/JdbcProductRepository.java", "reason": "Existing product persistence and SKU uniqueness behavior"}
