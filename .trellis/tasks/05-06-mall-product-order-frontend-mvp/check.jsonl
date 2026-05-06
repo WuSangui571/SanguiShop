@@ -1,0 +1,13 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality gate"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "HTTP and error handling review"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "DTO and money type review"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Verify frontend DTOs match product contract"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Verify create-order request/response handling"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Verify payment request/response handling"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer final review"}
+{"file": "frontend/tests/httpClientAuth.spec.ts", "reason": "HTTP client test style and auth expectations"}
+{"file": "frontend/tests/useCompensationDashboardAudit.spec.ts", "reason": "Composable unit test renderer/mocking style"}
+{"file": "frontend/src/services/httpClient.ts", "reason": "Review GET/POST client changes"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Verify frontend auth DTOs and token separation"}

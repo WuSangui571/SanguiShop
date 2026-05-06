@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useOpsAuthSession } from './composables/useOpsAuthSession'
 import OpsForbiddenView from './views/auth/OpsForbiddenView.vue'
 import OpsLoginView from './views/auth/OpsLoginView.vue'
 import CompensationDashboardView from './views/admin/CompensationDashboardView.vue'
+import MallStorefrontView from './views/mall/MallStorefrontView.vue'
 
 const {
   state,
@@ -18,13 +19,25 @@ const {
   clearNotice,
 } = useOpsAuthSession()
 
+const isAdminSurface = computed(() => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return window.location.pathname.startsWith('/admin')
+})
+
 onMounted(() => {
-  void bootstrap()
+  if (isAdminSurface.value) {
+    void bootstrap()
+  }
 })
 </script>
 
 <template>
-  <main class="app-shell">
+  <MallStorefrontView v-if="!isAdminSurface" />
+
+  <main v-else class="app-shell">
     <section v-if="isBooting" class="center-panel status-panel">
       <p class="eyebrow">Ops access</p>
       <h1>Restoring session</h1>

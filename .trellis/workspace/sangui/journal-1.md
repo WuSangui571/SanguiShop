@@ -170,7 +170,7 @@ Scripted the compensation ops audit controller regression entry in `scripts/veri
 
 ### Summary
 
-(Add summary)
+Recorded the docs/spec-only hardening of the compensation ops audit manual CI runbook after human testing and commit. The session captured the new failure triage matrix, repair checklist, acceptance evidence template, and backend quality spec sync for future GitHub runner failures.
 
 ### Main Changes
 
@@ -196,7 +196,7 @@ Scripted the compensation ops audit controller regression entry in `scripts/veri
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] Human reported testing completed and passing before committing `dd1519a`.
 
 ### Status
 
@@ -1525,6 +1525,54 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 | `1eaab21` | (see git log) |
 | `ab2758c` | (see git log) |
 | `0b956bb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 35: Compensation Ops Audit CI Triage Matrix
+
+**Date**: 2026-05-06
+**Task**: Compensation Ops Audit CI Triage Matrix
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| CI Failure Matrix | Added an executable manual GitHub workflow triage matrix for Node runtime warnings, checkout git exit 128, missing `.gitmodules` gitlink metadata, Maven wrapper chmod, `pwsh` path portability, and Surefire target test execution gaps. |
+| Runbook Evidence | Added repair strategy checklist and GitHub manual acceptance evidence template with run URL, branch/commit, service input, runner, step assertions, and final conclusion. |
+| Backend Spec Sync | Synchronized `.trellis/spec/backend/quality-guidelines.md` with the manual workflow contract, failure matrix, required evidence, and Good/Base/Bad cases. |
+| Task State | Trellis task was created, completed, and archived under `.trellis/tasks/archive/2026-05/05-06-compensation-ops-audit-ci-runbook-matrix`. |
+| Verification | Human reported testing completed and passing, then committed `dd1519a`. |
+
+**Updated Files**:
+- `docs/compensation-ops-audit-search.md`
+- `.trellis/spec/backend/quality-guidelines.md`
+- `.trellis/tasks/archive/2026-05/05-06-compensation-ops-audit-ci-runbook-matrix/`
+
+**Result**:
+- Compensation ops audit manual CI is now not only passing, but has an actionable failure diagnosis path for future GitHub annotations and runner failures.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dd1519a` | (see git log) |
 
 ### Testing
 

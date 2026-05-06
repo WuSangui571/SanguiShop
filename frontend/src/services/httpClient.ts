@@ -1,4 +1,5 @@
 import type { ApiResponseMeta, ApiResult } from '../types/api/common'
+import { readPersistedMallAccessToken } from './mallSessionStorage'
 import { readPersistedOpsAccessToken } from './opsSessionStorage'
 
 export class HttpClientError extends Error {
@@ -15,9 +16,16 @@ export class HttpClientError extends Error {
   }
 }
 
+export type AuthContext = 'ops' | 'mall' | 'none'
+
+type QueryValue = string | number | boolean | null | undefined
+
 interface RequestOptions {
   body?: unknown
+  method?: 'GET' | 'POST'
+  query?: Record<string, QueryValue>
   suppressAuthStateChange?: boolean
+  authContext?: AuthContext
 }
 
 interface JsonResponse<T> {
@@ -44,7 +52,14 @@ function createRequestTraceId(): string {
   return `trace-${Date.now()}`
 }
 
-function resolveAuthToken(): string | null {
+function resolveAuthToken(authContext: AuthContext): string | null {
+  if (authContext === 'none') {
+    return null
+  }
+  if (authContext === 'mall') {
+    return readPersistedMallAccessToken()
+  }
+
   return readPersistedOpsAccessToken()
 }
 
@@ -71,14 +86,14 @@ function toMeta<T>(response: Response, payload: ApiResult<T> | null): ApiRespons
   }
 }
 
-function buildHeaders(): HeadersInit {
+function buildHeaders(authContext: AuthContext): HeadersInit {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     'X-Trace-Id': createRequestTraceId(),
   }
 
-  const token = resolveAuthToken()
+  const token = resolveAuthToken(authContext)
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
@@ -87,11 +102,18 @@ function buildHeaders(): HeadersInit {
 }
 
 async function requestJson<T>(path: string, init: RequestOptions = {}): Promise<JsonResponse<T>> {
-  const response = await fetch(`${resolveBaseUrl()}${path}`, {
-    method: 'POST',
-    headers: buildHeaders(),
-    body: JSON.stringify(init.body ?? {}),
-  })
+  const method = init.method ?? 'POST'
+  const authContext = init.authContext ?? 'ops'
+  const requestInit: RequestInit = {
+    method,
+    headers: buildHeaders(authContext),
+  }
+
+  if (method !== 'GET') {
+    requestInit.body = JSON.stringify(init.body ?? {})
+  }
+
+  const response = await fetch(`${resolveBaseUrl()}${buildPath(path, init.query)}`, requestInit)
 
   const payload = await parseEnvelope<T>(response)
   const meta = toMeta(response, payload)
@@ -102,7 +124,7 @@ async function requestJson<T>(path: string, init: RequestOptions = {}): Promise<
   })
 
   if (!response.ok || !payload) {
-    if (!init.suppressAuthStateChange && authFailureHandler) {
+    if (!init.suppressAuthStateChange && authContext === 'ops' && authFailureHandler) {
       if (meta.status === 401) {
         authFailureHandler({ type: 'unauthorized', error })
       } else if (meta.status === 403 || meta.code === 'AUTH_FORBIDDEN') {
@@ -121,7 +143,37 @@ async function requestJson<T>(path: string, init: RequestOptions = {}): Promise<
 export async function postJson<T>(
   path: string,
   body: unknown,
-  options: { suppressAuthStateChange?: boolean } = {},
+  options: { suppressAuthStateChange?: boolean; authContext?: AuthContext } = {},
 ): Promise<JsonResponse<T>> {
-  return requestJson<T>(path, { body, suppressAuthStateChange: options.suppressAuthStateChange })
+  return requestJson<T>(path, {
+    body,
+    suppressAuthStateChange: options.suppressAuthStateChange,
+    authContext: options.authContext,
+  })
+}
+
+export async function getJson<T>(
+  path: string,
+  query: Record<string, QueryValue> = {},
+  options: { suppressAuthStateChange?: boolean; authContext?: AuthContext } = {},
+): Promise<JsonResponse<T>> {
+  return requestJson<T>(path, {
+    method: 'GET',
+    query,
+    suppressAuthStateChange: options.suppressAuthStateChange,
+    authContext: options.authContext,
+  })
+}
+
+function buildPath(path: string, query?: Record<string, QueryValue>): string {
+  const params = new URLSearchParams()
+  Object.entries(query ?? {}).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') {
+      return
+    }
+    params.set(key, String(value))
+  })
+
+  const serialized = params.toString()
+  return serialized ? `${path}?${serialized}` : path
 }

@@ -1,0 +1,21 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Mall views, services, and types placement"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Product/detail/checkout component state boundaries"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable data fetching and submit state rules"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Separate server facts from checkout draft state"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "DTO, money, time, and enum safety"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Gateway ApiResult, JWT, traceId, requestId handling"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend completion criteria"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Product list/detail public API contract"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Create order contract and idempotency"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Create payment contract and idempotency"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Mall auth boundary and JWT behavior"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer order/payment/inventory risk checklist"}
+{"file": "frontend/src/services/httpClient.ts", "reason": "Reuse ApiResult parsing, auth injection, trace header, and auth failure behavior"}
+{"file": "frontend/src/services/compensationApi.ts", "reason": "Existing service module style for API wrappers"}
+{"file": "frontend/src/types/api/common.ts", "reason": "Existing ApiResult and response meta types"}
+{"file": "frontend/src/utils/format.ts", "reason": "Reuse money formatting"}
+{"file": "frontend/src/composables/useCompensationDashboard.ts", "reason": "Existing composable state/action pattern"}
+{"file": "frontend/src/App.vue", "reason": "Existing single-shell app entry to split/admin route behavior carefully"}
+{"file": ".trellis/spec/backend/authentication-contracts.md", "reason": "Mall user login and JWT token storage contract"}
