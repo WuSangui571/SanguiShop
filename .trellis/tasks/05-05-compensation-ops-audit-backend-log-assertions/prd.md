@@ -26,6 +26,8 @@ Strengthen backend tests so protected compensation ops query/action denied and f
 - [ ] Payment compensation controller tests assert denied query audit fields.
 - [ ] Order compensation controller tests assert failed action audit fields.
 - [ ] Payment compensation controller tests assert failed action audit fields.
+- [ ] Order bulk timeout replay failed path asserts `outcome=failed`, `targetCount`, `dryRun`, `errorCode`, `path`, and `method`.
+- [ ] Payment bulk reconcile failed path asserts `outcome=failed`, `targetCount`, `dryRun`, `errorCode`, `path`, and `method`.
 - [ ] Affected Maven tests pass.
 - [ ] `$check` finds no remaining guideline issues.
 

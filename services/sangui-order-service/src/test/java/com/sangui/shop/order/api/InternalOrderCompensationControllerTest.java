@@ -247,6 +247,43 @@ class InternalOrderCompensationControllerTest {
     }
 
     @Test
+    void bulkReplayFailureLogsAuditEvent() throws Exception {
+        when(orderCompensationOpsService.bulkReplay(any(), any(), any()))
+                .thenThrow(new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
+
+        mockMvc.perform(post("/internal/orders/timeout-replays/bulk")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-order-bulk-failed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "dryRun", false,
+                                "timeoutMinutes", 15,
+                                "limit", 100,
+                                "operator", "ops-user",
+                                "orderIds", List.of(101, 102)
+                        ))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
+                .andExpect(jsonPath("$.traceId").value("trace-order-bulk-failed"));
+
+        assertAuditMessageContains(
+                "Ops audit event.",
+                "action=ops.order.timeout-replay.bulk",
+                "outcome=failed",
+                "traceId=trace-order-bulk-failed",
+                "method=POST",
+                "path=/internal/orders/timeout-replays/bulk",
+                "shopId=1",
+                "userId=ops-admin",
+                "permission=" + SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
+                "targetCount=2",
+                "dryRun=false",
+                "errorCode=ORDER_NOT_FOUND"
+        );
+    }
+
+    @Test
     void manualReplayValidatesRequest() throws Exception {
         mockMvc.perform(post("/internal/orders/timeout-replays/manual")
                         .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)

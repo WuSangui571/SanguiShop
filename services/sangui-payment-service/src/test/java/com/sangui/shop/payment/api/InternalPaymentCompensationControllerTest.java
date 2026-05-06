@@ -254,6 +254,43 @@ class InternalPaymentCompensationControllerTest {
     }
 
     @Test
+    void bulkReconcileFailureLogsAuditEvent() throws Exception {
+        when(paymentCompensationOpsService.bulkReconcile(any(), any(), any()))
+                .thenThrow(new SanguiException(PaymentErrorCode.PAYMENT_NOT_FOUND, 404));
+
+        mockMvc.perform(post("/internal/payments/reconciliations/bulk")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-payment-bulk-failed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "dryRun", true,
+                                "minAgeMinutes", 1,
+                                "limit", 100,
+                                "operator", "ops-user",
+                                "paymentNos", List.of("PAY-001", "PAY-002")
+                        ))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PAYMENT_NOT_FOUND"))
+                .andExpect(jsonPath("$.traceId").value("trace-payment-bulk-failed"));
+
+        assertAuditMessageContains(
+                "Ops audit event.",
+                "action=ops.payment.reconcile.bulk",
+                "outcome=failed",
+                "traceId=trace-payment-bulk-failed",
+                "method=POST",
+                "path=/internal/payments/reconciliations/bulk",
+                "shopId=1",
+                "userId=ops-admin",
+                "permission=" + SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
+                "targetCount=2",
+                "dryRun=true",
+                "errorCode=PAYMENT_NOT_FOUND"
+        );
+    }
+
+    @Test
     void queryRecordsValidatesRequest() throws Exception {
         mockMvc.perform(post("/internal/payments/compensation-records/query")
                         .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, ADMIN_PRINCIPAL)
