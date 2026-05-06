@@ -46,7 +46,37 @@ For real-environment operator acceptance, use `docs/compensation-ops-audit-manua
 
 ## Backend Regression Test Runbook
 
-Use this targeted backend command after changing compensation ops audit logging, controller authorization, or audit field assertions for order and payment replay/reconcile surfaces:
+Use the repo-local verification script after changing compensation ops audit logging, controller authorization, or audit field assertions for order and payment replay/reconcile surfaces:
+
+```powershell
+.\scripts\verify-compensation-ops-audit.ps1
+```
+
+The default script run executes both controller audit test classes and prints the expected class names before Maven starts:
+
+- `InternalOrderCompensationControllerTest`
+- `InternalPaymentCompensationControllerTest`
+
+Single-service investigation is supported when only one module changed:
+
+```powershell
+.\scripts\verify-compensation-ops-audit.ps1 -Service order
+.\scripts\verify-compensation-ops-audit.ps1 -Service payment
+```
+
+To keep verification independent from the user-home Maven cache, pass a repo-local cache path:
+
+```powershell
+.\scripts\verify-compensation-ops-audit.ps1 -MavenRepoLocal .\.m2\repository
+```
+
+If local Windows PowerShell policy blocks direct `.ps1` execution, invoke the same script with process-scoped bypass:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1
+```
+
+The script intentionally uses the same targeted Maven reactor shape as the command below. Keep the raw command as a troubleshooting fallback when diagnosing script or shell issues:
 
 ```powershell
 .\mvnw.cmd -q -pl services/sangui-order-service,services/sangui-payment-service -am "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
@@ -63,12 +93,13 @@ Expected service-level coverage:
 - `InternalOrderCompensationControllerTest` asserts order compensation query denial audit events, manual timeout replay audit fields, bulk timeout replay audit fields, and failed bulk replay fields including `outcome=failed`, `targetCount`, `dryRun`, `errorCode`, `path`, and `method`.
 - `InternalPaymentCompensationControllerTest` asserts payment compensation query denial audit events, manual reconcile audit fields, bulk reconcile audit fields, and failed bulk reconcile fields including `outcome=failed`, `targetCount`, `dryRun`, `errorCode`, `path`, and `method`.
 
-After the command finishes, confirm the Maven output shows both controller test classes ran in their service modules. The `failIfNoSpecifiedTests=false` flag is only for upstream dependency modules pulled in by `-am`; it must not be used as a substitute for checking that the intended service tests executed.
+After the script or fallback command finishes, confirm the Maven output shows the selected controller test class or classes ran in their service modules. The `failIfNoSpecifiedTests=false` flag is only for upstream dependency modules pulled in by `-am`; it must not be used as a substitute for checking that the intended service tests executed.
 
 Good / Base / Bad command cases:
 
-- Good: run the command above from the repository root after changing compensation ops audit controller tests or logging fields.
-- Base: run one service at a time with the same pattern when investigating a single failing module, for example `-pl services/sangui-order-service -am "-Dtest=InternalOrderCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`.
+- Good: run `.\scripts\verify-compensation-ops-audit.ps1` from the repository root after changing compensation ops audit controller tests or logging fields.
+- Good: run `.\scripts\verify-compensation-ops-audit.ps1 -Service order` or `.\scripts\verify-compensation-ops-audit.ps1 -Service payment` for single-service investigation, then confirm the matching test class executed.
+- Base: run the raw Maven fallback command above when troubleshooting the script itself.
 - Bad: run root `.\mvnw.cmd -q "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" test`; common modules can fail before the target service tests with `No tests matching pattern`.
 - Bad: run service-only `.\mvnw.cmd -q -pl services/sangui-order-service "-Dtest=InternalOrderCompensationControllerTest" test` on a clean checkout; local SNAPSHOT dependencies may be missing because upstream modules were not built.
 - Bad: use global `mvn` instead of the project Maven wrapper in docs, CI, or reproducible acceptance notes.

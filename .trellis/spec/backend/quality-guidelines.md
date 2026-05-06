@@ -47,7 +47,22 @@ Review 时先看契约，再看实现：
 
 Targeted backend service tests must use the project Maven Wrapper and must keep module selection explicit. When a `-Dtest` selector is meant for service modules only, do not run it against the full root reactor.
 
-Compensation ops audit controller regression command:
+Compensation ops audit changes should use the repo-local script entry first:
+
+```powershell
+.\scripts\verify-compensation-ops-audit.ps1
+```
+
+Script contract:
+
+- Default `-Service all` runs `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest`.
+- `-Service order` runs only `InternalOrderCompensationControllerTest` with `-pl services/sangui-order-service`.
+- `-Service payment` runs only `InternalPaymentCompensationControllerTest` with `-pl services/sangui-payment-service`.
+- `-MavenRepoLocal <path>` overrides the local Maven repository path, for example `.\scripts\verify-compensation-ops-audit.ps1 -MavenRepoLocal .\.m2\repository`.
+- The script must print the expected test class names before Maven starts; reviewers must still confirm Maven executed those classes.
+- If local Windows PowerShell policy blocks direct `.ps1` execution, use `powershell -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1` for that process only.
+
+Raw Maven fallback command for troubleshooting or non-script environments:
 
 ```powershell
 .\mvnw.cmd -q -pl services/sangui-order-service,services/sangui-payment-service -am "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
@@ -67,8 +82,9 @@ Required review checks:
 
 Good/Base/Bad cases:
 
-- Good: compensation ops audit changes run the documented command and verify both `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest` executed.
-- Good: a single-service investigation uses `-pl <service> -am "-Dtest=<OwningServiceTest>" "-Dsurefire.failIfNoSpecifiedTests=false" test` and confirms that test class ran.
+- Good: compensation ops audit changes run `.\scripts\verify-compensation-ops-audit.ps1` and verify both `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest` executed.
+- Good: a single-service investigation uses `.\scripts\verify-compensation-ops-audit.ps1 -Service order` or `.\scripts\verify-compensation-ops-audit.ps1 -Service payment` and confirms the selected test class ran.
+- Base: a direct Maven fallback uses `-pl <service> -am "-Dtest=<OwningServiceTest>" "-Dsurefire.failIfNoSpecifiedTests=false" test` and confirms that test class ran.
 - Base: full `.\mvnw.cmd -q test` remains valid before release or broad backend changes.
 - Bad: root `.\mvnw.cmd -q "-Dtest=<service-controller-test>" test` can fail in common modules with `No tests matching pattern`.
 - Bad: `-pl <service>` without `-am` can fail on a clean checkout because required local SNAPSHOT dependencies are not installed.

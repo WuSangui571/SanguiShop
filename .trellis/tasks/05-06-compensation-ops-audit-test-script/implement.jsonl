@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Targeted Maven reactor and compensation ops audit test script rules"}
+{"file": "scripts/verify.ps1", "reason": "Existing PowerShell verification script pattern"}
+{"file": "docs/compensation-ops-audit-search.md", "reason": "Runbook section that will recommend the script"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Repo script placement conventions"}
