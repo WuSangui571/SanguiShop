@@ -1585,3 +1585,73 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 36: 商城端商品浏览与下单入口 Frontend MVP
+
+**Date**: 2026-05-06
+**Task**: 商城端商品浏览与下单入口 Frontend MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Mall Storefront MVP | Added the first customer-facing mall flow: product browsing at the root storefront while `/admin...` keeps the compensation ops dashboard. |
+| Product Browse / Detail | Added product list and product detail views backed by `GET /api/products` and `GET /api/products/{productId}` with loading, empty, retry, and error states. |
+| SKU / Checkout | Added SKU selection, stock-aware quantity controls, checkout state, order creation, duplicate-submit guard, and mock payment entry. |
+| API / Types | Added typed frontend DTOs and API clients for product, order, payment, and mall login contracts; extended `httpClient` with typed GET, query parameters, and auth contexts. |
+| Session Separation | Added mall user session storage separate from compensation ops session so customer JWT and ops JWT do not pollute each other. |
+| Tests | Added model/composable tests for normal detail-to-order flow, out-of-stock SKU blocking, duplicate submit guard, and traceId error display. |
+| Known Contract Gap | Product list response still lacks list-level stock summary. Frontend intentionally avoids N+1 detail requests; list-level stock summary is a narrow backend follow-up candidate. |
+
+**Verification**:
+- Human manual testing: passed.
+- Commit: `23141f3 feat(frontend): ????????????`.
+- Prior AI verification before commit: `cmd /c npm run lint`, `cmd /c npm run typecheck`, and `cmd /c npm run build` passed; local Vitest/dev-server attempts were blocked by sandbox `spawn EPERM` before tests started.
+
+**Updated Files / Modules**:
+- `frontend/src/App.vue`
+- `frontend/src/services/httpClient.ts`
+- `frontend/src/services/productApi.ts`
+- `frontend/src/services/orderApi.ts`
+- `frontend/src/services/paymentApi.ts`
+- `frontend/src/services/mallAuthApi.ts`
+- `frontend/src/services/mallSessionStorage.ts`
+- `frontend/src/composables/useMallCheckout.ts`
+- `frontend/src/composables/useMallSession.ts`
+- `frontend/src/types/api/product.ts`
+- `frontend/src/types/api/order.ts`
+- `frontend/src/types/api/payment.ts`
+- `frontend/src/types/api/auth.ts`
+- `frontend/src/types/api/common.ts`
+- `frontend/src/views/mall/`
+- `frontend/tests/httpClientAuth.spec.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+
+**Result**:
+- SanguiShop now has a usable customer-side main path from product browse to SKU checkout and mock payment entry.
+- This shifts the project from ops/admin closure into a demonstrable ecommerce user flow.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `23141f3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
