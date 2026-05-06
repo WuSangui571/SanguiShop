@@ -19,22 +19,49 @@ Rules:
 - only `active` products are visible
 - public responses never expose persistence entities or audit fields
 
-## Admin Write APIs
+## Admin Product APIs
 
 | API | Auth | Success code | Response |
 | --- | --- | --- | --- |
-| `POST /api/admin/products` | `ADMIN` principal required | `PRODUCT_CREATED` | `ProductDetailResponse` |
-| `PUT /api/admin/products/{productId}` | `ADMIN` principal required | `PRODUCT_UPDATED` | `ProductDetailResponse` |
-| `POST /api/admin/products/{productId}/publish` | `ADMIN` principal required | `PRODUCT_PUBLISHED` | `ProductDetailResponse` |
+| `GET /api/admin/products?page=1&size=20&status=active` | `ADMIN` role or `PRODUCT_CATALOG_ADMIN` permission | `PRODUCT_ADMIN_LISTED` | `PageResponse<ProductAdminSummaryResponse>` |
+| `GET /api/admin/products/{productId}` | `ADMIN` role or `PRODUCT_CATALOG_ADMIN` permission | `PRODUCT_ADMIN_FETCHED` | `ProductDetailResponse` |
+| `POST /api/admin/products` | `ADMIN` role or `PRODUCT_CATALOG_ADMIN` permission | `PRODUCT_CREATED` | `ProductDetailResponse` |
+| `PUT /api/admin/products/{productId}` | `ADMIN` role or `PRODUCT_CATALOG_ADMIN` permission | `PRODUCT_UPDATED` | `ProductDetailResponse` |
+| `POST /api/admin/products/{productId}/publish` | `ADMIN` role or `PRODUCT_CATALOG_ADMIN` permission | `PRODUCT_PUBLISHED` | `ProductDetailResponse` |
+| `POST /api/admin/products/{productId}/status` | `ADMIN` role or `PRODUCT_CATALOG_ADMIN` permission | `PRODUCT_STATUS_UPDATED` | `ProductDetailResponse` |
+| `POST /api/admin/products/{productId}/skus/{skuId}/stock-adjustments` | `ADMIN` role or `PRODUCT_CATALOG_ADMIN` permission | `PRODUCT_SKU_STOCK_ADJUSTED` | `ProductDetailResponse` |
 
 Security rules:
 
 - controller parameters must use `SanguiPrincipal`
 - effective `shopId` and operator identity come from principal only
 - missing principal -> `AUTH_TOKEN_MISSING`
-- non-admin principal -> `AUTH_FORBIDDEN`
+- principal without `ADMIN` role and without `PRODUCT_CATALOG_ADMIN` permission -> `AUTH_FORBIDDEN`
+- gateway route `sangui-product` must forward both `/api/products/**` and `/api/admin/products/**` to product-service
 
 ## Request / Response Shapes
+
+### `ProductAdminSummaryResponse`
+
+```json
+{
+  "productId": 101,
+  "productName": "Sneaker",
+  "productDescription": "Daily trainer",
+  "minPriceCent": 59900,
+  "maxPriceCent": 69900,
+  "status": "active",
+  "skuCount": 2,
+  "availableStockTotal": 30,
+  "reservedStockTotal": 0
+}
+```
+
+Rules:
+
+- `status` filter is optional; omitted means all product statuses in the principal shop scope.
+- supported status values are `draft`, `active`, and `inactive`; unknown values fail with `PRODUCT_STATUS_INVALID`.
+- stock totals are read-model summaries only; reservation ownership remains in product-service inventory paths.
 
 ### `CreateProductRequest` / `UpdateProductRequest`
 
@@ -59,8 +86,38 @@ Rules:
 
 - `priceCent` must be positive integer cents
 - `availableStock` is optional for compatibility and defaults to `0`
+- `shopId` and `userId` remain DTO-compatible fields but admin product service must ignore them for authorization and write ownership; principal `shopId` and `userId` are authoritative
 - `skuCode` pattern: `^[A-Za-z0-9_-]+$`
 - duplicate `skuCode` values in one request are rejected
+
+### `ProductStatusUpdateRequest`
+
+```json
+{
+  "status": "inactive",
+  "requestId": "req-status-1"
+}
+```
+
+Rules:
+
+- `requestId` is required for write-path traceability and future idempotency.
+- MVP status update sets the requested `draft` / `active` / `inactive` value directly after product existence and permission checks.
+
+### `ProductSkuStockAdjustmentRequest`
+
+```json
+{
+  "availableStock": 25,
+  "requestId": "req-stock-1"
+}
+```
+
+Rules:
+
+- `availableStock` must be a non-negative integer.
+- MVP stock adjustment sets sellable stock to the requested value; it must not mutate `reservedStock`.
+- missing SKU under the current principal shop and product returns `PRODUCT_SKU_NOT_FOUND`.
 
 ### `ProductDetailResponse`
 
@@ -153,11 +210,13 @@ Required constraints / indexes:
 
 | Case | HTTP | code |
 | --- | --- | --- |
-| Missing principal on admin write API | 401 | `AUTH_TOKEN_MISSING` |
-| Non-admin principal on admin write API | 403 | `AUTH_FORBIDDEN` |
+| Missing principal on admin product API | 401 | `AUTH_TOKEN_MISSING` |
+| Principal lacks `ADMIN` and `PRODUCT_CATALOG_ADMIN` | 403 | `AUTH_FORBIDDEN` |
 | DTO validation failure | 400 | `VALIDATION_FAILED` |
 | Product missing in principal shop scope | 404 | `PRODUCT_NOT_FOUND` |
+| SKU missing in principal shop/product scope | 404 | `PRODUCT_SKU_NOT_FOUND` |
 | Publish on non-draft product | 409 | `PRODUCT_STATUS_INVALID` |
+| Unknown status filter or status update value | 409 | `PRODUCT_STATUS_INVALID` |
 | Duplicate `skuCode` in request or DB uniqueness conflict | 409 | `PRODUCT_SKU_CODE_EXISTS` |
 
 ## Required Tests
@@ -195,7 +254,7 @@ Seed behavior:
 - Duplicate demo username or mobile is accepted only when login with the configured demo credentials succeeds.
 - Product creation uses direct product-service `POST /api/admin/products` and `POST /api/admin/products/{productId}/publish`.
 - The product request carries trusted local headers: `X-Sangui-User-Id`, `X-Sangui-Shop-Id`, `X-Sangui-Roles=ADMIN`, and `X-Sangui-Jwt-Id`.
-- The command is intended for direct local service URLs. Gateway routes do not expose `/api/admin/products` in this MVP.
+- The command is intended for direct local service URLs even though gateway routes expose `/api/admin/products/**` for the admin UI.
 - Product idempotency is based on active public catalog lookup by `productName`, followed by detail validation of expected SKU codes, names, prices, and positive `availableStock`.
 - If the demo SKU codes already exist on a hidden draft/inactive product or with a conflicting payload, the command must fail clearly instead of silently overwriting non-demo data.
 
@@ -245,10 +304,13 @@ Good/Base/Bad cases:
 
 ## Good / Base / Bad Cases
 
-- Good: admin create/update/publish derive `shopId` and operator from principal.
+- Good: admin list/detail/create/update/publish/status/stock-adjust derive `shopId` and operator from principal.
+- Good: admin product APIs are available through gateway `/api/admin/products/**` and through direct product-service local URLs.
 - Good: SKU detail includes `availableStock` and `reservedStock`.
+- Good: status update and stock adjustment carry `requestId` and preserve unified `ApiResult<T>` `code/message/data/traceId/timestamp`.
 - Good: public read still exposes only active products.
 - Base: omitted `availableStock` defaults to `0`.
 - Bad: public read exposes draft products or audit fields.
 - Bad: price uses floating-point types.
 - Bad: admin write trusts body `shopId` or `userId`.
+- Bad: stock adjustment mutates `reservedStock` directly.

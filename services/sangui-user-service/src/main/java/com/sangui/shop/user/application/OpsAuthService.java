@@ -17,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class OpsAuthService {
 
     private static final List<String> OPS_SESSION_ROLES = List.of();
+    private static final List<String> ADMIN_SESSION_PERMISSIONS = List.of(
+            SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
+            SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN
+    );
 
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
@@ -74,7 +78,7 @@ public class OpsAuthService {
     private OpsAccessRegistry.ResolvedOpsAccess requireCompensationOpsAccess(Long shopId, String username) {
         OpsAccessRegistry.ResolvedOpsAccess access = opsAccessRegistry.resolve(shopId, username)
                 .orElseThrow(() -> new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403));
-        if (!access.permissions().contains(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)) {
+        if (access.permissions().stream().noneMatch(ADMIN_SESSION_PERMISSIONS::contains)) {
             throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
         }
         return access;

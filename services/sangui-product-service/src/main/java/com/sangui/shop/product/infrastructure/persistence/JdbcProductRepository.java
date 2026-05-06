@@ -2,6 +2,7 @@ package com.sangui.shop.product.infrastructure.persistence;
 
 import com.sangui.shop.common.core.api.PageRequest;
 import com.sangui.shop.common.core.api.PageResponse;
+import com.sangui.shop.product.domain.ProductAdminListItem;
 import com.sangui.shop.product.domain.ProductDraft;
 import com.sangui.shop.product.domain.ProductInventoryReservationRecord;
 import com.sangui.shop.product.domain.ProductInventoryReservationStatus;
@@ -68,6 +69,18 @@ public class JdbcProductRepository implements ProductRepository {
             ProductStatus.fromValue(rs.getString("status"))
     );
 
+    private static final RowMapper<ProductAdminListItem> ADMIN_PRODUCT_LIST_ROW_MAPPER = (rs, rowNum) -> new ProductAdminListItem(
+            rs.getLong("id"),
+            rs.getString("product_name"),
+            rs.getString("product_description"),
+            rs.getLong("min_price_cent"),
+            rs.getLong("max_price_cent"),
+            ProductStatus.fromValue(rs.getString("status")),
+            rs.getLong("sku_count"),
+            rs.getLong("available_stock_total"),
+            rs.getLong("reserved_stock_total")
+    );
+
     private final JdbcTemplate jdbcTemplate;
 
     public JdbcProductRepository(JdbcTemplate jdbcTemplate) {
@@ -110,6 +123,88 @@ public class JdbcProductRepository implements ProductRepository {
                 Long.class,
                 shopId
         );
+        return new PageResponse<>(items, total == null ? 0L : total, pageRequest.page(), pageRequest.size());
+    }
+
+    @Override
+    public PageResponse<ProductAdminListItem> listAdminProducts(Long shopId, PageRequest pageRequest, ProductStatus status) {
+        List<ProductAdminListItem> items = status == null
+                ? jdbcTemplate.query(
+                        """
+                                SELECT p.id,
+                                       p.product_name,
+                                       p.product_description,
+                                       p.status,
+                                       MIN(s.sale_price_cent) AS min_price_cent,
+                                       MAX(s.sale_price_cent) AS max_price_cent,
+                                       COUNT(s.id) AS sku_count,
+                                       COALESCE(SUM(s.available_stock), 0) AS available_stock_total,
+                                       COALESCE(SUM(s.reserved_stock), 0) AS reserved_stock_total
+                                FROM pms_product p
+                                JOIN pms_sku s
+                                  ON s.product_id = p.id
+                                 AND s.shop_id = p.shop_id
+                                 AND s.deleted = 0
+                                WHERE p.deleted = 0
+                                  AND p.shop_id = ?
+                                GROUP BY p.id, p.product_name, p.product_description, p.status
+                                ORDER BY p.id DESC
+                                LIMIT ? OFFSET ?
+                                """,
+                        ADMIN_PRODUCT_LIST_ROW_MAPPER,
+                        shopId,
+                        pageRequest.size(),
+                        (pageRequest.page() - 1L) * pageRequest.size()
+                )
+                : jdbcTemplate.query(
+                        """
+                                SELECT p.id,
+                                       p.product_name,
+                                       p.product_description,
+                                       p.status,
+                                       MIN(s.sale_price_cent) AS min_price_cent,
+                                       MAX(s.sale_price_cent) AS max_price_cent,
+                                       COUNT(s.id) AS sku_count,
+                                       COALESCE(SUM(s.available_stock), 0) AS available_stock_total,
+                                       COALESCE(SUM(s.reserved_stock), 0) AS reserved_stock_total
+                                FROM pms_product p
+                                JOIN pms_sku s
+                                  ON s.product_id = p.id
+                                 AND s.shop_id = p.shop_id
+                                 AND s.deleted = 0
+                                WHERE p.deleted = 0
+                                  AND p.shop_id = ?
+                                  AND p.status = ?
+                                GROUP BY p.id, p.product_name, p.product_description, p.status
+                                ORDER BY p.id DESC
+                                LIMIT ? OFFSET ?
+                                """,
+                        ADMIN_PRODUCT_LIST_ROW_MAPPER,
+                        shopId,
+                        status.value(),
+                        pageRequest.size(),
+                        (pageRequest.page() - 1L) * pageRequest.size()
+                );
+        Long total = status == null
+                ? jdbcTemplate.queryForObject(
+                        """
+                                SELECT COUNT(*)
+                                FROM pms_product
+                                WHERE shop_id = ? AND deleted = 0
+                                """,
+                        Long.class,
+                        shopId
+                )
+                : jdbcTemplate.queryForObject(
+                        """
+                                SELECT COUNT(*)
+                                FROM pms_product
+                                WHERE shop_id = ? AND deleted = 0 AND status = ?
+                                """,
+                        Long.class,
+                        shopId,
+                        status.value()
+                );
         return new PageResponse<>(items, total == null ? 0L : total, pageRequest.page(), pageRequest.size());
     }
 
@@ -348,6 +443,28 @@ public class JdbcProductRepository implements ProductRepository {
                 operatorUserId,
                 shopId,
                 productId
+        );
+    }
+
+    @Override
+    public int updateSkuAvailableStock(
+            Long shopId,
+            Long productId,
+            Long skuId,
+            String operatorUserId,
+            Long availableStock
+    ) {
+        return jdbcTemplate.update(
+                """
+                        UPDATE pms_sku
+                        SET available_stock = ?, updated_by = ?
+                        WHERE shop_id = ? AND product_id = ? AND id = ? AND deleted = 0
+                        """,
+                availableStock,
+                operatorUserId,
+                shopId,
+                productId,
+                skuId
         );
     }
 

@@ -4,13 +4,18 @@ import com.sangui.shop.common.core.api.PageRequest;
 import com.sangui.shop.common.core.api.PageResponse;
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.product.api.dto.CreateProductRequest;
+import com.sangui.shop.product.api.dto.ProductAdminSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductDetailResponse;
+import com.sangui.shop.product.api.dto.ProductSkuStockAdjustmentRequest;
 import com.sangui.shop.product.api.dto.ProductSkuResponse;
 import com.sangui.shop.product.api.dto.ProductSummaryResponse;
+import com.sangui.shop.product.api.dto.ProductStatusUpdateRequest;
 import com.sangui.shop.product.api.dto.UpdateProductRequest;
 import com.sangui.shop.product.api.dto.UpsertProductSkuRequest;
+import com.sangui.shop.product.domain.ProductAdminListItem;
 import com.sangui.shop.product.domain.ProductDraft;
 import com.sangui.shop.product.domain.ProductErrorCode;
 import com.sangui.shop.product.domain.ProductListItem;
@@ -62,10 +67,45 @@ public class ProductCatalogService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<ProductAdminSummaryResponse> listAdminProducts(
+            SanguiPrincipal principal,
+            PageRequest pageRequest,
+            String status
+    ) {
+        requireAdmin(principal);
+        ProductStatus requestedStatus = parseOptionalStatus(status);
+        PageResponse<ProductAdminListItem> page = productRepository.listAdminProducts(
+                principal.shopId(),
+                pageRequest,
+                requestedStatus
+        );
+        List<ProductAdminSummaryResponse> items = page.items().stream()
+                .map(item -> new ProductAdminSummaryResponse(
+                        item.productId(),
+                        item.productName(),
+                        item.productDescription(),
+                        item.minPriceCent(),
+                        item.maxPriceCent(),
+                        item.status().value(),
+                        item.skuCount(),
+                        item.availableStockTotal(),
+                        item.reservedStockTotal()
+                ))
+                .toList();
+        return new PageResponse<>(items, page.total(), page.page(), page.size());
+    }
+
+    @Transactional(readOnly = true)
     public ProductDetailResponse getProduct(Long productId) {
         ProductSnapshot snapshot = productRepository.findPublicProduct(defaultShopId, productId)
                 .orElseThrow(() -> new SanguiException(ProductErrorCode.PRODUCT_NOT_FOUND, 404));
         return toDetailResponse(snapshot);
+    }
+
+    @Transactional(readOnly = true)
+    public ProductDetailResponse getAdminProduct(SanguiPrincipal principal, Long productId) {
+        requireAdmin(principal);
+        return getAdminProduct(principal.shopId(), productId);
     }
 
     @Transactional(readOnly = true)
@@ -122,6 +162,46 @@ public class ProductCatalogService {
         return getAdminProduct(principal.shopId(), productId);
     }
 
+    @Transactional
+    public ProductDetailResponse updateProductStatus(
+            SanguiPrincipal principal,
+            Long productId,
+            ProductStatusUpdateRequest request
+    ) {
+        requireAdmin(principal);
+        requireAdminSnapshot(principal.shopId(), productId);
+        ProductStatus status = parseRequiredStatus(request.status());
+        productRepository.updateProductStatus(
+                principal.shopId(),
+                productId,
+                principal.userId(),
+                status
+        );
+        return getAdminProduct(principal.shopId(), productId);
+    }
+
+    @Transactional
+    public ProductDetailResponse adjustSkuStock(
+            SanguiPrincipal principal,
+            Long productId,
+            Long skuId,
+            ProductSkuStockAdjustmentRequest request
+    ) {
+        requireAdmin(principal);
+        requireAdminSnapshot(principal.shopId(), productId);
+        int updated = productRepository.updateSkuAvailableStock(
+                principal.shopId(),
+                productId,
+                skuId,
+                principal.userId(),
+                request.availableStock()
+        );
+        if (updated == 0) {
+            throw new SanguiException(ProductErrorCode.PRODUCT_SKU_NOT_FOUND, 404);
+        }
+        return getAdminProduct(principal.shopId(), productId);
+    }
+
     private ProductSnapshot requireAdminSnapshot(Long shopId, Long productId) {
         return productRepository.findAdminProduct(shopId, productId)
                 .orElseThrow(() -> new SanguiException(ProductErrorCode.PRODUCT_NOT_FOUND, 404));
@@ -132,8 +212,26 @@ public class ProductCatalogService {
     }
 
     private void requireAdmin(SanguiPrincipal principal) {
-        if (principal.roles() == null || !principal.roles().contains(ADMIN_ROLE)) {
+        boolean hasAdminRole = principal.roles() != null && principal.roles().contains(ADMIN_ROLE);
+        boolean hasProductAdminPermission = principal.permissions() != null
+                && principal.permissions().contains(SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN);
+        if (!hasAdminRole && !hasProductAdminPermission) {
             throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
+        }
+    }
+
+    private ProductStatus parseOptionalStatus(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return parseRequiredStatus(value);
+    }
+
+    private ProductStatus parseRequiredStatus(String value) {
+        try {
+            return ProductStatus.fromValue(value);
+        } catch (IllegalArgumentException exception) {
+            throw new SanguiException(ProductErrorCode.PRODUCT_STATUS_INVALID, 409);
         }
     }
 

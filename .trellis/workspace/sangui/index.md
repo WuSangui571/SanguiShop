@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 39
+- **Total Sessions**: 40
 - **Last Active**: 2026-05-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1825 | Active |
+| `journal-1.md` | ~1897 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 40 | 2026-05-06 | 前端国际化与主题切换基础 | `53924fb`, `8447448` | `main` |
 | 39 | 2026-05-06 | 商城商品初始化与商品公开读取修复 | `9f3a066`, `c12d4e0` | `main` |
 | 38 | 2026-05-06 | 商城端购物车与多商品结算 MVP | `0311406` | `main` |
 | 37 | 2026-05-06 | 商城订单支付状态闭环 MVP | `92110c0` | `main` |

@@ -6,8 +6,11 @@ import com.sangui.shop.common.core.api.PageResponse;
 import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.product.api.dto.CreateProductRequest;
+import com.sangui.shop.product.api.dto.ProductAdminSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductDetailResponse;
+import com.sangui.shop.product.api.dto.ProductSkuStockAdjustmentRequest;
 import com.sangui.shop.product.api.dto.ProductSummaryResponse;
+import com.sangui.shop.product.api.dto.ProductStatusUpdateRequest;
 import com.sangui.shop.product.api.dto.UpdateProductRequest;
 import com.sangui.shop.product.application.ProductCatalogService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,6 +56,32 @@ public class ProductCatalogController {
         return ApiResult.ok("PRODUCT_FETCHED", response, traceId(httpRequest));
     }
 
+    @GetMapping("/admin/products")
+    public ApiResult<PageResponse<ProductAdminSummaryResponse>> listAdminProducts(
+            SanguiPrincipal principal,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String status,
+            HttpServletRequest httpRequest
+    ) {
+        PageResponse<ProductAdminSummaryResponse> response = productCatalogService.listAdminProducts(
+                principal,
+                new PageRequest(page, size),
+                status
+        );
+        return ApiResult.ok("PRODUCT_ADMIN_LISTED", response, traceId(httpRequest));
+    }
+
+    @GetMapping("/admin/products/{productId}")
+    public ApiResult<ProductDetailResponse> getAdminProduct(
+            SanguiPrincipal principal,
+            @PathVariable @Positive Long productId,
+            HttpServletRequest httpRequest
+    ) {
+        ProductDetailResponse response = productCatalogService.getAdminProduct(principal, productId);
+        return ApiResult.ok("PRODUCT_ADMIN_FETCHED", response, traceId(httpRequest));
+    }
+
     @PostMapping("/admin/products")
     public ApiResult<ProductDetailResponse> createProduct(
             SanguiPrincipal principal,
@@ -82,6 +111,29 @@ public class ProductCatalogController {
     ) {
         ProductDetailResponse response = productCatalogService.publishProduct(principal, productId);
         return ApiResult.ok("PRODUCT_PUBLISHED", response, traceId(httpRequest));
+    }
+
+    @PostMapping("/admin/products/{productId}/status")
+    public ApiResult<ProductDetailResponse> updateProductStatus(
+            SanguiPrincipal principal,
+            @PathVariable @Positive Long productId,
+            @Valid @RequestBody ProductStatusUpdateRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        ProductDetailResponse response = productCatalogService.updateProductStatus(principal, productId, request);
+        return ApiResult.ok("PRODUCT_STATUS_UPDATED", response, traceId(httpRequest));
+    }
+
+    @PostMapping("/admin/products/{productId}/skus/{skuId}/stock-adjustments")
+    public ApiResult<ProductDetailResponse> adjustSkuStock(
+            SanguiPrincipal principal,
+            @PathVariable @Positive Long productId,
+            @PathVariable @Positive Long skuId,
+            @Valid @RequestBody ProductSkuStockAdjustmentRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        ProductDetailResponse response = productCatalogService.adjustSkuStock(principal, productId, skuId, request);
+        return ApiResult.ok("PRODUCT_SKU_STOCK_ADJUSTED", response, traceId(httpRequest));
     }
 
     private String traceId(HttpServletRequest request) {

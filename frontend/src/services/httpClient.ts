@@ -22,7 +22,7 @@ type QueryValue = string | number | boolean | null | undefined
 
 interface RequestOptions {
   body?: unknown
-  method?: 'GET' | 'POST'
+  method?: 'GET' | 'POST' | 'PUT'
   query?: Record<string, QueryValue>
   suppressAuthStateChange?: boolean
   authContext?: AuthContext
@@ -146,6 +146,19 @@ export async function postJson<T>(
   options: { suppressAuthStateChange?: boolean; authContext?: AuthContext } = {},
 ): Promise<JsonResponse<T>> {
   return requestJson<T>(path, {
+    body,
+    suppressAuthStateChange: options.suppressAuthStateChange,
+    authContext: options.authContext,
+  })
+}
+
+export async function putJson<T>(
+  path: string,
+  body: unknown,
+  options: { suppressAuthStateChange?: boolean; authContext?: AuthContext } = {},
+): Promise<JsonResponse<T>> {
+  return requestJson<T>(path, {
+    method: 'PUT',
     body,
     suppressAuthStateChange: options.suppressAuthStateChange,
     authContext: options.authContext,

@@ -19,8 +19,11 @@ import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.product.api.dto.CreateProductRequest;
+import com.sangui.shop.product.api.dto.ProductAdminSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductDetailResponse;
 import com.sangui.shop.product.api.dto.ProductSkuResponse;
+import com.sangui.shop.product.api.dto.ProductSkuStockAdjustmentRequest;
+import com.sangui.shop.product.api.dto.ProductStatusUpdateRequest;
 import com.sangui.shop.product.api.dto.ProductSummaryResponse;
 import com.sangui.shop.product.application.ProductCatalogService;
 import java.util.List;
@@ -88,6 +91,28 @@ class ProductCatalogControllerTest {
                 .andExpect(jsonPath("$.traceId").value("trace-product-detail"))
                 .andExpect(jsonPath("$.data.productId").value(101))
                 .andExpect(jsonPath("$.data.skus[0].skuCode").value("shoe-42"));
+    }
+
+    @Test
+    void listAdminProductsReturnsOverviewEnvelope() throws Exception {
+        when(productCatalogService.listAdminProducts(any(), any(), any()))
+                .thenReturn(new PageResponse<>(
+                        List.of(new ProductAdminSummaryResponse(101L, "Sneaker", "Daily trainer", 59900L, 69900L, "active", 2L, 30L, 0L)),
+                        1L,
+                        1,
+                        20
+                ));
+
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of(), java.util.Set.of(com.sangui.shop.common.security.SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN), "jwt-1");
+        mockMvc.perform(get("/api/admin/products")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-admin-product-list")
+                        .param("status", "active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("PRODUCT_ADMIN_LISTED"))
+                .andExpect(jsonPath("$.traceId").value("trace-admin-product-list"))
+                .andExpect(jsonPath("$.data.items[0].skuCount").value(2))
+                .andExpect(jsonPath("$.data.items[0].availableStockTotal").value(30));
     }
 
     @Test
@@ -196,6 +221,38 @@ class ProductCatalogControllerTest {
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-publish-product"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PRODUCT_STATUS_INVALID"));
+    }
+
+    @Test
+    void statusAndStockAdjustmentEndpointsUseAdminPrincipal() throws Exception {
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of(), java.util.Set.of(com.sangui.shop.common.security.SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN), "jwt-1");
+        when(productCatalogService.updateProductStatus(any(), eq(101L), any()))
+                .thenReturn(new ProductDetailResponse(101L, "Sneaker", "Updated", "inactive", List.of()));
+        when(productCatalogService.adjustSkuStock(any(), eq(101L), eq(201L), any()))
+                .thenReturn(new ProductDetailResponse(101L, "Sneaker", "Updated", "inactive", List.of(new ProductSkuResponse(201L, "shoe-42", "42", 59900L, 25L, 0L))));
+
+        mockMvc.perform(post("/api/admin/products/101/status")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-status-update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "status", "inactive",
+                                "requestId", "req-status-1"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("PRODUCT_STATUS_UPDATED"));
+
+        mockMvc.perform(post("/api/admin/products/101/skus/201/stock-adjustments")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-stock-adjust")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "availableStock", 25,
+                                "requestId", "req-stock-1"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("PRODUCT_SKU_STOCK_ADJUSTED"))
+                .andExpect(jsonPath("$.data.skus[0].availableStock").value(25));
     }
 
     @TestConfiguration

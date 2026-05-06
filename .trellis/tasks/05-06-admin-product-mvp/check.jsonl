@@ -1,0 +1,11 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Check backend product admin API contract and required tests."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Check gateway/admin auth route boundary."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Check error code and traceId mapping."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check backend definition of done."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check frontend gateway API and error handling."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check admin UI async states."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check i18n/theme and server/client state boundary."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check money and DTO typing."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check frontend tests and duplicate-submit guards."}

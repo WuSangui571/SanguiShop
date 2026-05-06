@@ -1823,3 +1823,75 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 40: 前端国际化与主题切换基础
+
+**Date**: 2026-05-06
+**Task**: 前端国际化与主题切换基础
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Global Preferences | Added frontend-wide language and theme preferences with localStorage persistence, root `lang/data-locale/data-theme` synchronization, and typed translation keys. Default language is Simplified Chinese and default theme is light. |
+| Language UI | Added a compact global language icon button with a secondary menu for `??`, `??`, and `English`; selecting an option switches the whole app and closes the menu. |
+| Theme UI | Added a global light/dark toggle using semantic CSS variables so major mall and ops surfaces respond consistently. |
+| Copy Migration | Migrated current mall storefront, checkout/cart/order flows, ops auth, forbidden page, compensation dashboard, aggregate cards, audit template cards, and attempt timeline labels to the shared i18n helper while keeping backend `code/message/traceId`, product names, order numbers, and IDs unmodified. |
+| Logo/Favicon | Configured Vite static favicon via `/logo.png` and moved the provided logo into `frontend/public/logo.png`. |
+| Encoding | Rewrote corrupted translation/test strings as UTF-8 text and scanned changed frontend files for mojibake patterns. |
+| Tests | Added app preference tests for defaults, persistence, root attributes, invalid fallback, and locale labels. Updated audit template card tests for default Simplified Chinese labels. Fixed an un-awaited Vitest `resolves` assertion in mall checkout tests. |
+| Spec Sync | Updated frontend state-management spec with executable rules for global app preferences, storage keys, supported locales/themes, root attributes, and required tests. |
+
+**Updated Files / Modules**:
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/components/AppPreferenceControls.vue`
+- `frontend/src/styles.css`
+- `frontend/src/App.vue`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/ProductCheckoutPanel.vue`
+- `frontend/src/views/auth/OpsLoginView.vue`
+- `frontend/src/views/auth/OpsForbiddenView.vue`
+- `frontend/src/views/admin/CompensationDashboardView.vue`
+- `frontend/src/views/admin/components/*`
+- `frontend/index.html`
+- `frontend/public/logo.png`
+- `frontend/tests/appPreferences.spec.ts`
+- `frontend/tests/auditQueryTemplateCard.spec.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `.trellis/spec/frontend/state-management.md`
+- `.trellis/tasks/archive/2026-05/05-06-frontend-i18n-theme-foundation/prd.md`
+
+**Verification**:
+- Human manual testing: passed.
+- Human test run after final fixes: passed.
+- AI verification before commit: `cmd /c npm run typecheck`, `cmd /c npm run lint`, and `cmd /c npm run build` passed.
+- AI Vitest execution remained blocked inside the sandbox by esbuild `spawn EPERM`; human local Vitest run verified the final result.
+
+**Result**:
+- SanguiShop frontend now has a global i18n/theme foundation for future pages, with default Simplified Chinese, Traditional Chinese and English support, dark/light mode, favicon support, and documented follow-on conventions.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `53924fb` | (see git log) |
+| `8447448` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

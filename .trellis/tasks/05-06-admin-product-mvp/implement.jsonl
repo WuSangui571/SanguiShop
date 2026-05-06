@@ -1,0 +1,14 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Admin product list, detail, create/update/status, and stock adjustment contract for product-service."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Admin product controller/service validation and error mapping."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend test and definition-of-done checks for product admin work."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Cross-service DTO and envelope rules for admin product APIs and gateway-routed requests."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Gateway-routed product admin API shapes, traceId/error handling, and request payload rules."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Use app preferences and keep admin product UI state separate from server facts."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Admin workspace and product management view component boundaries and states."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend tests, pending states, and traceId-preserving error handling."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Product management composable data fetching and loading/error/retry behavior."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Gateway route and admin auth boundary for /api/admin/products/**."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Money and DTO typing for product admin forms and API models."}

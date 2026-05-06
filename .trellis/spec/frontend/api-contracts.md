@@ -34,6 +34,35 @@ const request: SubmitSeckillRequest = {
 }
 ```
 
+## Admin Product Management APIs
+
+Frontend admin product management must use gateway routes through `services/productApi.ts` with `authContext: 'ops'` until a dedicated admin auth context exists.
+
+| Function | Route | Auth Context | Required UI Handling |
+| --- | --- | --- | --- |
+| `listAdminProducts({page,size,status})` | `GET /api/admin/products?page=&size=&status=` | `ops` | Show loading, empty, error, retry; omit `status` when filter is `all`. |
+| `getAdminProduct(productId)` | `GET /api/admin/products/{productId}` | `ops` | Load SKU detail after row selection and preserve backend errors. |
+| `createProduct(payload)` | `POST /api/admin/products` | `ops` | Build payload from a validated draft; disable duplicate submit while pending. |
+| `updateProduct(payload)` | `PUT /api/admin/products/{productId}` | `ops` | Keep `productId` in the path and send body fields compatible with backend DTO. |
+| `updateProductStatus(productId,payload)` | `POST /api/admin/products/{productId}/status` | `ops` | Generate `requestId`; disable status buttons while pending. |
+| `adjustSkuStock(productId,skuId,payload)` | `POST /api/admin/products/{productId}/skus/{skuId}/stock-adjustments` | `ops` | Generate `requestId`; disable stock action while pending. |
+
+Admin product model rules:
+
+- Page copy must use `useAppPreferences().t()` and new color usage must rely on semantic CSS variables.
+- Product status must tolerate unknown backend values by displaying the raw value rather than crashing.
+- Money is stored and submitted as integer cents; display uses `formatMoney(cents)`.
+- Stock inputs are non-negative integers; SKU prices are positive integer cents.
+- `shopId` and `userId` DTO fields are populated from the persisted ops/admin session for compatibility, but backend principal scope is authoritative; frontend must not hardcode a merchant magic value.
+- API errors must preserve and display backend `code`, `message`, and `traceId`.
+
+Required tests:
+
+- Product form payload trimming and cents/stock integer validation.
+- Duplicate SKU code validation.
+- Backend error `code/message/traceId` preservation.
+- Duplicate submit guard for save/status/stock write actions.
+
 ## Mall Order Status APIs
 
 Frontend customer order status flows must use these gateway routes through `services/orderApi.ts` and `services/paymentApi.ts`:

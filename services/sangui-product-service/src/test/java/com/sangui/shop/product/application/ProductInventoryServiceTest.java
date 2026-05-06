@@ -7,6 +7,7 @@ import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.product.client.dto.InventoryReserveItemRequest;
 import com.sangui.shop.product.client.dto.InventoryReserveRequest;
 import com.sangui.shop.product.domain.ProductDraft;
+import com.sangui.shop.product.domain.ProductAdminListItem;
 import com.sangui.shop.product.domain.ProductErrorCode;
 import com.sangui.shop.product.domain.ProductInventoryReservationRecord;
 import com.sangui.shop.product.domain.ProductInventoryReservationSnapshot;
@@ -114,6 +115,15 @@ class ProductInventoryServiceTest {
         public com.sangui.shop.common.core.api.PageResponse<ProductListItem> listActiveProducts(
                 Long shopId,
                 com.sangui.shop.common.core.api.PageRequest pageRequest
+        ) {
+            return new com.sangui.shop.common.core.api.PageResponse<>(List.of(), 0L, pageRequest.page(), pageRequest.size());
+        }
+
+        @Override
+        public com.sangui.shop.common.core.api.PageResponse<ProductAdminListItem> listAdminProducts(
+                Long shopId,
+                com.sangui.shop.common.core.api.PageRequest pageRequest,
+                ProductStatus status
         ) {
             return new com.sangui.shop.common.core.api.PageResponse<>(List.of(), 0L, pageRequest.page(), pageRequest.size());
         }
@@ -263,6 +273,11 @@ class ProductInventoryServiceTest {
 
         @Override
         public void updateProductStatus(Long shopId, Long productId, String operatorUserId, ProductStatus status) {
+        }
+
+        @Override
+        public int updateSkuAvailableStock(Long shopId, Long productId, Long skuId, String operatorUserId, Long availableStock) {
+            return 1;
         }
 
         private Long seedProduct(Long shopId, String operatorUserId, String productName, ProductStatus status, List<ProductSkuDraft> skus) {

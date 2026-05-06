@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import AppPreferenceControls from './components/AppPreferenceControls.vue'
 import { useAppPreferences } from './composables/useAppPreferences'
 import { useOpsAuthSession } from './composables/useOpsAuthSession'
 import OpsForbiddenView from './views/auth/OpsForbiddenView.vue'
 import OpsLoginView from './views/auth/OpsLoginView.vue'
 import CompensationDashboardView from './views/admin/CompensationDashboardView.vue'
+import ProductManagementView from './views/admin/ProductManagementView.vue'
 import MallStorefrontView from './views/mall/MallStorefrontView.vue'
 
 const { t } = useAppPreferences()
@@ -22,6 +23,10 @@ const {
   clearNotice,
 } = useOpsAuthSession()
 
+const PRODUCT_CATALOG_ADMIN_PERMISSION = 'PRODUCT_CATALOG_ADMIN'
+const OPS_COMPENSATION_ADMIN_PERMISSION = 'OPS_COMPENSATION_ADMIN'
+const activeAdminWorkspace = ref<'product' | 'compensation'>('product')
+
 const isAdminSurface = computed(() => {
   if (typeof window === 'undefined') {
     return false
@@ -29,6 +34,50 @@ const isAdminSurface = computed(() => {
 
   return window.location.pathname.startsWith('/admin')
 })
+
+const canAccessProductWorkspace = computed(() => {
+  const session = state.session
+  if (!session) {
+    return false
+  }
+  return session.roles.includes('ADMIN') || session.permissions.includes(PRODUCT_CATALOG_ADMIN_PERMISSION)
+})
+
+const canAccessCompensationWorkspace = computed(() => {
+  const session = state.session
+  if (!session) {
+    return false
+  }
+  return session.roles.includes('ADMIN') || session.permissions.includes(OPS_COMPENSATION_ADMIN_PERMISSION)
+})
+
+const availableAdminWorkspaces = computed(() => {
+  const workspaces: Array<'product' | 'compensation'> = []
+  if (canAccessProductWorkspace.value) {
+    workspaces.push('product')
+  }
+  if (canAccessCompensationWorkspace.value) {
+    workspaces.push('compensation')
+  }
+  return workspaces
+})
+
+watch(
+  availableAdminWorkspaces,
+  (workspaces) => {
+    if (workspaces.length === 0) {
+      return
+    }
+    if (!workspaces.includes(activeAdminWorkspace.value)) {
+      activeAdminWorkspace.value = workspaces[0]
+    }
+  },
+  { immediate: true },
+)
+
+function selectWorkspace(workspace: 'product' | 'compensation') {
+  activeAdminWorkspace.value = workspace
+}
 
 onMounted(() => {
   if (isAdminSurface.value) {
@@ -72,12 +121,40 @@ onMounted(() => {
         </div>
       </header>
 
+      <nav class="workspace-nav" :aria-label="t('admin.workspaceLabel')">
+        <button
+          v-if="canAccessProductWorkspace"
+          type="button"
+          class="workspace-tab"
+          :class="{ active: activeAdminWorkspace === 'product' }"
+          :aria-pressed="activeAdminWorkspace === 'product'"
+          @click="selectWorkspace('product')"
+        >
+          {{ t('admin.productWorkspace') }}
+        </button>
+        <button
+          v-if="canAccessCompensationWorkspace"
+          type="button"
+          class="workspace-tab"
+          :class="{ active: activeAdminWorkspace === 'compensation' }"
+          :aria-pressed="activeAdminWorkspace === 'compensation'"
+          @click="selectWorkspace('compensation')"
+        >
+          {{ t('admin.compensationWorkspace') }}
+        </button>
+      </nav>
+
       <div v-if="state.notice" class="notice-banner">
         <span>{{ state.notice }}</span>
         <button type="button" class="ghost-button" @click="clearNotice">{{ t('common.dismiss') }}</button>
       </div>
 
-      <CompensationDashboardView />
+      <ProductManagementView
+        v-if="activeAdminWorkspace === 'product' && canAccessProductWorkspace"
+        :session="state.session"
+        :can-access-product-workspace="canAccessProductWorkspace"
+      />
+      <CompensationDashboardView v-else />
     </section>
 
     <OpsForbiddenView
@@ -139,6 +216,29 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+.workspace-nav {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.workspace-tab {
+  min-height: 2.85rem;
+  border-radius: 0.95rem;
+  padding: 0.75rem 1.05rem;
+  font-weight: 700;
+  border: 1px solid var(--border-soft);
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+}
+
+.workspace-tab.active {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+
 .eyebrow {
   margin: 0 0 0.35rem;
   font-size: 0.78rem;
@@ -194,6 +294,10 @@ h1 {
 @media (max-width: 860px) {
   .workspace-header,
   .notice-banner {
+    display: grid;
+  }
+
+  .workspace-nav {
     display: grid;
   }
 }

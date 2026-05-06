@@ -9,6 +9,8 @@ public interface ProductRepository {
 
     PageResponse<ProductListItem> listActiveProducts(Long shopId, PageRequest pageRequest);
 
+    PageResponse<ProductAdminListItem> listAdminProducts(Long shopId, PageRequest pageRequest, ProductStatus status);
+
     Optional<ProductSnapshot> findPublicProduct(Long shopId, Long productId);
 
     Optional<ProductSnapshot> findAdminProduct(Long shopId, Long productId);
@@ -44,4 +46,6 @@ public interface ProductRepository {
     void updateProduct(Long shopId, Long productId, String operatorUserId, ProductDraft draft);
 
     void updateProductStatus(Long shopId, Long productId, String operatorUserId, ProductStatus status);
+
+    int updateSkuAvailableStock(Long shopId, Long productId, Long skuId, String operatorUserId, Long availableStock);
 }

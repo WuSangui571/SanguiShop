@@ -8,10 +8,14 @@ import com.sangui.shop.common.core.api.PageResponse;
 import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.product.api.dto.CreateProductRequest;
+import com.sangui.shop.product.api.dto.ProductAdminSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductDetailResponse;
+import com.sangui.shop.product.api.dto.ProductSkuStockAdjustmentRequest;
+import com.sangui.shop.product.api.dto.ProductStatusUpdateRequest;
 import com.sangui.shop.product.api.dto.UpdateProductRequest;
 import com.sangui.shop.product.api.dto.UpsertProductSkuRequest;
 import com.sangui.shop.product.domain.ProductDraft;
+import com.sangui.shop.product.domain.ProductAdminListItem;
 import com.sangui.shop.product.domain.ProductInventoryReservationRecord;
 import com.sangui.shop.product.domain.ProductInventoryReservationStatus;
 import com.sangui.shop.product.domain.ProductListItem;
@@ -87,6 +91,30 @@ class ProductCatalogServiceTest {
     }
 
     @Test
+    void listAdminProductsIncludesStockOverviewAndStatusFilter() {
+        productRepository.seedProduct(1L, "10001", "Draft Product", ProductStatus.DRAFT, List.of(
+                new ProductSkuDraft("draft-sku", "Draft SKU", 1000L, 5L)
+        ));
+        Long activeProductId = productRepository.seedProduct(1L, "10001", "Active Product", ProductStatus.ACTIVE, List.of(
+                new ProductSkuDraft("active-sku-a", "Active SKU A", 2000L, 8L),
+                new ProductSkuDraft("active-sku-b", "Active SKU B", 4000L, 3L)
+        ));
+
+        PageResponse<ProductAdminSummaryResponse> response = productCatalogService.listAdminProducts(
+                ADMIN_PRINCIPAL,
+                new PageRequest(1, 20),
+                "active"
+        );
+
+        assertThat(response.total()).isEqualTo(1L);
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().getFirst().productId()).isEqualTo(activeProductId);
+        assertThat(response.items().getFirst().skuCount()).isEqualTo(2L);
+        assertThat(response.items().getFirst().availableStockTotal()).isEqualTo(11L);
+        assertThat(response.items().getFirst().reservedStockTotal()).isEqualTo(0L);
+    }
+
+    @Test
     void publishProductTransitionsDraftToActive() {
         Long productId = productRepository.seedProduct(1L, "10001", "Sneaker", ProductStatus.DRAFT, List.of(
                 new ProductSkuDraft("shoe-42", "42", 59900L, 10L)
@@ -110,6 +138,31 @@ class ProductCatalogServiceTest {
                     assertThat(exception.errorCode().code()).isEqualTo("PRODUCT_STATUS_INVALID");
                     assertThat(exception.httpStatus()).isEqualTo(409);
                 });
+    }
+
+    @Test
+    void updateProductStatusAndSkuStockUseAdminScope() {
+        Long productId = productRepository.seedProduct(1L, "10001", "Sneaker", ProductStatus.DRAFT, List.of(
+                new ProductSkuDraft("shoe-42", "42", 59900L, 10L)
+        ));
+        Long skuId = productRepository.firstSkuId(productId);
+
+        ProductDetailResponse activated = productCatalogService.updateProductStatus(
+                ADMIN_PRINCIPAL,
+                productId,
+                new ProductStatusUpdateRequest("inactive", "req-status-1")
+        );
+        ProductDetailResponse adjusted = productCatalogService.adjustSkuStock(
+                ADMIN_PRINCIPAL,
+                productId,
+                skuId,
+                new ProductSkuStockAdjustmentRequest(25L, "req-stock-1")
+        );
+
+        assertThat(activated.status()).isEqualTo("inactive");
+        assertThat(adjusted.skus().getFirst().availableStock()).isEqualTo(25L);
+        assertThat(productRepository.productsById.get(productId).status()).isEqualTo(ProductStatus.INACTIVE);
+        assertThat(productRepository.skusByProductId.get(productId).getFirst().availableStock()).isEqualTo(25L);
     }
 
     @Test
@@ -201,6 +254,33 @@ class ProductCatalogServiceTest {
                                 minPrice,
                                 maxPrice,
                                 product.status()
+                        );
+                    })
+                    .toList();
+            return new PageResponse<>(items, items.size(), pageRequest.page(), pageRequest.size());
+        }
+
+        @Override
+        public PageResponse<ProductAdminListItem> listAdminProducts(Long shopId, PageRequest pageRequest, ProductStatus status) {
+            List<ProductAdminListItem> items = productsById.values().stream()
+                    .filter(product -> product.shopId().equals(shopId))
+                    .filter(product -> status == null || product.status() == status)
+                    .map(product -> {
+                        List<ProductSkuRecord> skus = skusByProductId.getOrDefault(product.id(), List.of());
+                        long minPrice = skus.stream().mapToLong(ProductSkuRecord::priceCent).min().orElse(0L);
+                        long maxPrice = skus.stream().mapToLong(ProductSkuRecord::priceCent).max().orElse(0L);
+                        long availableStockTotal = skus.stream().mapToLong(ProductSkuRecord::availableStock).sum();
+                        long reservedStockTotal = skus.stream().mapToLong(ProductSkuRecord::reservedStock).sum();
+                        return new ProductAdminListItem(
+                                product.id(),
+                                product.productName(),
+                                product.productDescription(),
+                                minPrice,
+                                maxPrice,
+                                product.status(),
+                                (long) skus.size(),
+                                availableStockTotal,
+                                reservedStockTotal
                         );
                     })
                     .toList();
@@ -323,6 +403,34 @@ class ProductCatalogServiceTest {
                     existing.createdBy(),
                     operatorUserId
             ));
+        }
+
+        @Override
+        public int updateSkuAvailableStock(Long shopId, Long productId, Long skuId, String operatorUserId, Long availableStock) {
+            lastOperatorUserId = operatorUserId;
+            List<ProductSkuRecord> skus = new ArrayList<>(skusByProductId.getOrDefault(productId, List.of()));
+            int skuIndex = -1;
+            for (int index = 0; index < skus.size(); index++) {
+                if (skus.get(index).id().equals(skuId)) {
+                    skuIndex = index;
+                    break;
+                }
+            }
+            if (skuIndex < 0) {
+                return 0;
+            }
+            ProductSkuRecord existing = skus.get(skuIndex);
+            skus.set(skuIndex, new ProductSkuRecord(
+                    existing.id(),
+                    existing.productId(),
+                    existing.skuCode(),
+                    existing.skuName(),
+                    existing.priceCent(),
+                    availableStock,
+                    existing.reservedStock()
+            ));
+            skusByProductId.put(productId, skus);
+            return 1;
         }
 
         private Long seedProduct(Long shopId, String operatorUserId, String productName, ProductStatus status, List<ProductSkuDraft> skus) {

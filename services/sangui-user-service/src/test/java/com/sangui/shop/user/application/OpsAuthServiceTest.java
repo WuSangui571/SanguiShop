@@ -126,6 +126,17 @@ class OpsAuthServiceTest {
                 });
     }
 
+    @Test
+    void loginAllowsProductCatalogAdminPermission() {
+        accessRegistry.setBindings(List.of(accessBinding(1L, "product-admin", SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN)));
+        userRepository.save(1L, "product-admin", "13800000001", passwordHasher.hash("Passw0rd!"));
+
+        OpsSessionResponse response = opsAuthService.login(new LoginUserRequest(1L, "product-admin", "Passw0rd!"));
+
+        assertThat(response.permissions()).containsExactly(SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN);
+        assertThat(tokenIssuer.lastPermissions).containsExactly(SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN);
+    }
+
     private OpsAccessRegistry.OpsAccessBinding accessBinding(Long shopId, String username, String... permissions) {
         OpsAccessRegistry.OpsAccessBinding binding = new OpsAccessRegistry.OpsAccessBinding();
         binding.setShopId(shopId);
