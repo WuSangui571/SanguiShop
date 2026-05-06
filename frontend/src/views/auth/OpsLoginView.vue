@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
+import { useAppPreferences } from '../../composables/useAppPreferences'
 import type { OpsLoginRequest } from '../../types/api/auth'
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useAppPreferences()
 
 const emit = defineEmits<{
   submitted: [payload: OpsLoginRequest]
@@ -32,10 +34,10 @@ function submit() {
 <template>
   <section class="login-shell">
     <div class="login-panel">
-      <p class="eyebrow">Ops sign-in</p>
-      <h1>Compensation operations access</h1>
+      <p class="eyebrow">{{ t('ops.loginKicker') }}</p>
+      <h1>{{ t('ops.loginTitle') }}</h1>
       <p class="intro">
-        Use a configured ops admin account to enter the dashboard directly. No manual browser token injection is required.
+        {{ t('ops.loginIntro') }}
       </p>
 
       <div v-if="notice" class="message info">{{ notice }}</div>
@@ -43,23 +45,23 @@ function submit() {
 
       <form class="login-form" @submit.prevent="submit">
         <label>
-          <span>Shop ID</span>
+          <span>{{ t('common.shopId') }}</span>
           <input v-model="form.shopId" type="number" min="1" inputmode="numeric" placeholder="1" />
         </label>
         <label>
-          <span>Username or mobile</span>
-          <input v-model="form.usernameOrMobile" autocomplete="username" placeholder="ops-admin" />
+          <span>{{ t('common.usernameOrMobile') }}</span>
+          <input v-model="form.usernameOrMobile" autocomplete="username" :placeholder="t('ops.loginUserPlaceholder')" />
         </label>
         <label>
-          <span>Password</span>
-          <input v-model="form.password" type="password" autocomplete="current-password" placeholder="••••••••" />
+          <span>{{ t('common.password') }}</span>
+          <input v-model="form.password" type="password" autocomplete="current-password" :placeholder="t('ops.passwordPlaceholder')" />
         </label>
         <button
           type="submit"
           class="primary"
           :disabled="props.isSubmitting || !form.usernameOrMobile.trim() || !form.password"
         >
-          {{ props.isSubmitting ? 'Signing in...' : 'Sign in' }}
+          {{ props.isSubmitting ? t('common.signingIn') : t('common.signIn') }}
         </button>
       </form>
     </div>
@@ -87,9 +89,9 @@ function submit() {
 .eyebrow {
   margin: 0 0 0.35rem;
   font-size: 0.78rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: #0f766e;
+  color: var(--accent);
 }
 
 h1 {
@@ -112,24 +114,24 @@ label {
   display: grid;
   gap: 0.45rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--label-text);
 }
 
 label span {
   font-size: 0.85rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #607089;
+  letter-spacing: 0;
+  color: var(--text-muted);
 }
 
 input {
   width: 100%;
   min-height: 2.9rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(20, 32, 50, 0.12);
-  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-strong);
+  background: var(--input-bg);
   padding: 0.7rem 0.85rem;
-  color: #142032;
+  color: var(--text-main);
 }
 
 .primary {
@@ -138,8 +140,8 @@ input {
   padding: 0.75rem 1.05rem;
   font-weight: 700;
   border: 1px solid transparent;
-  background: linear-gradient(135deg, #0f766e, #1d4ed8);
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
 }
 
 .primary:disabled {
@@ -154,12 +156,12 @@ input {
 }
 
 .message.info {
-  background: rgba(29, 78, 216, 0.08);
-  color: #1d4ed8;
+  background: var(--info-bg);
+  color: var(--info-text);
 }
 
 .message.error {
-  background: rgba(180, 35, 24, 0.08);
-  color: #8d1f17;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 </style>

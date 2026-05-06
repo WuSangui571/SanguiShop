@@ -1,0 +1,6 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check typecheck/build/tests, error handling, and responsive UI before finish."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check translation/theme types and avoid any/non-null assertions."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check global controls and page states remain accessible and bounded."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check backend errors preserve code/message/traceId when UI labels are localized."}

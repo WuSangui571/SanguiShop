@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useAppPreferences } from '../../composables/useAppPreferences'
 import { useMallCheckout } from '../../composables/useMallCheckout'
 import type { MallSession } from '../../types/api/auth'
 import type { ProductDetailResponse, ProductSkuResponse } from '../../types/api/product'
@@ -10,6 +11,7 @@ const props = defineProps<{
   product: ProductDetailResponse
   session: MallSession | null
 }>()
+const { t } = useAppPreferences()
 
 const emit = defineEmits<{
   orderCreated: [orderId: number]
@@ -23,12 +25,12 @@ const checkout = useMallCheckout({
 
 const stockLabel = computed(() => {
   if (!checkout.selectedSku.value) {
-    return 'No SKU selected'
+    return t('checkout.noSku')
   }
   if (checkout.selectedSku.value.availableStock <= 0) {
-    return 'Out of stock'
+    return t('checkout.outOfStock')
   }
-  return `${checkout.selectedSku.value.availableStock} available`
+  return t('checkout.available', { count: checkout.selectedSku.value.availableStock })
 })
 
 function skuTone(sku: ProductSkuResponse): string {
@@ -67,8 +69,8 @@ function addSelectedToCart() {
   <section class="checkout-panel">
     <div class="sku-header">
       <div>
-        <p class="section-kicker">SKU</p>
-        <h3>Choose variant</h3>
+        <p class="section-kicker">{{ t('checkout.sku') }}</p>
+        <h3>{{ t('checkout.chooseVariant') }}</h3>
       </div>
       <span class="stock-badge">{{ stockLabel }}</span>
     </div>
@@ -84,12 +86,12 @@ function addSelectedToCart() {
       >
         <span>{{ sku.skuName }}</span>
         <strong>{{ formatMoney(sku.priceCent) }}</strong>
-        <small>{{ sku.availableStock }} left</small>
+        <small>{{ t('checkout.left', { count: sku.availableStock }) }}</small>
       </button>
     </div>
 
     <div class="quantity-row">
-      <span>Quantity</span>
+      <span>{{ t('checkout.quantity') }}</span>
       <div class="stepper">
         <button type="button" :disabled="checkout.quantity.value <= 1" @click="checkout.setQuantity(checkout.quantity.value - 1)">
           -
@@ -106,12 +108,12 @@ function addSelectedToCart() {
     </div>
 
     <div class="checkout-total">
-      <span>Estimated item total</span>
+      <span>{{ t('checkout.estimatedTotal') }}</span>
       <strong>{{ formatMoney(checkout.orderTotalPreviewCent.value) }}</strong>
     </div>
 
     <div v-if="!session" class="inline-warning">
-      Sign in before creating an order.
+      {{ t('checkout.signInRequired') }}
     </div>
 
     <div v-if="checkout.errorMessage.value" class="inline-error">
@@ -119,7 +121,7 @@ function addSelectedToCart() {
     </div>
 
     <div v-if="checkout.order.value" class="result-strip">
-      <span>Order {{ checkout.order.value.orderNo }}</span>
+      <span>{{ t('checkout.orderCreated', { orderNo: checkout.order.value.orderNo }) }}</span>
       <strong>{{ formatMoney(checkout.order.value.totalAmountCent) }}</strong>
     </div>
 
@@ -130,7 +132,7 @@ function addSelectedToCart() {
         :disabled="!session || !checkout.canSubmit.value"
         @click="addSelectedToCart()"
       >
-        Add to cart
+        {{ t('checkout.addToCart') }}
       </button>
       <button
         type="button"
@@ -138,7 +140,7 @@ function addSelectedToCart() {
         :disabled="!session || !checkout.canSubmit.value"
         @click="submitOrder()"
       >
-        {{ checkout.isSubmittingOrder.value ? 'Creating...' : checkout.order.value ? 'Order created' : 'Buy now' }}
+        {{ checkout.isSubmittingOrder.value ? t('checkout.creating') : checkout.order.value ? t('checkout.created') : t('checkout.buyNow') }}
       </button>
     </div>
   </section>
@@ -151,7 +153,7 @@ function addSelectedToCart() {
   padding: 1rem;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--card-bg);
 }
 
 .sku-header,
@@ -167,7 +169,7 @@ function addSelectedToCart() {
 
 .section-kicker {
   margin: 0 0 0.2rem;
-  color: #0f766e;
+  color: var(--accent);
   font-size: 0.74rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -181,8 +183,8 @@ h3 {
 .stock-badge {
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
-  background: #ecfeff;
-  color: #155e75;
+  background: var(--info-bg);
+  color: var(--info-text);
   font-weight: 800;
   font-size: 0.8rem;
 }
@@ -201,19 +203,19 @@ h3 {
   padding: 0.8rem;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--surface-subtle);
   color: var(--text-main);
   text-align: left;
 }
 
 .sku-option.active {
-  border-color: #0f766e;
-  background: #ecfdf5;
+  border-color: var(--accent);
+  background: var(--active-bg);
 }
 
 .sku-option.disabled {
   color: var(--text-muted);
-  background: #f1f5f9;
+  background: var(--disabled-bg);
   cursor: not-allowed;
 }
 
@@ -237,7 +239,7 @@ h3 {
 .stepper button {
   min-height: 2.25rem;
   border: 0;
-  background: #f8fafc;
+  background: var(--surface-subtle);
   font-weight: 900;
 }
 
@@ -263,25 +265,25 @@ h3 {
 }
 
 .inline-warning {
-  background: #fff7ed;
-  color: #9a3412;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .inline-error {
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .result-strip {
   padding: 0.75rem;
   border-radius: 8px;
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--info-bg);
+  color: var(--info-text);
 }
 
 .result-strip.paid {
-  background: #ecfdf5;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .primary-action,
@@ -294,14 +296,14 @@ h3 {
 }
 
 .primary-action {
-  background: #0f766e;
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
 }
 
 .secondary-action {
-  background: #fffbeb;
-  color: #92400e;
-  border-color: #fde68a;
+  background: var(--button-secondary-warm-bg);
+  color: var(--button-secondary-warm-text);
+  border-color: var(--button-secondary-warm-border);
 }
 
 .primary-action:disabled,

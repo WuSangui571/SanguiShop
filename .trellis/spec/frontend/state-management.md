@@ -18,3 +18,37 @@
 - 价格、库存、支付状态、订单状态属于服务端事实。
 - 展开/折叠、当前 tab、表单草稿属于客户端状态。
 - 秒杀库存展示可缓存，但提交时以后端结果为准。
+
+## Global App Preferences
+
+Frontend language and theme are global client preferences, not backend facts.
+
+Files and contracts:
+
+- `frontend/src/composables/useAppPreferences.ts` owns the typed preference state.
+- `frontend/src/components/AppPreferenceControls.vue` owns the global language/theme controls.
+- Storage keys:
+  - `sangui.app.locale.v1`
+  - `sangui.app.theme.v1`
+- Supported locales:
+  - `zh-Hans` as the default primary language.
+  - `zh-Hant`.
+  - `en`.
+- Supported themes:
+  - `light` as the default theme.
+  - `dark`.
+
+Rules:
+
+- New user-facing frontend copy must be added as a typed `TranslationKey` and rendered with `t('key')`.
+- Product names, order numbers, IDs, API `code`, backend `message`, and `traceId` are business data and must not be translated by the UI.
+- Frontend fallback errors may be translated, but backend error details must preserve `code/message/traceId`.
+- New colors must use semantic CSS variables from `frontend/src/styles.css`; do not hardcode page/card/input/button colors in page components.
+- `document.documentElement` must carry the active `lang`, `data-locale`, and `data-theme` values so global CSS and browser language hints stay synchronized.
+
+Required tests:
+
+- Default locale is `zh-Hans` and default theme is `light`.
+- Locale/theme changes persist to `localStorage`.
+- Root document language and theme attributes update when preferences change.
+- Invalid stored values fall back to defaults without rendering mojibake.

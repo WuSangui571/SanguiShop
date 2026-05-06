@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useAppPreferences } from '../../../composables/useAppPreferences'
 import type {
   OrderCompensationAggregateResponse,
   PaymentCompensationAggregateResponse,
@@ -20,6 +21,7 @@ const props = defineProps<{
   manualReplayPending: boolean
   traceCopied: boolean
 }>()
+const { t } = useAppPreferences()
 
 const emit = defineEmits<{
   (event: 'manual-replay'): void
@@ -65,7 +67,7 @@ const latestTraceId = computed(() => {
     <template v-if="orderItem">
       <div class="card-head">
         <div>
-          <p class="eyebrow">Order compensation</p>
+          <p class="eyebrow">{{ t('aggregate.orderCompensation') }}</p>
           <h3>{{ orderItem.order.orderNo }}</h3>
         </div>
         <div class="pill-row">
@@ -78,38 +80,38 @@ const latestTraceId = computed(() => {
       </div>
       <dl class="facts">
         <div>
-          <dt>Order ID</dt>
+          <dt>{{ t('aggregate.orderId') }}</dt>
           <dd>{{ orderItem.order.orderId }}</dd>
         </div>
         <div>
-          <dt>User ID</dt>
+          <dt>{{ t('aggregate.userId') }}</dt>
           <dd>{{ orderItem.order.userId }}</dd>
         </div>
         <div>
-          <dt>Reservation</dt>
+          <dt>{{ t('aggregate.reservation') }}</dt>
           <dd>{{ orderItem.order.reservationNo ?? '--' }}</dd>
         </div>
         <div>
-          <dt>Amount</dt>
+          <dt>{{ t('aggregate.amount') }}</dt>
           <dd>{{ formatMoney(orderItem.order.totalAmountCent) }}</dd>
         </div>
         <div>
-          <dt>Latest Trace</dt>
+          <dt>{{ t('aggregate.latestTrace') }}</dt>
           <dd>{{ orderItem.order.lastCompensationTraceId ?? '--' }}</dd>
         </div>
         <div>
-          <dt>Latest Attempt</dt>
+          <dt>{{ t('aggregate.latestAttempt') }}</dt>
           <dd>{{ formatDateTime(orderItem.latestAttemptAt) }}</dd>
         </div>
       </dl>
       <div class="summary-strip">
-        <span>Matched attempts: {{ orderItem.matchedAttemptCount }}</span>
-        <span>Total attempts: {{ orderItem.totalAttemptCount }}</span>
-        <span>Operator: {{ orderItem.order.lastCompensationOperator ?? '--' }}</span>
+        <span>{{ t('aggregate.matchedAttempts', { count: orderItem.matchedAttemptCount }) }}</span>
+        <span>{{ t('aggregate.totalAttempts', { count: orderItem.totalAttemptCount }) }}</span>
+        <span>{{ t('aggregate.operator', { operator: orderItem.order.lastCompensationOperator ?? '--' }) }}</span>
       </div>
       <div class="action-row">
         <button type="button" class="ghost-button" :disabled="!latestTraceId" @click="emit('copy-trace')">
-          {{ traceCopied ? 'Copied trace' : 'Copy traceId' }}
+          {{ traceCopied ? t('aggregate.copiedTrace') : t('aggregate.copyTrace') }}
         </button>
         <button
           type="button"
@@ -117,11 +119,11 @@ const latestTraceId = computed(() => {
           :disabled="manualReplayDisabled"
           @click="emit('manual-replay')"
         >
-          {{ manualReplayPending ? 'Replaying...' : 'Manual replay' }}
+          {{ manualReplayPending ? t('aggregate.replaying') : t('aggregate.manualReplay') }}
         </button>
       </div>
       <details class="details">
-        <summary>View attempt detail</summary>
+        <summary>{{ t('aggregate.viewAttemptDetail') }}</summary>
         <AttemptTimeline :attempts="orderItem.attempts" />
       </details>
     </template>
@@ -129,7 +131,7 @@ const latestTraceId = computed(() => {
     <template v-else-if="paymentItem">
       <div class="card-head">
         <div>
-          <p class="eyebrow">Payment compensation</p>
+          <p class="eyebrow">{{ t('aggregate.paymentCompensation') }}</p>
           <h3>{{ paymentItem.payment.paymentNo }}</h3>
         </div>
         <div class="pill-row">
@@ -142,38 +144,38 @@ const latestTraceId = computed(() => {
       </div>
       <dl class="facts">
         <div>
-          <dt>Payment ID</dt>
+          <dt>{{ t('aggregate.paymentId') }}</dt>
           <dd>{{ paymentItem.payment.paymentId }}</dd>
         </div>
         <div>
-          <dt>Order No</dt>
+          <dt>{{ t('aggregate.orderNo') }}</dt>
           <dd>{{ paymentItem.payment.orderNo }}</dd>
         </div>
         <div>
-          <dt>Channel</dt>
+          <dt>{{ t('aggregate.channel') }}</dt>
           <dd>{{ paymentItem.payment.channel }}</dd>
         </div>
         <div>
-          <dt>Amount</dt>
+          <dt>{{ t('aggregate.amount') }}</dt>
           <dd>{{ formatMoney(paymentItem.payment.amountCent) }}</dd>
         </div>
         <div>
-          <dt>Latest Trace</dt>
+          <dt>{{ t('aggregate.latestTrace') }}</dt>
           <dd>{{ paymentItem.payment.lastCompensationTraceId ?? '--' }}</dd>
         </div>
         <div>
-          <dt>Latest Attempt</dt>
+          <dt>{{ t('aggregate.latestAttempt') }}</dt>
           <dd>{{ formatDateTime(paymentItem.latestAttemptAt) }}</dd>
         </div>
       </dl>
       <div class="summary-strip">
-        <span>Matched attempts: {{ paymentItem.matchedAttemptCount }}</span>
-        <span>Total attempts: {{ paymentItem.totalAttemptCount }}</span>
-        <span>Operator: {{ paymentItem.payment.lastCompensationOperator ?? '--' }}</span>
+        <span>{{ t('aggregate.matchedAttempts', { count: paymentItem.matchedAttemptCount }) }}</span>
+        <span>{{ t('aggregate.totalAttempts', { count: paymentItem.totalAttemptCount }) }}</span>
+        <span>{{ t('aggregate.operator', { operator: paymentItem.payment.lastCompensationOperator ?? '--' }) }}</span>
       </div>
       <div class="action-row">
         <button type="button" class="ghost-button" :disabled="!latestTraceId" @click="emit('copy-trace')">
-          {{ traceCopied ? 'Copied trace' : 'Copy traceId' }}
+          {{ traceCopied ? t('aggregate.copiedTrace') : t('aggregate.copyTrace') }}
         </button>
         <button
           type="button"
@@ -181,11 +183,11 @@ const latestTraceId = computed(() => {
           :disabled="manualReplayDisabled"
           @click="emit('manual-replay')"
         >
-          {{ manualReplayPending ? 'Replaying...' : 'Manual replay' }}
+          {{ manualReplayPending ? t('aggregate.replaying') : t('aggregate.manualReplay') }}
         </button>
       </div>
       <details class="details">
-        <summary>View attempt detail</summary>
+        <summary>{{ t('aggregate.viewAttemptDetail') }}</summary>
         <AttemptTimeline :attempts="paymentItem.attempts" />
       </details>
     </template>
@@ -198,9 +200,9 @@ const latestTraceId = computed(() => {
   gap: 1rem;
   padding: 1.2rem;
   border-radius: 1.15rem;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(20, 32, 50, 0.08);
-  box-shadow: 0 18px 40px rgba(20, 32, 50, 0.08);
+  background: var(--card-bg);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-soft);
 }
 
 .card-head {
@@ -212,9 +214,9 @@ const latestTraceId = computed(() => {
 
 .eyebrow {
   margin: 0 0 0.2rem;
-  color: #607089;
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   font-size: 0.76rem;
 }
 
@@ -238,16 +240,16 @@ h3 {
 }
 
 dt {
-  color: #607089;
+  color: var(--text-muted);
   font-size: 0.76rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
 }
 
 dd {
   margin: 0.22rem 0 0;
   word-break: break-word;
-  color: #142032;
+  color: var(--text-main);
 }
 
 .summary-strip {
@@ -256,8 +258,8 @@ dd {
   gap: 0.8rem;
   padding: 0.85rem 1rem;
   border-radius: 0.9rem;
-  background: rgba(15, 118, 110, 0.07);
-  color: #204650;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .details {
@@ -277,18 +279,18 @@ dd {
   border-radius: 0.9rem;
   padding: 0.7rem 1rem;
   font-weight: 700;
-  border: 1px solid rgba(20, 32, 50, 0.08);
+  border: 1px solid var(--border-soft);
 }
 
 .action-button {
-  background: linear-gradient(135deg, #0f766e, #1d4ed8);
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
   border-color: transparent;
 }
 
 .ghost-button {
-  background: rgba(20, 32, 50, 0.03);
-  color: #20324d;
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
 }
 
 .action-button:disabled,

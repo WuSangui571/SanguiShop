@@ -1,0 +1,704 @@
+import {
+  computed,
+  ref,
+  watch,
+  type Ref,
+} from 'vue'
+
+export const appLocales = ['zh-Hans', 'zh-Hant', 'en'] as const
+export type AppLocale = typeof appLocales[number]
+
+export const appThemes = ['light', 'dark'] as const
+export type AppTheme = typeof appThemes[number]
+
+export interface AppPreferenceStorage {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
+}
+
+interface PreferenceRoot {
+  lang: string
+  dataset: DOMStringMap
+  style: CSSStyleDeclaration
+}
+
+interface PreferenceDocument {
+  documentElement: PreferenceRoot
+}
+
+interface AppPreferenceOptions {
+  storage?: AppPreferenceStorage
+  document?: PreferenceDocument
+}
+
+export interface AppPreferences {
+  locale: Ref<AppLocale>
+  theme: Ref<AppTheme>
+  localeLabel: Ref<string>
+  themeLabel: Ref<string>
+  setLocale(locale: AppLocale): void
+  setTheme(theme: AppTheme): void
+  toggleTheme(): void
+  t(key: TranslationKey, params?: TranslationParams): string
+  stop(): void
+}
+
+export type TranslationParams = Record<string, string | number>
+
+const LOCALE_STORAGE_KEY = 'sangui.app.locale.v1'
+const THEME_STORAGE_KEY = 'sangui.app.theme.v1'
+const DEFAULT_LOCALE: AppLocale = 'zh-Hans'
+const DEFAULT_THEME: AppTheme = 'light'
+
+const zhHans = {
+  'app.language': '语言',
+  'app.theme': '主题',
+  'app.theme.light': '浅色',
+  'app.theme.dark': '深色',
+  'app.locale.zhHans': '简体',
+  'app.locale.zhHant': '繁体',
+  'app.locale.en': 'English',
+  'common.shopId': '店铺 ID',
+  'common.usernameOrMobile': '用户名或手机号',
+  'common.password': '密码',
+  'common.signIn': '登录',
+  'common.signingIn': '登录中...',
+  'common.signOut': '退出登录',
+  'common.refresh': '刷新',
+  'common.refreshing': '刷新中...',
+  'common.retry': '重试',
+  'common.dismiss': '关闭',
+  'common.prev': '上一页',
+  'common.next': '下一页',
+  'common.loading': '加载中...',
+  'common.items': '{count} 项',
+  'common.traceId': 'Trace ID',
+  'common.code': 'code',
+  'common.unknown': '未知',
+  'mall.title': '商城',
+  'mall.subtitle': '浏览上架商品，创建订单锁定库存，然后进入模拟支付。',
+  'mall.loginFallback': '无法登录。',
+  'mall.signedInAs': '用户 {userId} / 店铺 {shopId}',
+  'mall.orders.kicker': '订单',
+  'mall.orders.title': '最近购买',
+  'mall.orders.loading': '正在加载订单...',
+  'mall.orders.empty': '暂无订单。',
+  'mall.orders.resultKicker': '状态',
+  'mall.orders.resultTitle': '订单结果',
+  'mall.orders.refreshOrder': '刷新订单',
+  'mall.orders.loadingDetail': '正在加载订单详情...',
+  'mall.orders.emptyDetail': '创建或选择一个订单。',
+  'mall.orders.paymentStatus': '支付 {status}',
+  'mall.orders.orderKicker': '订单 {orderId}',
+  'mall.orders.pay': '模拟支付',
+  'mall.orders.paying': '支付中...',
+  'mall.orders.paid': '已支付',
+  'mall.orders.refreshPayment': '刷新支付',
+  'mall.orders.cancel': '取消未支付订单',
+  'mall.orders.cancelling': '取消中...',
+  'mall.cart.kicker': '购物车',
+  'mall.cart.title': '草稿结算',
+  'mall.cart.empty': '购物车为空。',
+  'mall.cart.stockSnapshot': '{skuName} - 库存快照 {stock}',
+  'mall.cart.remove': '移除',
+  'mall.cart.clear': '清空购物车',
+  'mall.cart.checkout': '结算购物车',
+  'mall.cart.checkingOut': '结算中...',
+  'mall.catalog.kicker': '商品目录',
+  'mall.catalog.title': '商品',
+  'mall.catalog.loading': '正在加载商品...',
+  'mall.catalog.empty': '暂无上架商品。',
+  'mall.catalog.loadFallback': '无法加载商品。',
+  'mall.catalog.detailFallback': '无法加载商品详情。',
+  'mall.catalog.stockOnDetail': '{status} / 库存见详情',
+  'mall.catalog.productKicker': '商品 {productId}',
+  'mall.catalog.skus': '{count} 个 SKU',
+  'mall.catalog.selectProduct': '请选择商品。',
+  'checkout.sku': 'SKU',
+  'checkout.chooseVariant': '选择规格',
+  'checkout.noSku': '未选择 SKU',
+  'checkout.outOfStock': '缺货',
+  'checkout.available': '可售 {count} 件',
+  'checkout.left': '剩余 {count}',
+  'checkout.quantity': '数量',
+  'checkout.estimatedTotal': '预估小计',
+  'checkout.signInRequired': '请先登录再创建订单。',
+  'checkout.orderCreated': '订单 {orderNo}',
+  'checkout.addToCart': '加入购物车',
+  'checkout.buyNow': '立即购买',
+  'checkout.creating': '创建中...',
+  'checkout.created': '已创建订单',
+  'ops.access': '运维访问',
+  'ops.restoringSession': '正在恢复会话',
+  'ops.restoringDescription': '正在检查最近一次补偿运维会话。',
+  'ops.compensation': '补偿运维',
+  'ops.dashboardTitle': '值班看板',
+  'ops.signedInSummary': '已以 {username} 登录店铺 {shopId}。会话过期目标：{expiresAt}。',
+  'ops.refreshSession': '刷新会话',
+  'ops.loginKicker': '运维登录',
+  'ops.loginTitle': '补偿运维访问',
+  'ops.loginIntro': '使用已配置的运维管理员账号直接进入看板，不需要手动注入浏览器 token。',
+  'ops.loginUserPlaceholder': 'ops-admin',
+  'ops.passwordPlaceholder': '请输入密码',
+  'ops.forbiddenKicker': '已认证但被拦截',
+  'ops.forbiddenTitle': '无权访问补偿运维',
+  'ops.forbiddenIntro': '当前会话属于店铺 {shopId} 的 {username}，但已不再具备所需运维权限。',
+  'ops.retryRefresh': '重试刷新',
+  'ops.forbiddenFallback': '当前会话已认证，但不再允许访问补偿运维。',
+  'dashboard.kicker': '运维看板',
+  'dashboard.title': '补偿历史控制台',
+  'dashboard.intro': '展示订单和支付服务的补偿历史，支持真实筛选、分页和尝试记录钻取。',
+  'dashboard.viewLabel': '补偿数据视图',
+  'dashboard.payment': '支付',
+  'dashboard.order': '订单',
+  'dashboard.orderId': '订单 ID',
+  'dashboard.paymentNo': '支付单号',
+  'dashboard.trigger': '触发方式',
+  'dashboard.result': '结果',
+  'dashboard.operator': '操作人',
+  'dashboard.from': '开始时间',
+  'dashboard.to': '结束时间',
+  'dashboard.runQuery': '执行查询',
+  'dashboard.reset': '重置',
+  'dashboard.replayTitle': '重放控制',
+  'dashboard.replayIntro': '单条重放在卡片上执行；批量重放以当前页作为明确有界范围。',
+  'dashboard.exportCurrentPage': '导出当前页',
+  'dashboard.replayOperator': '重放操作人',
+  'dashboard.bulkLimit': '批量上限',
+  'dashboard.dryRun': 'Dry run',
+  'dashboard.bulkRunning': '批量重放中...',
+  'dashboard.runBulkDryRun': '执行批量 dry-run',
+  'dashboard.runBulkReplay': '执行批量重放',
+  'dashboard.bulkScope': '当前批量范围：{count} 条可见 {view} 记录。',
+  'dashboard.auditKicker': '日志检索',
+  'dashboard.auditTitle': '运维审计检索模板',
+  'dashboard.auditIntro': '这些筛选面向 Kibana 或 Loki 中的结构化 `Ops audit event.` 日志，不查询补偿历史表。',
+  'dashboard.auditShopId': '审计店铺 ID',
+  'dashboard.auditTraceId': '审计 Trace ID',
+  'dashboard.auditOperator': '审计操作人',
+  'dashboard.auditAction': '审计动作',
+  'dashboard.auditOutcome': '审计结果',
+  'dashboard.openIn': '在 {platform} 打开',
+  'dashboard.copyQuery': '复制查询',
+  'dashboard.copied': '已复制',
+  'dashboard.kibanaEnabled': '在 Kibana Discover 打开',
+  'dashboard.kibanaDisabled': '设置 VITE_KIBANA_DISCOVER_URL 后启用',
+  'dashboard.lokiEnabled': '在 Loki Explore 打开',
+  'dashboard.lokiDisabled': '设置 VITE_LOKI_EXPLORE_URL 后启用',
+  'dashboard.queryResult': '查询结果',
+  'dashboard.noResponse': '尚未收到成功响应。',
+  'dashboard.pageSize': '每页条数',
+  'dashboard.pageLabel': '第 {page} / {total} 页',
+  'dashboard.viewAuditTrail': '查看审计轨迹',
+  'dashboard.fetching': '正在拉取补偿历史记录...',
+  'dashboard.empty': '当前筛选条件没有匹配的补偿聚合记录。',
+  'dashboard.lastTraceAnchor': '最后可见 trace 锚点：',
+  'dashboard.allTriggers': '全部触发方式',
+  'dashboard.manual': '手动',
+  'dashboard.scheduler': '调度',
+  'dashboard.allResults': '全部结果',
+  'dashboard.failed': '失败',
+  'dashboard.skipped': '跳过',
+  'dashboard.cancelled': '已取消',
+  'dashboard.settled': '已结算',
+  'dashboard.allAuditActions': '全部审计动作',
+  'dashboard.opsLogin': '运维登录',
+  'dashboard.opsRefresh': '运维刷新',
+  'dashboard.orderQuery': '订单查询',
+  'dashboard.orderManualReplay': '订单手动重放',
+  'dashboard.orderBulkReplay': '订单批量重放',
+  'dashboard.paymentQuery': '支付查询',
+  'dashboard.paymentManualReconcile': '支付手动对账',
+  'dashboard.paymentBulkReconcile': '支付批量对账',
+  'dashboard.allOutcomes': '全部结果',
+  'dashboard.success': '成功',
+  'dashboard.denied': '拒绝',
+  'aggregate.orderCompensation': '订单补偿',
+  'aggregate.paymentCompensation': '支付补偿',
+  'aggregate.orderId': '订单 ID',
+  'aggregate.userId': '用户 ID',
+  'aggregate.reservation': '库存预留',
+  'aggregate.amount': '金额',
+  'aggregate.latestTrace': '最近 Trace',
+  'aggregate.latestAttempt': '最近尝试',
+  'aggregate.paymentId': '支付 ID',
+  'aggregate.orderNo': '订单号',
+  'aggregate.channel': '渠道',
+  'aggregate.matchedAttempts': '匹配尝试：{count}',
+  'aggregate.totalAttempts': '总尝试：{count}',
+  'aggregate.operator': '操作人：{operator}',
+  'aggregate.copyTrace': '复制 traceId',
+  'aggregate.copiedTrace': '已复制 trace',
+  'aggregate.manualReplay': '手动重放',
+  'aggregate.replaying': '重放中...',
+  'aggregate.viewAttemptDetail': '查看尝试详情',
+  'timeline.attempt': '尝试 #{id}',
+  'timeline.traceId': 'Trace ID',
+  'timeline.trigger': '触发方式',
+  'timeline.operator': '操作人',
+  'timeline.errorCode': '错误码',
+  'timeline.noReason': '本次尝试没有持久化脱敏原因。',
+} as const
+
+export type TranslationKey = keyof typeof zhHans
+
+const zhHant: Record<TranslationKey, string> = {
+  ...zhHans,
+  'app.language': '語言',
+  'app.theme': '主題',
+  'app.theme.light': '淺色',
+  'app.theme.dark': '深色',
+  'app.locale.zhHans': '簡體',
+  'app.locale.zhHant': '繁體',
+  'common.shopId': '店鋪 ID',
+  'common.usernameOrMobile': '使用者名稱或手機號',
+  'common.password': '密碼',
+  'common.signIn': '登入',
+  'common.signingIn': '登入中...',
+  'common.signOut': '登出',
+  'common.dismiss': '關閉',
+  'common.prev': '上一頁',
+  'common.next': '下一頁',
+  'common.loading': '載入中...',
+  'common.items': '{count} 項',
+  'common.unknown': '未知',
+  'mall.title': '商城',
+  'mall.subtitle': '瀏覽上架商品，建立訂單鎖定庫存，然後進入模擬支付。',
+  'mall.loginFallback': '無法登入。',
+  'mall.signedInAs': '使用者 {userId} / 店鋪 {shopId}',
+  'mall.orders.title': '最近購買',
+  'mall.orders.loading': '正在載入訂單...',
+  'mall.orders.empty': '暫無訂單。',
+  'mall.orders.resultTitle': '訂單結果',
+  'mall.orders.refreshOrder': '刷新訂單',
+  'mall.orders.loadingDetail': '正在載入訂單詳情...',
+  'mall.orders.emptyDetail': '建立或選擇一個訂單。',
+  'mall.orders.paymentStatus': '支付 {status}',
+  'mall.orders.orderKicker': '訂單 {orderId}',
+  'mall.orders.pay': '模擬支付',
+  'mall.orders.paying': '支付中...',
+  'mall.orders.paid': '已支付',
+  'mall.orders.refreshPayment': '刷新支付',
+  'mall.orders.cancel': '取消未支付訂單',
+  'mall.orders.cancelling': '取消中...',
+  'mall.cart.kicker': '購物車',
+  'mall.cart.title': '草稿結算',
+  'mall.cart.empty': '購物車為空。',
+  'mall.cart.stockSnapshot': '{skuName} - 庫存快照 {stock}',
+  'mall.cart.remove': '移除',
+  'mall.cart.clear': '清空購物車',
+  'mall.cart.checkout': '結算購物車',
+  'mall.cart.checkingOut': '結算中...',
+  'mall.catalog.kicker': '商品目錄',
+  'mall.catalog.loading': '正在載入商品...',
+  'mall.catalog.empty': '暫無上架商品。',
+  'mall.catalog.loadFallback': '無法載入商品。',
+  'mall.catalog.detailFallback': '無法載入商品詳情。',
+  'mall.catalog.stockOnDetail': '{status} / 庫存見詳情',
+  'mall.catalog.productKicker': '商品 {productId}',
+  'mall.catalog.skus': '{count} 個 SKU',
+  'mall.catalog.selectProduct': '請選擇商品。',
+  'checkout.chooseVariant': '選擇規格',
+  'checkout.noSku': '未選擇 SKU',
+  'checkout.outOfStock': '缺貨',
+  'checkout.available': '可售 {count} 件',
+  'checkout.left': '剩餘 {count}',
+  'checkout.quantity': '數量',
+  'checkout.estimatedTotal': '預估小計',
+  'checkout.signInRequired': '請先登入再建立訂單。',
+  'checkout.orderCreated': '訂單 {orderNo}',
+  'checkout.addToCart': '加入購物車',
+  'checkout.buyNow': '立即購買',
+  'checkout.creating': '建立中...',
+  'checkout.created': '已建立訂單',
+  'ops.access': '運維訪問',
+  'ops.restoringSession': '正在恢復會話',
+  'ops.restoringDescription': '正在檢查最近一次補償運維會話。',
+  'ops.compensation': '補償運維',
+  'ops.dashboardTitle': '值班看板',
+  'ops.signedInSummary': '已以 {username} 登入店鋪 {shopId}。會話過期目標：{expiresAt}。',
+  'ops.refreshSession': '刷新會話',
+  'ops.loginKicker': '運維登入',
+  'ops.loginTitle': '補償運維訪問',
+  'ops.loginIntro': '使用已配置的運維管理員帳號直接進入看板，不需要手動注入瀏覽器 token。',
+  'ops.passwordPlaceholder': '請輸入密碼',
+  'ops.forbiddenKicker': '已認證但被攔截',
+  'ops.forbiddenTitle': '無權訪問補償運維',
+  'ops.forbiddenIntro': '目前會話屬於店鋪 {shopId} 的 {username}，但已不再具備所需運維權限。',
+  'ops.retryRefresh': '重試刷新',
+  'ops.forbiddenFallback': '目前會話已認證，但不再允許訪問補償運維。',
+  'dashboard.title': '補償歷史控制台',
+  'dashboard.intro': '展示訂單和支付服務的補償歷史，支援真實篩選、分頁和嘗試記錄鑽取。',
+  'dashboard.orderId': '訂單 ID',
+  'dashboard.runQuery': '執行查詢',
+  'dashboard.reset': '重置',
+  'dashboard.replayTitle': '重放控制',
+  'dashboard.replayIntro': '單條重放在卡片上執行；批量重放以目前頁作為明確有界範圍。',
+  'dashboard.exportCurrentPage': '匯出目前頁',
+  'dashboard.bulkScope': '目前批量範圍：{count} 條可見 {view} 記錄。',
+  'dashboard.auditTitle': '運維審計檢索模板',
+  'dashboard.auditIntro': '這些篩選面向 Kibana 或 Loki 中的結構化 `Ops audit event.` 日誌，不查詢補償歷史表。',
+  'dashboard.queryResult': '查詢結果',
+  'dashboard.noResponse': '尚未收到成功響應。',
+  'dashboard.pageLabel': '第 {page} / {total} 頁',
+  'dashboard.viewAuditTrail': '查看審計軌跡',
+  'dashboard.fetching': '正在拉取補償歷史記錄...',
+  'dashboard.empty': '目前篩選條件沒有匹配的補償聚合記錄。',
+  'dashboard.lastTraceAnchor': '最後可見 trace 錨點：',
+  'dashboard.allTriggers': '全部觸發方式',
+  'dashboard.allResults': '全部結果',
+  'dashboard.allAuditActions': '全部審計動作',
+  'dashboard.allOutcomes': '全部結果',
+  'aggregate.matchedAttempts': '匹配嘗試：{count}',
+  'aggregate.totalAttempts': '總嘗試：{count}',
+  'aggregate.operator': '操作人：{operator}',
+  'aggregate.copiedTrace': '已複製 trace',
+  'aggregate.viewAttemptDetail': '查看嘗試詳情',
+  'timeline.attempt': '嘗試 #{id}',
+  'timeline.errorCode': '錯誤碼',
+  'timeline.noReason': '本次嘗試沒有持久化脫敏原因。',
+}
+
+const en: Record<TranslationKey, string> = {
+  ...zhHans,
+  'app.language': 'Language',
+  'app.theme': 'Theme',
+  'app.theme.light': 'Light',
+  'app.theme.dark': 'Dark',
+  'app.locale.zhHans': '简体',
+  'app.locale.zhHant': '繁體',
+  'app.locale.en': 'English',
+  'common.shopId': 'Shop ID',
+  'common.usernameOrMobile': 'Username or mobile',
+  'common.password': 'Password',
+  'common.signIn': 'Sign in',
+  'common.signingIn': 'Signing in...',
+  'common.signOut': 'Sign out',
+  'common.refresh': 'Refresh',
+  'common.refreshing': 'Refreshing...',
+  'common.retry': 'Retry',
+  'common.dismiss': 'Dismiss',
+  'common.prev': 'Prev',
+  'common.next': 'Next',
+  'common.loading': 'Loading...',
+  'common.items': '{count} items',
+  'common.unknown': 'Unknown',
+  'mall.title': 'Storefront',
+  'mall.subtitle': 'Browse active catalog items, reserve stock through order creation, then enter mock payment.',
+  'mall.loginFallback': 'Unable to sign in.',
+  'mall.signedInAs': 'User {userId} / shop {shopId}',
+  'mall.orders.kicker': 'Orders',
+  'mall.orders.title': 'Recent purchases',
+  'mall.orders.loading': 'Loading orders...',
+  'mall.orders.empty': 'No orders yet.',
+  'mall.orders.resultKicker': 'Status',
+  'mall.orders.resultTitle': 'Order result',
+  'mall.orders.refreshOrder': 'Refresh order',
+  'mall.orders.loadingDetail': 'Loading order detail...',
+  'mall.orders.emptyDetail': 'Create or select an order.',
+  'mall.orders.paymentStatus': 'Payment {status}',
+  'mall.orders.orderKicker': 'Order {orderId}',
+  'mall.orders.pay': 'Mock pay',
+  'mall.orders.paying': 'Paying...',
+  'mall.orders.paid': 'Paid',
+  'mall.orders.refreshPayment': 'Refresh payment',
+  'mall.orders.cancel': 'Cancel unpaid order',
+  'mall.orders.cancelling': 'Cancelling...',
+  'mall.cart.kicker': 'Cart',
+  'mall.cart.title': 'Draft checkout',
+  'mall.cart.empty': 'Cart is empty.',
+  'mall.cart.stockSnapshot': '{skuName} - stock snapshot {stock}',
+  'mall.cart.remove': 'Remove',
+  'mall.cart.clear': 'Clear cart',
+  'mall.cart.checkout': 'Checkout cart',
+  'mall.cart.checkingOut': 'Checking out...',
+  'mall.catalog.kicker': 'Catalog',
+  'mall.catalog.title': 'Products',
+  'mall.catalog.loading': 'Loading products...',
+  'mall.catalog.empty': 'No active products.',
+  'mall.catalog.loadFallback': 'Unable to load products.',
+  'mall.catalog.detailFallback': 'Unable to load product detail.',
+  'mall.catalog.stockOnDetail': '{status} / stock shown on detail',
+  'mall.catalog.productKicker': 'Product {productId}',
+  'mall.catalog.skus': '{count} SKUs',
+  'mall.catalog.selectProduct': 'Select a product.',
+  'checkout.sku': 'SKU',
+  'checkout.chooseVariant': 'Choose variant',
+  'checkout.noSku': 'No SKU selected',
+  'checkout.outOfStock': 'Out of stock',
+  'checkout.available': '{count} available',
+  'checkout.left': '{count} left',
+  'checkout.quantity': 'Quantity',
+  'checkout.estimatedTotal': 'Estimated item total',
+  'checkout.signInRequired': 'Sign in before creating an order.',
+  'checkout.orderCreated': 'Order {orderNo}',
+  'checkout.addToCart': 'Add to cart',
+  'checkout.buyNow': 'Buy now',
+  'checkout.creating': 'Creating...',
+  'checkout.created': 'Order created',
+  'ops.access': 'Ops access',
+  'ops.restoringSession': 'Restoring session',
+  'ops.restoringDescription': 'Checking the last compensation operations session.',
+  'ops.compensation': 'Compensation ops',
+  'ops.dashboardTitle': 'On-call dashboard',
+  'ops.signedInSummary': 'Signed in as {username} for shop {shopId}. Session expiry target: {expiresAt}.',
+  'ops.refreshSession': 'Refresh session',
+  'ops.loginKicker': 'Ops sign-in',
+  'ops.loginTitle': 'Compensation operations access',
+  'ops.loginIntro': 'Use a configured ops admin account to enter the dashboard directly. No manual browser token injection is required.',
+  'ops.loginUserPlaceholder': 'ops-admin',
+  'ops.passwordPlaceholder': 'Enter password',
+  'ops.forbiddenKicker': 'Authenticated but blocked',
+  'ops.forbiddenTitle': 'Compensation ops access denied',
+  'ops.forbiddenIntro': 'The current session belongs to {username} in shop {shopId}, but it no longer has the required operations access.',
+  'ops.retryRefresh': 'Retry refresh',
+  'ops.forbiddenFallback': 'Current session is authenticated but no longer allowed to use compensation operations.',
+  'dashboard.kicker': 'Ops dashboard',
+  'dashboard.title': 'Compensation history console',
+  'dashboard.intro': 'History-backed compensation records from order and payment services, wired for real filtering, paging, and attempt drill-down.',
+  'dashboard.viewLabel': 'Compensation data views',
+  'dashboard.payment': 'Payment',
+  'dashboard.order': 'Order',
+  'dashboard.orderId': 'Order ID',
+  'dashboard.paymentNo': 'Payment No',
+  'dashboard.trigger': 'Trigger',
+  'dashboard.result': 'Result',
+  'dashboard.operator': 'Operator',
+  'dashboard.from': 'From',
+  'dashboard.to': 'To',
+  'dashboard.runQuery': 'Run query',
+  'dashboard.reset': 'Reset',
+  'dashboard.replayTitle': 'Replay controls',
+  'dashboard.replayIntro': 'Manual replay runs per card. Bulk replay uses the current page as explicit bounded scope.',
+  'dashboard.exportCurrentPage': 'Export current page',
+  'dashboard.replayOperator': 'Replay operator',
+  'dashboard.bulkLimit': 'Bulk limit',
+  'dashboard.dryRun': 'Dry run',
+  'dashboard.bulkRunning': 'Running bulk replay...',
+  'dashboard.runBulkDryRun': 'Run bulk dry-run',
+  'dashboard.runBulkReplay': 'Run bulk replay',
+  'dashboard.bulkScope': 'Current bulk scope: {count} visible {view} record(s).',
+  'dashboard.auditKicker': 'Log search',
+  'dashboard.auditTitle': 'Ops audit search templates',
+  'dashboard.auditIntro': 'These filters target structured `Ops audit event.` logs in Kibana or Loki. They do not query compensation history tables.',
+  'dashboard.auditShopId': 'Audit shop ID',
+  'dashboard.auditTraceId': 'Audit trace ID',
+  'dashboard.auditOperator': 'Audit operator',
+  'dashboard.auditAction': 'Audit action',
+  'dashboard.auditOutcome': 'Audit outcome',
+  'dashboard.openIn': 'Open in {platform}',
+  'dashboard.copyQuery': 'Copy query',
+  'dashboard.copied': 'Copied',
+  'dashboard.kibanaEnabled': 'Open in Kibana Discover',
+  'dashboard.kibanaDisabled': 'Set VITE_KIBANA_DISCOVER_URL to enable',
+  'dashboard.lokiEnabled': 'Open in Loki Explore',
+  'dashboard.lokiDisabled': 'Set VITE_LOKI_EXPLORE_URL to enable',
+  'dashboard.queryResult': 'Query result',
+  'dashboard.noResponse': 'No successful response received yet.',
+  'dashboard.pageSize': 'Page size',
+  'dashboard.pageLabel': 'Page {page} / {total}',
+  'dashboard.viewAuditTrail': 'View audit trail',
+  'dashboard.fetching': 'Fetching compensation history records...',
+  'dashboard.empty': 'No compensation aggregate matched the current filter set.',
+  'dashboard.lastTraceAnchor': 'Last visible trace anchor:',
+  'dashboard.allTriggers': 'All triggers',
+  'dashboard.manual': 'Manual',
+  'dashboard.scheduler': 'Scheduler',
+  'dashboard.allResults': 'All results',
+  'dashboard.failed': 'Failed',
+  'dashboard.skipped': 'Skipped',
+  'dashboard.cancelled': 'Cancelled',
+  'dashboard.settled': 'Settled',
+  'dashboard.allAuditActions': 'All audit actions',
+  'dashboard.opsLogin': 'Ops login',
+  'dashboard.opsRefresh': 'Ops refresh',
+  'dashboard.orderQuery': 'Order query',
+  'dashboard.orderManualReplay': 'Order manual replay',
+  'dashboard.orderBulkReplay': 'Order bulk replay',
+  'dashboard.paymentQuery': 'Payment query',
+  'dashboard.paymentManualReconcile': 'Payment manual reconcile',
+  'dashboard.paymentBulkReconcile': 'Payment bulk reconcile',
+  'dashboard.allOutcomes': 'All outcomes',
+  'dashboard.success': 'Success',
+  'dashboard.denied': 'Denied',
+  'aggregate.orderCompensation': 'Order compensation',
+  'aggregate.paymentCompensation': 'Payment compensation',
+  'aggregate.orderId': 'Order ID',
+  'aggregate.userId': 'User ID',
+  'aggregate.reservation': 'Reservation',
+  'aggregate.amount': 'Amount',
+  'aggregate.latestTrace': 'Latest Trace',
+  'aggregate.latestAttempt': 'Latest Attempt',
+  'aggregate.paymentId': 'Payment ID',
+  'aggregate.orderNo': 'Order No',
+  'aggregate.channel': 'Channel',
+  'aggregate.matchedAttempts': 'Matched attempts: {count}',
+  'aggregate.totalAttempts': 'Total attempts: {count}',
+  'aggregate.operator': 'Operator: {operator}',
+  'aggregate.copyTrace': 'Copy traceId',
+  'aggregate.copiedTrace': 'Copied trace',
+  'aggregate.manualReplay': 'Manual replay',
+  'aggregate.replaying': 'Replaying...',
+  'aggregate.viewAttemptDetail': 'View attempt detail',
+  'timeline.attempt': 'Attempt #{id}',
+  'timeline.traceId': 'Trace ID',
+  'timeline.trigger': 'Trigger',
+  'timeline.operator': 'Operator',
+  'timeline.errorCode': 'Error Code',
+  'timeline.noReason': 'No sanitized reason was persisted for this attempt.',
+}
+
+const translations: Record<AppLocale, Record<TranslationKey, string>> = {
+  'zh-Hans': zhHans,
+  'zh-Hant': zhHant,
+  en,
+}
+
+let singleton: AppPreferences | null = null
+
+export function useAppPreferences(): AppPreferences {
+  if (!singleton) {
+    singleton = createAppPreferences()
+  }
+
+  return singleton
+}
+
+export function createAppPreferences(options: AppPreferenceOptions = {}): AppPreferences {
+  const storage = options.storage ?? getBrowserStorage()
+  const targetDocument = options.document ?? getBrowserDocument()
+  const locale = ref(readLocale(storage))
+  const theme = ref(readTheme(storage))
+  const localeLabel = computed(() => getLocaleLabel(locale.value))
+  const themeLabel = computed(() => translateWithLocale(locale.value, theme.value === 'dark' ? 'app.theme.dark' : 'app.theme.light'))
+
+  const stopWatch = watch([locale, theme], () => {
+    writePreference(storage, LOCALE_STORAGE_KEY, locale.value)
+    writePreference(storage, THEME_STORAGE_KEY, theme.value)
+    applyDocumentPreferences(targetDocument, locale.value, theme.value)
+  }, { immediate: true })
+
+  function setLocale(nextLocale: AppLocale) {
+    locale.value = nextLocale
+  }
+
+  function setTheme(nextTheme: AppTheme) {
+    theme.value = nextTheme
+  }
+
+  function toggleTheme() {
+    theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  }
+
+  function t(key: TranslationKey, params: TranslationParams = {}): string {
+    return interpolate(translateWithLocale(locale.value, key), params)
+  }
+
+  function stop() {
+    stopWatch()
+  }
+
+  return {
+    locale,
+    theme,
+    localeLabel,
+    themeLabel,
+    setLocale,
+    setTheme,
+    toggleTheme,
+    t,
+    stop,
+  }
+}
+
+export function isAppLocale(value: string | null): value is AppLocale {
+  return appLocales.some((locale) => locale === value)
+}
+
+export function isAppTheme(value: string | null): value is AppTheme {
+  return appThemes.some((theme) => theme === value)
+}
+
+export function getLocaleLabel(locale: AppLocale): string {
+  return translateWithLocale(locale, locale === 'zh-Hans'
+    ? 'app.locale.zhHans'
+    : locale === 'zh-Hant'
+      ? 'app.locale.zhHant'
+      : 'app.locale.en')
+}
+
+function readLocale(storage: AppPreferenceStorage | null): AppLocale {
+  const stored = readPreference(storage, LOCALE_STORAGE_KEY)
+  return isAppLocale(stored) ? stored : DEFAULT_LOCALE
+}
+
+function readTheme(storage: AppPreferenceStorage | null): AppTheme {
+  const stored = readPreference(storage, THEME_STORAGE_KEY)
+  return isAppTheme(stored) ? stored : DEFAULT_THEME
+}
+
+function readPreference(storage: AppPreferenceStorage | null, key: string): string | null {
+  try {
+    return storage?.getItem(key) ?? null
+  } catch {
+    return null
+  }
+}
+
+function writePreference(storage: AppPreferenceStorage | null, key: string, value: string) {
+  try {
+    storage?.setItem(key, value)
+  } catch {
+    // Preference persistence is best-effort; the in-memory state still drives the UI.
+  }
+}
+
+function translateWithLocale(locale: AppLocale, key: TranslationKey): string {
+  return translations[locale][key] ?? translations[DEFAULT_LOCALE][key] ?? key
+}
+
+function interpolate(template: string, params: TranslationParams): string {
+  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => {
+    const value = params[key]
+    return value === undefined ? match : String(value)
+  })
+}
+
+function applyDocumentPreferences(targetDocument: PreferenceDocument | null, locale: AppLocale, theme: AppTheme) {
+  const root = targetDocument?.documentElement
+  if (!root) {
+    return
+  }
+
+  root.lang = localeToHtmlLang(locale)
+  root.dataset.locale = locale
+  root.dataset.theme = theme
+  root.style.setProperty('color-scheme', theme)
+}
+
+function localeToHtmlLang(locale: AppLocale): string {
+  if (locale === 'zh-Hant') {
+    return 'zh-Hant'
+  }
+  if (locale === 'en') {
+    return 'en'
+  }
+
+  return 'zh-CN'
+}
+
+function getBrowserStorage(): AppPreferenceStorage | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  return window.localStorage
+}
+
+function getBrowserDocument(): PreferenceDocument | null {
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  return document
+}

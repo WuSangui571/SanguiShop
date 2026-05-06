@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useAppPreferences } from '../../composables/useAppPreferences'
 import { useCompensationDashboard } from '../../composables/useCompensationDashboard'
 import type { AuditQueryKind, DashboardItem } from './compensationDashboardModel'
 import {
@@ -55,15 +56,16 @@ const {
   applyAuditTrail,
   exportCurrentPage,
 } = useCompensationDashboard()
+const { t } = useAppPreferences()
 
 const pageLabel = computed(() => {
   const current = response.value
   if (!current) {
-    return 'Page 0 / 0'
+    return t('dashboard.pageLabel', { page: 0, total: 0 })
   }
 
   const totalPages = Math.max(1, Math.ceil(current.total / current.pageSize))
-  return `Page ${current.pageNo} / ${totalPages}`
+  return t('dashboard.pageLabel', { page: current.pageNo, total: totalPages })
 })
 
 function previousPage() {
@@ -126,27 +128,79 @@ function handleOpenAuditQuery(kind: AuditQueryKind) {
 function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0]) {
   applyAuditTrail(nextFilters)
 }
+
+function triggerOptionLabel(value: string): string {
+  if (value === 'manual') {
+    return t('dashboard.manual')
+  }
+  if (value === 'scheduler') {
+    return t('dashboard.scheduler')
+  }
+  return t('dashboard.allTriggers')
+}
+
+function resultOptionLabel(value: string): string {
+  if (value === 'failed') {
+    return t('dashboard.failed')
+  }
+  if (value === 'skipped') {
+    return t('dashboard.skipped')
+  }
+  if (value === 'cancelled') {
+    return t('dashboard.cancelled')
+  }
+  if (value === 'settled') {
+    return t('dashboard.settled')
+  }
+  return t('dashboard.allResults')
+}
+
+function auditActionOptionLabel(value: string): string {
+  const labels: Record<string, ReturnType<typeof t>> = {
+    'ops.auth.login': t('dashboard.opsLogin'),
+    'ops.auth.refresh': t('dashboard.opsRefresh'),
+    'ops.order.compensation.query': t('dashboard.orderQuery'),
+    'ops.order.timeout-replay.manual': t('dashboard.orderManualReplay'),
+    'ops.order.timeout-replay.bulk': t('dashboard.orderBulkReplay'),
+    'ops.payment.compensation.query': t('dashboard.paymentQuery'),
+    'ops.payment.reconcile.manual': t('dashboard.paymentManualReconcile'),
+    'ops.payment.reconcile.bulk': t('dashboard.paymentBulkReconcile'),
+  }
+  return labels[value] ?? t('dashboard.allAuditActions')
+}
+
+function auditOutcomeOptionLabel(value: string): string {
+  if (value === 'success') {
+    return t('dashboard.success')
+  }
+  if (value === 'failed') {
+    return t('dashboard.failed')
+  }
+  if (value === 'denied') {
+    return t('dashboard.denied')
+  }
+  return t('dashboard.allOutcomes')
+}
 </script>
 
 <template>
   <main class="dashboard-shell">
     <section class="hero">
       <div>
-        <p class="kicker">Ops dashboard</p>
-        <h1>Compensation history console</h1>
+        <p class="kicker">{{ t('dashboard.kicker') }}</p>
+        <h1>{{ t('dashboard.title') }}</h1>
         <p class="intro">
-          History-backed compensation records from order and payment services, wired for real filtering,
-          paging, and attempt drill-down.
+          {{ t('dashboard.intro') }}
         </p>
       </div>
-      <div class="view-toggle" role="tablist" aria-label="Compensation data views">
+      <div class="view-toggle" role="tablist" :aria-label="t('dashboard.viewLabel')">
         <button
           type="button"
           class="toggle-button"
           :data-active="activeView === 'payment'"
           @click="selectView('payment')"
         >
-          Payment
+          {{ t('dashboard.payment') }}
         </button>
         <button
           type="button"
@@ -154,7 +208,7 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
           :data-active="activeView === 'order'"
           @click="selectView('order')"
         >
-          Order
+          {{ t('dashboard.order') }}
         </button>
       </div>
     </section>
@@ -162,55 +216,55 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
     <section class="panel filters-panel">
       <form class="filters-grid" @submit.prevent="onSubmit">
         <label>
-          <span>Shop ID</span>
+          <span>{{ t('common.shopId') }}</span>
           <input v-model="filters.shopId" type="number" min="1" inputmode="numeric" placeholder="1" />
         </label>
         <label>
-          <span>Order ID</span>
+          <span>{{ t('dashboard.orderId') }}</span>
           <input v-model="filters.orderId" type="number" min="1" inputmode="numeric" placeholder="101" />
         </label>
         <label v-if="activeView === 'payment'">
-          <span>Payment No</span>
+          <span>{{ t('dashboard.paymentNo') }}</span>
           <input v-model="filters.paymentNo" placeholder="PAY-001" />
         </label>
         <label>
-          <span>Trigger</span>
+          <span>{{ t('dashboard.trigger') }}</span>
           <select v-model="filters.trigger">
             <option v-for="option in triggerOptions" :key="option.label" :value="option.value">
-              {{ option.label }}
+              {{ triggerOptionLabel(option.value) }}
             </option>
           </select>
         </label>
         <label>
-          <span>Result</span>
+          <span>{{ t('dashboard.result') }}</span>
           <select v-model="filters.result">
             <option v-for="option in resultOptions" :key="option.label" :value="option.value">
-              {{ option.label }}
+              {{ resultOptionLabel(option.value) }}
             </option>
           </select>
         </label>
         <label>
-          <span>Operator</span>
+          <span>{{ t('dashboard.operator') }}</span>
           <input v-model="filters.operator" placeholder="ops-user" />
         </label>
         <label>
-          <span>Trace ID</span>
+          <span>{{ t('common.traceId') }}</span>
           <input v-model="filters.traceId" placeholder="trace-manual-payment" />
         </label>
         <label>
-          <span>From</span>
+          <span>{{ t('dashboard.from') }}</span>
           <input v-model="filters.fromTime" type="datetime-local" />
         </label>
         <label>
-          <span>To</span>
+          <span>{{ t('dashboard.to') }}</span>
           <input v-model="filters.toTime" type="datetime-local" />
         </label>
         <div class="actions">
           <button type="submit" class="primary" :disabled="isLoading">
-            {{ isLoading ? 'Loading...' : 'Run query' }}
+            {{ isLoading ? t('common.loading') : t('dashboard.runQuery') }}
           </button>
           <button type="button" class="secondary" :disabled="isLoading" @click="onReset">
-            Reset
+            {{ t('dashboard.reset') }}
           </button>
         </div>
       </form>
@@ -219,26 +273,26 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
     <section class="panel replay-panel">
       <div class="panel-head compact-head">
         <div>
-          <h2>Replay controls</h2>
+          <h2>{{ t('dashboard.replayTitle') }}</h2>
           <p class="meta">
-            Manual replay runs per card. Bulk replay uses the current page as explicit bounded scope.
+            {{ t('dashboard.replayIntro') }}
           </p>
         </div>
         <button type="button" class="secondary" :disabled="items.length === 0" @click="handleExport">
-          Export current page
+          {{ t('dashboard.exportCurrentPage') }}
         </button>
       </div>
       <div class="replay-grid">
         <label>
-          <span>Replay operator</span>
+          <span>{{ t('dashboard.replayOperator') }}</span>
           <input v-model="replayControls.operator" placeholder="ops-oncall" />
         </label>
         <label>
-          <span>Bulk limit</span>
+          <span>{{ t('dashboard.bulkLimit') }}</span>
           <input v-model.number="replayControls.bulkLimit" type="number" min="1" inputmode="numeric" />
         </label>
         <label class="checkbox-field">
-          <span>Dry run</span>
+          <span>{{ t('dashboard.dryRun') }}</span>
           <input v-model="replayControls.dryRun" type="checkbox" />
         </label>
         <div class="replay-actions">
@@ -248,10 +302,10 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
             :disabled="!canRunReplay || isAnyReplayRunning || items.length === 0 || isLoading"
             @click="onRunBulkReplay"
           >
-            {{ isBulkRunning ? 'Running bulk replay...' : replayControls.dryRun ? 'Run bulk dry-run' : 'Run bulk replay' }}
+            {{ isBulkRunning ? t('dashboard.bulkRunning') : replayControls.dryRun ? t('dashboard.runBulkDryRun') : t('dashboard.runBulkReplay') }}
           </button>
           <p class="footnote compact-note">
-            Current bulk scope: {{ bulkTargetCount }} visible {{ activeView }} record(s).
+            {{ t('dashboard.bulkScope', { count: bulkTargetCount, view: activeView }) }}
           </p>
         </div>
       </div>
@@ -260,40 +314,39 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
     <section class="panel audit-panel" aria-labelledby="audit-search-heading">
       <div class="panel-head compact-head">
         <div>
-          <p class="kicker">Log search</p>
-          <h2 id="audit-search-heading">Ops audit search templates</h2>
+          <p class="kicker">{{ t('dashboard.auditKicker') }}</p>
+          <h2 id="audit-search-heading">{{ t('dashboard.auditTitle') }}</h2>
           <p class="meta">
-            These filters target structured `Ops audit event.` logs in Kibana or Loki. They do not query
-            compensation history tables.
+            {{ t('dashboard.auditIntro') }}
           </p>
         </div>
       </div>
       <div class="audit-grid">
         <label>
-          <span>Audit shop ID</span>
+          <span>{{ t('dashboard.auditShopId') }}</span>
           <input v-model="auditFilters.shopId" type="number" min="1" inputmode="numeric" placeholder="1" />
         </label>
         <label>
-          <span>Audit trace ID</span>
+          <span>{{ t('dashboard.auditTraceId') }}</span>
           <input v-model="auditFilters.traceId" placeholder="trace-payment-manual" />
         </label>
         <label>
-          <span>Audit operator</span>
+          <span>{{ t('dashboard.auditOperator') }}</span>
           <input v-model="auditFilters.operator" placeholder="ops-user" />
         </label>
         <label>
-          <span>Audit action</span>
+          <span>{{ t('dashboard.auditAction') }}</span>
           <select v-model="auditFilters.action">
             <option v-for="option in auditActionOptions" :key="option.label" :value="option.value">
-              {{ option.label }}
+              {{ auditActionOptionLabel(option.value) }}
             </option>
           </select>
         </label>
         <label>
-          <span>Audit outcome</span>
+          <span>{{ t('dashboard.auditOutcome') }}</span>
           <select v-model="auditFilters.outcome">
             <option v-for="option in auditOutcomeOptions" :key="option.label" :value="option.value">
-              {{ option.label }}
+              {{ auditOutcomeOptionLabel(option.value) }}
             </option>
           </select>
         </label>
@@ -306,8 +359,8 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
           kind="kibanaKql"
           platform-label="Kibana"
           :copied="copiedAuditQueryKey === 'kibanaKql'"
-          enabled-title="Open in Kibana Discover"
-          disabled-title="Set VITE_KIBANA_DISCOVER_URL to enable"
+          :enabled-title="t('dashboard.kibanaEnabled')"
+          :disabled-title="t('dashboard.kibanaDisabled')"
           @copy="handleCopyAuditQuery"
           @open="handleOpenAuditQuery"
         />
@@ -318,8 +371,8 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
           kind="kibanaLucene"
           platform-label="Kibana"
           :copied="copiedAuditQueryKey === 'kibanaLucene'"
-          enabled-title="Open in Kibana Discover"
-          disabled-title="Set VITE_KIBANA_DISCOVER_URL to enable"
+          :enabled-title="t('dashboard.kibanaEnabled')"
+          :disabled-title="t('dashboard.kibanaDisabled')"
           @copy="handleCopyAuditQuery"
           @open="handleOpenAuditQuery"
         />
@@ -330,8 +383,8 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
           kind="lokiLogql"
           platform-label="Loki"
           :copied="copiedAuditQueryKey === 'lokiLogql'"
-          enabled-title="Open in Loki Explore"
-          disabled-title="Set VITE_LOKI_EXPLORE_URL to enable"
+          :enabled-title="t('dashboard.lokiEnabled')"
+          :disabled-title="t('dashboard.lokiDisabled')"
           @copy="handleCopyAuditQuery"
           @open="handleOpenAuditQuery"
         />
@@ -352,19 +405,19 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
     <section class="panel">
       <div class="panel-head">
         <div>
-          <h2>Query result</h2>
+          <h2>{{ t('dashboard.queryResult') }}</h2>
           <p class="meta">
             <template v-if="lastMeta">
               {{ lastMeta.code }} | trace {{ lastMeta.traceId || '--' }}
             </template>
             <template v-else>
-              No successful response received yet.
+              {{ t('dashboard.noResponse') }}
             </template>
           </p>
         </div>
         <div class="paging">
           <label class="compact-field">
-            <span>Page size</span>
+            <span>{{ t('dashboard.pageSize') }}</span>
             <select :value="filters.pageSize" @change="changePageSize">
               <option v-for="size in pageSizeOptions" :key="size" :value="size">
                 {{ size }}
@@ -372,11 +425,11 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
             </select>
           </label>
           <button type="button" class="secondary" :disabled="!canGoPrev" @click="previousPage">
-            Prev
+            {{ t('common.prev') }}
           </button>
           <span class="page-label">{{ pageLabel }}</span>
           <button type="button" class="secondary" :disabled="!canGoNext" @click="nextPage">
-            Next
+            {{ t('common.next') }}
           </button>
         </div>
       </div>
@@ -385,7 +438,7 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
         <strong>{{ lastAction.title }}</strong>
         <span>{{ lastAction.summary }}</span>
         <span>
-          code {{ lastAction.code }}<template v-if="lastAction.traceId">
+          {{ t('common.code') }} {{ lastAction.code }}<template v-if="lastAction.traceId">
             | trace {{ lastAction.traceId }}
           </template>
         </span>
@@ -396,7 +449,7 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
           class="secondary inline-action"
           @click="handleApplyAuditTrail(lastAction.auditFilters)"
         >
-          View audit trail
+          {{ t('dashboard.viewAuditTrail') }}
         </button>
       </div>
 
@@ -404,7 +457,7 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
         <strong>{{ actionError.message }}</strong>
         <span>{{ actionErrorDescription }}</span>
         <span>
-          code {{ actionError.code }}<template v-if="actionError.traceId">
+          {{ t('common.code') }} {{ actionError.code }}<template v-if="actionError.traceId">
             | trace {{ actionError.traceId }}
           </template>
         </span>
@@ -414,7 +467,7 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
           class="secondary inline-action"
           @click="handleApplyAuditTrail(actionErrorAuditFilters)"
         >
-          View audit trail
+          {{ t('dashboard.viewAuditTrail') }}
         </button>
       </div>
 
@@ -422,18 +475,18 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
         <strong>{{ error.message }}</strong>
         <span>{{ errorDescription }}</span>
         <span>
-          code {{ error.code }}<template v-if="error.traceId">
+          {{ t('common.code') }} {{ error.code }}<template v-if="error.traceId">
             | trace {{ error.traceId }}
           </template>
         </span>
       </div>
 
       <div v-else-if="isLoading" class="message loading">
-        Fetching compensation history records...
+        {{ t('dashboard.fetching') }}
       </div>
 
       <div v-else-if="items.length === 0" class="message empty">
-        No compensation aggregate matched the current filter set.
+        {{ t('dashboard.empty') }}
       </div>
 
       <div v-else class="results-grid">
@@ -454,7 +507,7 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
         v-if="!error && !isLoading && items.length > 0"
         class="footnote"
       >
-        Last visible trace anchor:
+        {{ t('dashboard.lastTraceAnchor') }}
         {{
           getLastTraceId(items[0]) ?? '--'
         }}
@@ -482,8 +535,8 @@ function handleApplyAuditTrail(nextFilters: Parameters<typeof applyAuditTrail>[0
   margin: 0 0 0.35rem;
   font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #0f766e;
+  letter-spacing: 0;
+  color: var(--accent);
 }
 
 h1 {
@@ -495,7 +548,7 @@ h1 {
 .intro {
   margin: 0.75rem 0 0;
   max-width: 720px;
-  color: #475569;
+  color: var(--text-muted);
   font-size: 1rem;
 }
 
@@ -503,22 +556,22 @@ h1 {
   display: inline-flex;
   padding: 0.35rem;
   border-radius: 999px;
-  background: rgba(20, 32, 50, 0.06);
-  border: 1px solid rgba(20, 32, 50, 0.08);
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
 }
 
 .toggle-button {
   border: 0;
   background: transparent;
-  color: #3d4f68;
+  color: var(--button-secondary-text);
   padding: 0.75rem 1.15rem;
   border-radius: 999px;
   font-weight: 700;
 }
 
 .toggle-button[data-active='true'] {
-  background: linear-gradient(135deg, #0f766e, #1d4ed8);
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
 }
 
 .panel {
@@ -540,7 +593,7 @@ h1 {
 .audit-panel {
   margin-bottom: 1.25rem;
   background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(29, 78, 216, 0.07)),
+    linear-gradient(135deg, var(--bg-soft), var(--info-bg)),
     var(--bg-panel);
 }
 
@@ -554,14 +607,14 @@ label {
   display: grid;
   gap: 0.45rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--label-text);
 }
 
 label span {
   font-size: 0.85rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #607089;
+  letter-spacing: 0;
+  color: var(--text-muted);
 }
 
 input,
@@ -569,15 +622,15 @@ select,
 textarea {
   width: 100%;
   border-radius: 0.85rem;
-  border: 1px solid rgba(20, 32, 50, 0.12);
+  border: 1px solid var(--border-strong);
 }
 
 input,
 select {
   min-height: 2.8rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--input-bg);
   padding: 0.7rem 0.85rem;
-  color: #142032;
+  color: var(--text-main);
 }
 
 .actions {
@@ -597,14 +650,14 @@ select {
 }
 
 .primary {
-  background: linear-gradient(135deg, #0f766e, #1d4ed8);
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
 }
 
 .secondary {
-  background: rgba(20, 32, 50, 0.04);
-  color: #20324d;
-  border-color: rgba(20, 32, 50, 0.08);
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  border-color: var(--border-soft);
 }
 
 .mini-button {
@@ -647,7 +700,7 @@ h2 {
 
 .meta {
   margin: 0.35rem 0 0;
-  color: #607089;
+  color: var(--text-muted);
 }
 
 .paging {
@@ -686,8 +739,8 @@ h2 {
   gap: 0.65rem;
   padding: 0.9rem;
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(20, 32, 50, 0.08);
+  background: var(--card-bg);
+  border: 1px solid var(--border-soft);
 }
 
 .template-head {
@@ -712,8 +765,8 @@ h2 {
 textarea {
   min-height: 7rem;
   resize: vertical;
-  background: rgba(15, 23, 42, 0.94);
-  color: #d8f7ee;
+  background: var(--surface-subtle);
+  color: var(--text-main);
   padding: 0.8rem;
   font: 0.82rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -758,33 +811,33 @@ textarea {
 }
 
 .message.loading {
-  background: rgba(29, 78, 216, 0.08);
-  color: #1d4ed8;
+  background: var(--info-bg);
+  color: var(--info-text);
 }
 
 .message.empty {
-  background: rgba(20, 32, 50, 0.05);
-  color: #475569;
+  background: var(--bg-soft);
+  color: var(--text-muted);
 }
 
 .message.error {
-  background: rgba(180, 35, 24, 0.08);
-  color: #8d1f17;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .message-success {
-  background: rgba(15, 118, 110, 0.08);
-  color: #115e59;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .message-warning {
-  background: rgba(180, 112, 24, 0.08);
-  color: #9a5a12;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .message-danger {
-  background: rgba(180, 35, 24, 0.08);
-  color: #8d1f17;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .results-grid {
@@ -794,7 +847,7 @@ textarea {
 
 .footnote {
   margin: 1rem 0 0;
-  color: #607089;
+  color: var(--text-muted);
   font-size: 0.88rem;
 }
 

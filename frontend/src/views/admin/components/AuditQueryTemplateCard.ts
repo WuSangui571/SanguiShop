@@ -3,6 +3,7 @@ import {
   h,
   type PropType,
 } from 'vue'
+import { useAppPreferences } from '../../../composables/useAppPreferences'
 import type { AuditQueryKind } from '../compensationDashboardModel'
 
 export default defineComponent({
@@ -46,6 +47,8 @@ export default defineComponent({
     open: (_kind: AuditQueryKind) => true,
   },
   setup(props, { emit }) {
+    const { t } = useAppPreferences()
+
     return () => h('article', { class: 'audit-template-card' }, [
       h('div', { class: 'template-head' }, [
         h('h3', props.title),
@@ -54,14 +57,14 @@ export default defineComponent({
             type: 'button',
             class: 'secondary mini-button',
             onClick: () => emit('copy', props.kind),
-          }, props.copied ? 'Copied' : 'Copy query'),
+          }, props.copied ? t('dashboard.copied') : t('dashboard.copyQuery')),
           h('button', {
             type: 'button',
             class: 'secondary mini-button',
             disabled: props.link ? undefined : true,
             title: props.link ? props.enabledTitle : props.disabledTitle,
             onClick: () => emit('open', props.kind),
-          }, `Open in ${props.platformLabel}`),
+          }, t('dashboard.openIn', { platform: props.platformLabel })),
         ]),
       ]),
       h('textarea', {

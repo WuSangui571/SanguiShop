@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useAppPreferences } from '../../composables/useAppPreferences'
+
 interface Props {
   username: string
   shopId: number
@@ -6,6 +8,7 @@ interface Props {
 }
 
 defineProps<Props>()
+const { t } = useAppPreferences()
 
 const emit = defineEmits<{
   refreshSession: []
@@ -16,16 +19,15 @@ const emit = defineEmits<{
 <template>
   <section class="forbidden-shell">
     <div class="forbidden-panel">
-      <p class="eyebrow">Authenticated but blocked</p>
-      <h1>Compensation ops access denied</h1>
+      <p class="eyebrow">{{ t('ops.forbiddenKicker') }}</p>
+      <h1>{{ t('ops.forbiddenTitle') }}</h1>
       <p class="intro">
-        The current session belongs to <strong>{{ username }}</strong> in shop {{ shopId }}, but it no longer has the
-        required operations access.
+        {{ t('ops.forbiddenIntro', { username, shopId }) }}
       </p>
       <div class="message">{{ message }}</div>
       <div class="actions">
-        <button type="button" class="primary" @click="emit('refreshSession')">Retry refresh</button>
-        <button type="button" class="secondary" @click="emit('signOut')">Sign out</button>
+        <button type="button" class="primary" @click="emit('refreshSession')">{{ t('ops.retryRefresh') }}</button>
+        <button type="button" class="secondary" @click="emit('signOut')">{{ t('common.signOut') }}</button>
       </div>
     </div>
   </section>
@@ -45,16 +47,16 @@ const emit = defineEmits<{
   padding: 1.6rem;
   border-radius: 1.5rem;
   background: var(--bg-panel);
-  border: 1px solid rgba(180, 35, 24, 0.14);
+  border: 1px solid var(--danger-border);
   box-shadow: var(--shadow-soft);
 }
 
 .eyebrow {
   margin: 0 0 0.35rem;
   font-size: 0.78rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: #b45309;
+  color: var(--warning);
 }
 
 h1 {
@@ -71,8 +73,8 @@ h1 {
 .message {
   padding: 0.95rem 1rem;
   border-radius: 1rem;
-  background: rgba(180, 35, 24, 0.08);
-  color: #8d1f17;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .actions {
@@ -92,13 +94,13 @@ h1 {
 }
 
 .primary {
-  background: linear-gradient(135deg, #0f766e, #1d4ed8);
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
 }
 
 .secondary {
-  background: rgba(20, 32, 50, 0.04);
-  color: #20324d;
-  border-color: rgba(20, 32, 50, 0.08);
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  border-color: var(--border-soft);
 }
 </style>

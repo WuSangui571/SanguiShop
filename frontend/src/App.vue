@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import AppPreferenceControls from './components/AppPreferenceControls.vue'
+import { useAppPreferences } from './composables/useAppPreferences'
 import { useOpsAuthSession } from './composables/useOpsAuthSession'
 import OpsForbiddenView from './views/auth/OpsForbiddenView.vue'
 import OpsLoginView from './views/auth/OpsLoginView.vue'
 import CompensationDashboardView from './views/admin/CompensationDashboardView.vue'
 import MallStorefrontView from './views/mall/MallStorefrontView.vue'
 
+const { t } = useAppPreferences()
 const {
   state,
   isAuthenticated,
@@ -35,38 +38,43 @@ onMounted(() => {
 </script>
 
 <template>
+  <AppPreferenceControls />
+
   <MallStorefrontView v-if="!isAdminSurface" />
 
   <main v-else class="app-shell">
     <section v-if="isBooting" class="center-panel status-panel">
-      <p class="eyebrow">Ops access</p>
-      <h1>Restoring session</h1>
-      <p class="muted">Checking the last compensation operations session.</p>
+      <p class="eyebrow">{{ t('ops.access') }}</p>
+      <h1>{{ t('ops.restoringSession') }}</h1>
+      <p class="muted">{{ t('ops.restoringDescription') }}</p>
     </section>
 
     <section v-else-if="isAuthenticated" class="workspace-shell">
       <header class="workspace-header">
         <div>
-          <p class="eyebrow">Compensation ops</p>
-          <h1>On-call dashboard</h1>
+          <p class="eyebrow">{{ t('ops.compensation') }}</p>
+          <h1>{{ t('ops.dashboardTitle') }}</h1>
           <p class="muted">
-            Signed in as <strong>{{ state.session?.username }}</strong> for shop {{ state.session?.shopId }}.
-            Session expiry target: {{ sessionExpiresLabel }}.
+            {{ t('ops.signedInSummary', {
+              username: state.session?.username ?? '--',
+              shopId: state.session?.shopId ?? '--',
+              expiresAt: sessionExpiresLabel,
+            }) }}
           </p>
         </div>
         <div class="workspace-actions">
           <button type="button" class="secondary" :disabled="state.isRefreshing" @click="refreshSession()">
-            {{ state.isRefreshing ? 'Refreshing...' : 'Refresh session' }}
+            {{ state.isRefreshing ? t('common.refreshing') : t('ops.refreshSession') }}
           </button>
           <button type="button" class="secondary" @click="signOut()">
-            Sign out
+            {{ t('common.signOut') }}
           </button>
         </div>
       </header>
 
       <div v-if="state.notice" class="notice-banner">
         <span>{{ state.notice }}</span>
-        <button type="button" class="ghost-button" @click="clearNotice">Dismiss</button>
+        <button type="button" class="ghost-button" @click="clearNotice">{{ t('common.dismiss') }}</button>
       </div>
 
       <CompensationDashboardView />
@@ -76,7 +84,7 @@ onMounted(() => {
       v-else-if="isForbidden"
       :username="state.session?.username ?? '--'"
       :shop-id="state.session?.shopId ?? 0"
-      :message="state.error?.message ?? 'Current session is authenticated but no longer allowed to use compensation operations.'"
+      :message="state.error?.message ?? t('ops.forbiddenFallback')"
       @refresh-session="refreshSession()"
       @sign-out="signOut()"
     />
@@ -94,7 +102,7 @@ onMounted(() => {
 <style scoped>
 .app-shell {
   min-height: 100vh;
-  padding: 1.25rem 0 2rem;
+  padding: 4.5rem 0 2rem;
 }
 
 .center-panel,
@@ -134,9 +142,9 @@ onMounted(() => {
 .eyebrow {
   margin: 0 0 0.35rem;
   font-size: 0.78rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: #0f766e;
+  color: var(--accent);
 }
 
 h1 {
@@ -156,9 +164,9 @@ h1 {
   border-radius: 0.95rem;
   padding: 0.75rem 1.05rem;
   font-weight: 700;
-  border: 1px solid rgba(20, 32, 50, 0.08);
-  background: rgba(20, 32, 50, 0.04);
-  color: #20324d;
+  border: 1px solid var(--border-soft);
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
 }
 
 .secondary:disabled {
@@ -173,8 +181,8 @@ h1 {
   align-items: center;
   padding: 0.95rem 1rem;
   border-radius: 1rem;
-  background: rgba(29, 78, 216, 0.08);
-  color: #1d4ed8;
+  background: var(--info-bg);
+  color: var(--info-text);
 }
 
 .ghost-button {

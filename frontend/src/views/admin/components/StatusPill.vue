@@ -21,24 +21,24 @@ const props = defineProps<{
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  border: 1px solid rgba(20, 32, 50, 0.08);
-  background: rgba(20, 32, 50, 0.06);
-  color: #2f3b50;
+  letter-spacing: 0;
+  border: 1px solid var(--border-soft);
+  background: var(--chip-bg);
+  color: var(--chip-text);
 }
 
 .pill[data-tone='success'] {
-  background: rgba(22, 101, 52, 0.12);
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .pill[data-tone='warning'] {
-  background: rgba(194, 65, 12, 0.12);
-  color: #c2410c;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .pill[data-tone='danger'] {
-  background: rgba(180, 35, 24, 0.12);
-  color: #b42318;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 </style>

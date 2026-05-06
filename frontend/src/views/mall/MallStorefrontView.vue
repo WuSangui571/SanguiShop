@@ -1,5 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useAppPreferences } from '../../composables/useAppPreferences'
 import { getProduct, listProducts } from '../../services/productApi'
 import { HttpClientError } from '../../services/httpClient'
 import { useMallCart } from '../../composables/useMallCart'
@@ -12,6 +13,7 @@ import ProductCheckoutPanel from './ProductCheckoutPanel.vue'
 
 const DEFAULT_PAGE_SIZE = 12
 
+const { t } = useAppPreferences()
 const mallSession = useMallSession()
 const orderStatus = useMallOrderStatus()
 const cart = useMallCart({
@@ -64,7 +66,7 @@ async function fetchProducts(nextPage = page.value) {
   } catch (caught) {
     products.value = []
     total.value = 0
-    productError.value = describeError(caught, 'Unable to load products.')
+    productError.value = describeError(caught, t('mall.catalog.loadFallback'))
   } finally {
     isLoadingProducts.value = false
   }
@@ -79,7 +81,7 @@ async function openProduct(productId: number) {
     selectedProduct.value = result.data
   } catch (caught) {
     selectedProduct.value = null
-    detailError.value = describeError(caught, 'Unable to load product detail.')
+    detailError.value = describeError(caught, t('mall.catalog.detailFallback'))
   } finally {
     isLoadingDetail.value = false
   }
@@ -180,7 +182,7 @@ function describePriceRange(product: ProductSummaryResponse): string {
 
 function describeError(caught: unknown, fallback: string): string {
   if (caught instanceof HttpClientError) {
-    const trace = caught.traceId ? ` Trace ID ${caught.traceId}.` : ''
+    const trace = caught.traceId ? ` ${t('common.traceId')} ${caught.traceId}.` : ''
     return `${caught.code}: ${caught.message}${trace}`
   }
 
@@ -198,25 +200,25 @@ function resolveDefaultShopId(): number {
     <section class="mall-hero">
       <div class="hero-copy">
         <p class="eyebrow">SanguiShop</p>
-        <h1>Storefront</h1>
-        <p class="hero-subtitle">Browse active catalog items, reserve stock through order creation, then enter mock payment.</p>
+        <h1>{{ t('mall.title') }}</h1>
+        <p class="hero-subtitle">{{ t('mall.subtitle') }}</p>
       </div>
 
       <form v-if="!mallSession.isAuthenticated.value" class="login-strip" @submit.prevent="submitLogin">
-        <input v-model.number="loginForm.shopId" type="number" min="1" aria-label="Shop ID">
-        <input v-model.trim="loginForm.usernameOrMobile" type="text" autocomplete="username" placeholder="Username or mobile" aria-label="Username or mobile">
-        <input v-model="loginForm.password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password">
+        <input v-model.number="loginForm.shopId" type="number" min="1" :aria-label="t('common.shopId')">
+        <input v-model.trim="loginForm.usernameOrMobile" type="text" autocomplete="username" :placeholder="t('common.usernameOrMobile')" :aria-label="t('common.usernameOrMobile')">
+        <input v-model="loginForm.password" type="password" autocomplete="current-password" :placeholder="t('common.password')" :aria-label="t('common.password')">
         <button type="submit" :disabled="mallSession.state.isSubmitting">
-          {{ mallSession.state.isSubmitting ? 'Signing in...' : 'Sign in' }}
+          {{ mallSession.state.isSubmitting ? t('common.signingIn') : t('common.signIn') }}
         </button>
         <p v-if="mallSession.state.error" class="auth-error">
-          {{ describeError(mallSession.state.error, 'Unable to sign in.') }}
+          {{ describeError(mallSession.state.error, t('mall.loginFallback')) }}
         </p>
       </form>
 
       <div v-else class="session-strip">
-        <span>User {{ mallSession.state.session?.userId }} · shop {{ mallSession.state.session?.shopId }}</span>
-        <button type="button" @click="mallSession.signOut()">Sign out</button>
+        <span>{{ t('mall.signedInAs', { userId: mallSession.state.session?.userId ?? '--', shopId: mallSession.state.session?.shopId ?? '--' }) }}</span>
+        <button type="button" @click="mallSession.signOut()">{{ t('common.signOut') }}</button>
       </div>
     </section>
 
@@ -225,16 +227,16 @@ function resolveDefaultShopId(): number {
         <aside class="order-list">
           <div class="list-header">
             <div>
-              <p class="eyebrow">Orders</p>
-              <h2>Recent purchases</h2>
+              <p class="eyebrow">{{ t('mall.orders.kicker') }}</p>
+              <h2>{{ t('mall.orders.title') }}</h2>
             </div>
             <button type="button" class="text-action" :disabled="orderStatus.isLoadingOrders.value" @click="orderStatus.loadOrders()">
-              {{ orderStatus.isLoadingOrders.value ? 'Refreshing...' : 'Refresh' }}
+              {{ orderStatus.isLoadingOrders.value ? t('common.refreshing') : t('common.refresh') }}
             </button>
           </div>
 
-          <div v-if="orderStatus.isLoadingOrders.value" class="status-block">Loading orders...</div>
-          <div v-else-if="orderStatus.orders.value.length === 0" class="status-block">No orders yet.</div>
+          <div v-if="orderStatus.isLoadingOrders.value" class="status-block">{{ t('mall.orders.loading') }}</div>
+          <div v-else-if="orderStatus.orders.value.length === 0" class="status-block">{{ t('mall.orders.empty') }}</div>
           <div v-else class="order-cards">
             <button
               v-for="order in orderStatus.orders.value"
@@ -245,22 +247,22 @@ function resolveDefaultShopId(): number {
             >
               <span>{{ order.orderNo }}</span>
               <strong>{{ formatMoney(order.totalAmountCent) }}</strong>
-              <small>{{ order.status }} · {{ formatDateTime(order.createdAt) }}</small>
+              <small>{{ order.status }} / {{ formatDateTime(order.createdAt) }}</small>
             </button>
           </div>
 
           <div class="pager">
-            <button type="button" :disabled="!canGoPrevOrderPage" @click="orderStatus.loadOrders(orderStatus.page.value - 1)">Prev</button>
+            <button type="button" :disabled="!canGoPrevOrderPage" @click="orderStatus.loadOrders(orderStatus.page.value - 1)">{{ t('common.prev') }}</button>
             <span>{{ orderStatus.page }} / {{ orderTotalPages }}</span>
-            <button type="button" :disabled="!canGoNextOrderPage" @click="orderStatus.loadOrders(orderStatus.page.value + 1)">Next</button>
+            <button type="button" :disabled="!canGoNextOrderPage" @click="orderStatus.loadOrders(orderStatus.page.value + 1)">{{ t('common.next') }}</button>
           </div>
         </aside>
 
         <section class="order-detail-panel">
           <div class="list-header">
             <div>
-              <p class="eyebrow">Status</p>
-              <h2>Order result</h2>
+              <p class="eyebrow">{{ t('mall.orders.resultKicker') }}</p>
+              <h2>{{ t('mall.orders.resultTitle') }}</h2>
             </div>
             <button
               type="button"
@@ -268,25 +270,25 @@ function resolveDefaultShopId(): number {
               :disabled="!orderStatus.order.value || orderStatus.isLoadingOrder.value"
               @click="orderStatus.order.value && orderStatus.loadOrder(orderStatus.order.value.orderId, orderStatus.paymentNo.value)"
             >
-              {{ orderStatus.isLoadingOrder.value ? 'Refreshing...' : 'Refresh order' }}
+              {{ orderStatus.isLoadingOrder.value ? t('common.refreshing') : t('mall.orders.refreshOrder') }}
             </button>
           </div>
 
           <div v-if="orderStatus.errorMessage.value" class="status-block danger">
             {{ orderStatus.errorMessage }}
           </div>
-          <div v-else-if="orderStatus.isLoadingOrder.value" class="status-block">Loading order detail...</div>
-          <div v-else-if="!orderStatus.order.value" class="status-block">Create or select an order.</div>
+          <div v-else-if="orderStatus.isLoadingOrder.value" class="status-block">{{ t('mall.orders.loadingDetail') }}</div>
+          <div v-else-if="!orderStatus.order.value" class="status-block">{{ t('mall.orders.emptyDetail') }}</div>
           <div v-else class="order-detail">
             <div class="detail-facts">
               <span>{{ orderStatus.order.value.status }}</span>
-              <span>Payment {{ orderStatus.paymentStatus.value }}</span>
+              <span>{{ t('mall.orders.paymentStatus', { status: orderStatus.paymentStatus.value }) }}</span>
               <span>{{ formatDateTime(orderStatus.order.value.updatedAt) }}</span>
             </div>
 
             <div class="order-headline">
               <div>
-                <p class="eyebrow">Order {{ orderStatus.order.value.orderId }}</p>
+                <p class="eyebrow">{{ t('mall.orders.orderKicker', { orderId: orderStatus.order.value.orderId }) }}</p>
                 <h3>{{ orderStatus.order.value.orderNo }}</h3>
               </div>
               <strong>{{ formatMoney(orderStatus.order.value.totalAmountCent) }}</strong>
@@ -307,7 +309,7 @@ function resolveDefaultShopId(): number {
                 :disabled="!orderStatus.canPay.value"
                 @click="submitPaymentForCurrentOrder()"
               >
-                {{ orderStatus.isSubmittingPayment.value ? 'Paying...' : orderStatus.payment.value ? 'Paid' : 'Mock pay' }}
+                {{ orderStatus.isSubmittingPayment.value ? t('mall.orders.paying') : orderStatus.payment.value ? t('mall.orders.paid') : t('mall.orders.pay') }}
               </button>
               <button
                 type="button"
@@ -315,7 +317,7 @@ function resolveDefaultShopId(): number {
                 :disabled="!orderStatus.paymentNo.value || orderStatus.isRefreshingPayment.value"
                 @click="orderStatus.refreshPayment()"
               >
-                {{ orderStatus.isRefreshingPayment.value ? 'Refreshing...' : 'Refresh payment' }}
+                {{ orderStatus.isRefreshingPayment.value ? t('common.refreshing') : t('mall.orders.refreshPayment') }}
               </button>
               <button
                 type="button"
@@ -323,7 +325,7 @@ function resolveDefaultShopId(): number {
                 :disabled="!orderStatus.canCancel.value"
                 @click="cancelCurrentOrder()"
               >
-                {{ orderStatus.isCancelling.value ? 'Cancelling...' : 'Cancel unpaid order' }}
+                {{ orderStatus.isCancelling.value ? t('mall.orders.cancelling') : t('mall.orders.cancel') }}
               </button>
             </div>
           </div>
@@ -335,11 +337,11 @@ function resolveDefaultShopId(): number {
       <div class="cart-panel">
         <div class="list-header">
           <div>
-            <p class="eyebrow">Cart</p>
-            <h2>Draft checkout</h2>
+            <p class="eyebrow">{{ t('mall.cart.kicker') }}</p>
+            <h2>{{ t('mall.cart.title') }}</h2>
           </div>
           <div class="cart-summary">
-            <span>{{ cart.itemCount.value }} items</span>
+            <span>{{ t('common.items', { count: cart.itemCount.value }) }}</span>
             <strong>{{ formatMoney(cart.totalPreviewCent.value) }}</strong>
           </div>
         </div>
@@ -347,13 +349,13 @@ function resolveDefaultShopId(): number {
         <div v-if="cart.errorMessage.value" class="status-block danger">
           {{ cart.errorMessage }}
         </div>
-        <div v-else-if="cart.items.value.length === 0" class="status-block">Cart is empty.</div>
+        <div v-else-if="cart.items.value.length === 0" class="status-block">{{ t('mall.cart.empty') }}</div>
         <div v-else class="cart-content">
           <div class="cart-items">
             <article v-for="item in cart.items.value" :key="item.skuId" class="cart-item">
               <div>
                 <strong>{{ item.productName }}</strong>
-                <small>{{ item.skuName }} - stock snapshot {{ item.availableStock }}</small>
+                <small>{{ t('mall.cart.stockSnapshot', { skuName: item.skuName, stock: item.availableStock }) }}</small>
               </div>
               <span>{{ formatMoney(item.priceCent) }}</span>
               <div class="cart-stepper">
@@ -362,19 +364,19 @@ function resolveDefaultShopId(): number {
                 <button type="button" @click="cart.setQuantity(item.skuId, item.quantity + 1)">+</button>
               </div>
               <strong>{{ formatMoney(item.priceCent * item.quantity) }}</strong>
-              <button type="button" class="text-action subtle" @click="cart.removeItem(item.skuId)">Remove</button>
+              <button type="button" class="text-action subtle" @click="cart.removeItem(item.skuId)">{{ t('mall.cart.remove') }}</button>
             </article>
           </div>
 
           <div class="cart-actions">
-            <button type="button" class="secondary-action" @click="cart.clearCart()">Clear cart</button>
+            <button type="button" class="secondary-action" @click="cart.clearCart()">{{ t('mall.cart.clear') }}</button>
             <button
               type="button"
               class="primary-action"
               :disabled="!cart.canCheckout.value"
               @click="checkoutCart()"
             >
-              {{ cart.isCheckingOut.value ? 'Checking out...' : 'Checkout cart' }}
+              {{ cart.isCheckingOut.value ? t('mall.cart.checkingOut') : t('mall.cart.checkout') }}
             </button>
           </div>
         </div>
@@ -386,18 +388,18 @@ function resolveDefaultShopId(): number {
         <aside class="product-list">
           <div class="list-header">
             <div>
-              <p class="eyebrow">Catalog</p>
-              <h2>Products</h2>
+              <p class="eyebrow">{{ t('mall.catalog.kicker') }}</p>
+              <h2>{{ t('mall.catalog.title') }}</h2>
             </div>
-            <span>{{ total }} items</span>
+            <span>{{ t('common.items', { count: total }) }}</span>
           </div>
 
-          <div v-if="isLoadingProducts" class="status-block">Loading products...</div>
+          <div v-if="isLoadingProducts" class="status-block">{{ t('mall.catalog.loading') }}</div>
           <div v-else-if="productError" class="status-block danger">
             <p>{{ productError }}</p>
-            <button type="button" @click="fetchProducts()">Retry</button>
+            <button type="button" @click="fetchProducts()">{{ t('common.retry') }}</button>
           </div>
-          <div v-else-if="products.length === 0" class="status-block">No active products.</div>
+          <div v-else-if="products.length === 0" class="status-block">{{ t('mall.catalog.empty') }}</div>
           <div v-else class="product-cards">
             <button
               v-for="product in products"
@@ -408,30 +410,30 @@ function resolveDefaultShopId(): number {
             >
               <span class="product-name">{{ product.productName }}</span>
               <strong>{{ describePriceRange(product) }}</strong>
-              <small>{{ product.status }} · stock shown on detail</small>
+              <small>{{ t('mall.catalog.stockOnDetail', { status: product.status }) }}</small>
             </button>
           </div>
 
           <div class="pager">
-            <button type="button" :disabled="!canGoPrev" @click="fetchProducts(page - 1)">Prev</button>
+            <button type="button" :disabled="!canGoPrev" @click="fetchProducts(page - 1)">{{ t('common.prev') }}</button>
             <span>{{ page }} / {{ totalPages }}</span>
-            <button type="button" :disabled="!canGoNext" @click="fetchProducts(page + 1)">Next</button>
+            <button type="button" :disabled="!canGoNext" @click="fetchProducts(page + 1)">{{ t('common.next') }}</button>
           </div>
         </aside>
 
         <section class="product-detail">
-          <div v-if="isLoadingDetail" class="status-block">Loading detail...</div>
+          <div v-if="isLoadingDetail" class="status-block">{{ t('common.loading') }}</div>
           <div v-else-if="detailError" class="status-block danger">
             <p>{{ detailError }}</p>
           </div>
           <div v-else-if="selectedProduct" class="detail-layout">
             <div class="detail-copy">
-              <p class="eyebrow">Product {{ selectedProduct.productId }}</p>
+              <p class="eyebrow">{{ t('mall.catalog.productKicker', { productId: selectedProduct.productId }) }}</p>
               <h2>{{ selectedProduct.productName }}</h2>
               <p>{{ selectedProduct.productDescription }}</p>
               <div class="detail-facts">
                 <span>{{ selectedProduct.status }}</span>
-                <span>{{ selectedProduct.skus.length }} SKUs</span>
+                <span>{{ t('mall.catalog.skus', { count: selectedProduct.skus.length }) }}</span>
               </div>
             </div>
             <ProductCheckoutPanel
@@ -442,7 +444,7 @@ function resolveDefaultShopId(): number {
               @order-created="handleOrderCreated"
             />
           </div>
-          <div v-else class="status-block">Select a product.</div>
+          <div v-else class="status-block">{{ t('mall.catalog.selectProduct') }}</div>
         </section>
       </div>
     </section>
@@ -452,10 +454,8 @@ function resolveDefaultShopId(): number {
 <style scoped>
 .mall-shell {
   min-height: 100vh;
-  background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent 30%),
-    linear-gradient(225deg, rgba(234, 88, 12, 0.12), transparent 28%),
-    #f8fafc;
+  background: var(--page-bg);
+  color: var(--text-main);
 }
 
 .mall-hero,
@@ -471,7 +471,7 @@ function resolveDefaultShopId(): number {
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 27rem);
   align-items: end;
   gap: 1.5rem;
-  padding: 2rem 0 1.25rem;
+  padding: 4.5rem 0 1.25rem;
 }
 
 .hero-copy h1 {
@@ -489,10 +489,10 @@ function resolveDefaultShopId(): number {
 
 .eyebrow {
   margin: 0 0 0.4rem;
-  color: #0f766e;
+  color: var(--accent);
   font-size: 0.78rem;
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -503,7 +503,7 @@ function resolveDefaultShopId(): number {
   padding: 1rem;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--bg-panel);
   box-shadow: var(--shadow-soft);
 }
 
@@ -513,7 +513,8 @@ function resolveDefaultShopId(): number {
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   padding: 0.65rem 0.8rem;
-  background: #ffffff;
+  background: var(--input-bg);
+  color: var(--text-main);
 }
 
 .login-strip button,
@@ -525,8 +526,8 @@ function resolveDefaultShopId(): number {
   border: 0;
   border-radius: 8px;
   padding: 0 0.9rem;
-  background: #0f766e;
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
   font-weight: 900;
 }
 
@@ -539,7 +540,7 @@ function resolveDefaultShopId(): number {
 
 .auth-error {
   margin: 0;
-  color: #991b1b;
+  color: var(--danger-text);
   font-weight: 700;
 }
 
@@ -564,7 +565,7 @@ function resolveDefaultShopId(): number {
   padding: 1rem;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--bg-panel);
   box-shadow: var(--shadow-soft);
 }
 
@@ -583,7 +584,7 @@ function resolveDefaultShopId(): number {
   min-width: 0;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--bg-panel);
   box-shadow: var(--shadow-soft);
 }
 
@@ -627,14 +628,14 @@ h2 {
   padding: 0.9rem;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--card-bg);
   text-align: left;
 }
 
 .product-card.active,
 .order-card.active {
-  border-color: #0f766e;
-  background: #ecfdf5;
+  border-color: var(--accent);
+  background: var(--active-bg);
 }
 
 .product-name {
@@ -682,7 +683,7 @@ h2 {
   padding: 0.85rem;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--card-bg);
 }
 
 .cart-item div:first-child {
@@ -706,7 +707,7 @@ h2 {
 .cart-stepper button {
   min-height: 2.25rem;
   border: 0;
-  background: #f8fafc;
+  background: var(--surface-subtle);
   font-weight: 900;
 }
 
@@ -762,7 +763,7 @@ h2 {
   padding: 0.75rem;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--card-bg);
 }
 
 .order-item span {
@@ -791,20 +792,20 @@ h2 {
 }
 
 .primary-action {
-  background: #0f766e;
-  color: #ffffff;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
 }
 
 .secondary-action {
-  background: #fffbeb;
-  color: #92400e;
-  border-color: #fde68a;
+  background: var(--button-secondary-warm-bg);
+  color: var(--button-secondary-warm-text);
+  border-color: var(--button-secondary-warm-border);
 }
 
 .danger-action {
-  background: #fef2f2;
-  color: #991b1b;
-  border-color: #fecaca;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger-border);
 }
 
 .primary-action:disabled,
@@ -815,8 +816,8 @@ h2 {
 }
 
 .text-action.subtle {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
 }
 
 .status-block {
@@ -826,14 +827,14 @@ h2 {
   min-height: 8rem;
   padding: 1rem;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--surface-subtle);
   color: var(--text-muted);
   font-weight: 700;
 }
 
 .status-block.danger {
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .pager {
@@ -871,8 +872,8 @@ h2 {
 .detail-facts span {
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--chip-bg);
+  color: var(--chip-text);
   font-weight: 800;
 }
 
@@ -910,3 +911,4 @@ h2 {
   }
 }
 </style>
+

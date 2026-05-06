@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Place global reusable preferences under frontend app/components/composables without mixing page domains."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Global controls and page updates must preserve component boundaries and UI states."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Preferences should be exposed through composables and avoid UI rendering in hooks."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Language and theme are client state with local persistence."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Language keys, theme values, and fallback text need strict TypeScript types."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Frontend error displays must preserve backend code/message/traceId while localizing UI labels."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality checklist for typecheck/build/tests, error states, and responsive layout."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Avoid duplicated translation/theme logic and use shared helpers only where reuse is real."}
