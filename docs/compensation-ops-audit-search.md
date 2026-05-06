@@ -46,13 +46,15 @@ For real-environment operator acceptance, use `docs/compensation-ops-audit-manua
 
 ## Backend Regression Test Runbook
 
+This regression entry is for manual acceptance and on-demand backend audit regression. It is intentionally not part of the default `pull_request` CI gate.
+
 Use the repo-local verification script after changing compensation ops audit logging, controller authorization, or audit field assertions for order and payment replay/reconcile surfaces:
 
 ```powershell
 .\scripts\verify-compensation-ops-audit.ps1
 ```
 
-The default script run executes both controller audit test classes and prints the expected class names before Maven starts:
+The script is `pwsh` compatible. On Windows it invokes `.\mvnw.cmd`; on non-Windows hosts, including GitHub Actions `ubuntu-latest`, it invokes `./mvnw`. The default script run executes both controller audit test classes and prints the Maven executable, module selector, test selector, expanded Maven command, and expected class names before Maven starts:
 
 - `InternalOrderCompensationControllerTest`
 - `InternalPaymentCompensationControllerTest`
@@ -70,16 +72,41 @@ To keep verification independent from the user-home Maven cache, pass a repo-loc
 .\scripts\verify-compensation-ops-audit.ps1 -MavenRepoLocal .\.m2\repository
 ```
 
+To inspect the resolved reactor command without running Maven, use:
+
+```powershell
+.\scripts\verify-compensation-ops-audit.ps1 -Service all -PrintCommandOnly
+```
+
 If local Windows PowerShell policy blocks direct `.ps1` execution, invoke the same script with process-scoped bypass:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1
 ```
 
+### Manual CI Workflow
+
+Use the GitHub Actions manual workflow when the same targeted regression needs to run on Linux CI without making every PR wait for these controller tests:
+
+- Workflow file: `.github/workflows/compensation-ops-audit.yml`
+- Trigger: `workflow_dispatch`
+- Runner: `ubuntu-latest`
+- Shell: `pwsh`
+- Input: `service` = `all`, `order`, or `payment`
+- Command: `./scripts/verify-compensation-ops-audit.ps1 -Service <service>`
+
+The workflow has no `pull_request` or `push` trigger. Treat it as an operator/developer controlled acceptance entry for compensation ops audit work, not as a required PR check.
+
 The script intentionally uses the same targeted Maven reactor shape as the command below. Keep the raw command as a troubleshooting fallback when diagnosing script or shell issues:
 
 ```powershell
 .\mvnw.cmd -q -pl services/sangui-order-service,services/sangui-payment-service -am "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Non-Windows fallback:
+
+```bash
+./mvnw -q -pl services/sangui-order-service,services/sangui-payment-service -am "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 The command is intentionally scoped to the order and payment service modules while still building required upstream reactor dependencies:
@@ -99,10 +126,12 @@ Good / Base / Bad command cases:
 
 - Good: run `.\scripts\verify-compensation-ops-audit.ps1` from the repository root after changing compensation ops audit controller tests or logging fields.
 - Good: run `.\scripts\verify-compensation-ops-audit.ps1 -Service order` or `.\scripts\verify-compensation-ops-audit.ps1 -Service payment` for single-service investigation, then confirm the matching test class executed.
+- Good: use the `Compensation Ops Audit` GitHub Actions `workflow_dispatch` workflow with `service=all`, `service=order`, or `service=payment` for on-demand Linux CI verification without adding a PR-required check.
 - Base: run the raw Maven fallback command above when troubleshooting the script itself.
 - Bad: run root `.\mvnw.cmd -q "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" test`; common modules can fail before the target service tests with `No tests matching pattern`.
 - Bad: run service-only `.\mvnw.cmd -q -pl services/sangui-order-service "-Dtest=InternalOrderCompensationControllerTest" test` on a clean checkout; local SNAPSHOT dependencies may be missing because upstream modules were not built.
 - Bad: use global `mvn` instead of the project Maven wrapper in docs, CI, or reproducible acceptance notes.
+- Bad: attach the compensation ops audit workflow to `pull_request` as a default gate without an explicit decision to absorb the extra runtime.
 
 ## Query Templates
 

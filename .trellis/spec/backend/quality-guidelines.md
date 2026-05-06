@@ -53,19 +53,28 @@ Compensation ops audit changes should use the repo-local script entry first:
 .\scripts\verify-compensation-ops-audit.ps1
 ```
 
+The script is a cross-platform `pwsh` entrypoint. It must select `.\mvnw.cmd` when `$IsWindows` is true and `./mvnw` when `$IsWindows` is false.
+
 Script contract:
 
 - Default `-Service all` runs `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest`.
 - `-Service order` runs only `InternalOrderCompensationControllerTest` with `-pl services/sangui-order-service`.
 - `-Service payment` runs only `InternalPaymentCompensationControllerTest` with `-pl services/sangui-payment-service`.
 - `-MavenRepoLocal <path>` overrides the local Maven repository path, for example `.\scripts\verify-compensation-ops-audit.ps1 -MavenRepoLocal .\.m2\repository`.
-- The script must print the expected test class names before Maven starts; reviewers must still confirm Maven executed those classes.
+- `-PrintCommandOnly` must print the resolved command, module selector, and test selector, then exit successfully without invoking Maven.
+- The script must print the Maven executable, module selector, test selector, expanded command, and expected test class names before Maven starts; reviewers must still confirm Maven executed those classes.
 - If local Windows PowerShell policy blocks direct `.ps1` execution, use `powershell -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1` for that process only.
 
 Raw Maven fallback command for troubleshooting or non-script environments:
 
 ```powershell
 .\mvnw.cmd -q -pl services/sangui-order-service,services/sangui-payment-service -am "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Non-Windows fallback:
+
+```bash
+./mvnw -q -pl services/sangui-order-service,services/sangui-payment-service -am "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Why this shape is required:
@@ -84,11 +93,13 @@ Good/Base/Bad cases:
 
 - Good: compensation ops audit changes run `.\scripts\verify-compensation-ops-audit.ps1` and verify both `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest` executed.
 - Good: a single-service investigation uses `.\scripts\verify-compensation-ops-audit.ps1 -Service order` or `.\scripts\verify-compensation-ops-audit.ps1 -Service payment` and confirms the selected test class ran.
+- Good: the manual `.github/workflows/compensation-ops-audit.yml` `workflow_dispatch` workflow runs `./scripts/verify-compensation-ops-audit.ps1 -Service <all|order|payment>` on `ubuntu-latest` with `pwsh` for on-demand Linux CI verification, and the run log confirms the target test class or classes executed.
 - Base: a direct Maven fallback uses `-pl <service> -am "-Dtest=<OwningServiceTest>" "-Dsurefire.failIfNoSpecifiedTests=false" test` and confirms that test class ran.
 - Base: full `.\mvnw.cmd -q test` remains valid before release or broad backend changes.
 - Bad: root `.\mvnw.cmd -q "-Dtest=<service-controller-test>" test` can fail in common modules with `No tests matching pattern`.
 - Bad: `-pl <service>` without `-am` can fail on a clean checkout because required local SNAPSHOT dependencies are not installed.
 - Bad: global `mvn` is not accepted in reproducible project docs or CI instructions.
+- Bad: compensation ops audit controller tests are added to the default `pull_request` CI gate before an explicit runtime tradeoff decision.
 
 ## Phase 1 Foundation Tests
 

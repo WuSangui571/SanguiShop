@@ -1,0 +1,4 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Targeted compensation ops audit Maven wrapper and manual CI acceptance rules"}
+{"file": ".trellis\\spec\\backend\\observability-devops.md", "reason": "Maven wrapper and CI workflow conventions"}

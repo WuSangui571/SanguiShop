@@ -2,13 +2,28 @@ param(
     [ValidateSet("all", "order", "payment")]
     [string]$Service = "all",
 
-    [string]$MavenRepoLocal
+    [string]$MavenRepoLocal,
+
+    [switch]$PrintCommandOnly
 )
 
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
+
+function Format-CommandArgument {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Argument
+    )
+
+    if ($Argument -notmatch '[\s"]') {
+        return $Argument
+    }
+
+    return '"' + ($Argument -replace '"', '\"') + '"'
+}
 
 if (-not $MavenRepoLocal) {
     if (-not $env:MAVEN_USER_HOME) {
@@ -19,6 +34,7 @@ if (-not $MavenRepoLocal) {
 } elseif (-not [System.IO.Path]::IsPathRooted($MavenRepoLocal)) {
     $MavenRepoLocal = Join-Path $repoRoot $MavenRepoLocal
 }
+$MavenRepoLocal = [System.IO.Path]::GetFullPath($MavenRepoLocal)
 
 $targets = @{
     order = @{
@@ -41,24 +57,46 @@ $modules = $selectedServices | ForEach-Object { $targets[$_].Module }
 $tests = $selectedServices | ForEach-Object { $targets[$_].Test }
 $moduleSelector = $modules -join ","
 $testSelector = $tests -join ","
+$isWindowsHost = if ($null -ne (Get-Variable -Name IsWindows -ErrorAction SilentlyContinue)) {
+    $IsWindows
+} else {
+    $true
+}
+$mavenExecutable = if ($isWindowsHost) {
+    ".\mvnw.cmd"
+} else {
+    "./mvnw"
+}
+$mavenArgs = @(
+    "-q",
+    "-Dmaven.repo.local=$MavenRepoLocal",
+    "-pl",
+    $moduleSelector,
+    "-am",
+    "-Dtest=$testSelector",
+    "-Dsurefire.failIfNoSpecifiedTests=false",
+    "test"
+)
+$expandedCommand = (@($mavenExecutable) + $mavenArgs | ForEach-Object { Format-CommandArgument $_ }) -join " "
 
 Write-Host "== Compensation ops audit controller tests =="
 Write-Host "Service selection: $Service"
+Write-Host "Maven executable: $mavenExecutable"
 Write-Host "Maven repo local: $MavenRepoLocal"
-Write-Host "Maven modules: $moduleSelector"
+Write-Host "Module selector: $moduleSelector"
+Write-Host "Test selector: $testSelector"
+Write-Host "Expanded Maven command: $expandedCommand"
 Write-Host "Expected Maven output should show:"
 foreach ($test in $tests) {
     Write-Host "  - $test"
 }
 
-& ".\mvnw.cmd" `
-    -q `
-    "-Dmaven.repo.local=$MavenRepoLocal" `
-    -pl $moduleSelector `
-    -am `
-    "-Dtest=$testSelector" `
-    "-Dsurefire.failIfNoSpecifiedTests=false" `
-    test
+if ($PrintCommandOnly) {
+    Write-Host "PrintCommandOnly set; Maven command was not executed."
+    exit 0
+}
+
+& $mavenExecutable @mavenArgs
 
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
