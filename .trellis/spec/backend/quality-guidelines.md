@@ -42,6 +42,38 @@ Review 时先看契约，再看实现：
 | Integration Test | Redis/MQ/MySQL | 序列化、事务、重试、幂等 |
 | Contract Test | Feign/API/Event | 字段兼容、必填、版本 |
 | Load Test | 秒杀/AI | QPS、P95/P99、资源瓶颈 |
+
+## Targeted Maven Reactor Tests
+
+Targeted backend service tests must use the project Maven Wrapper and must keep module selection explicit. When a `-Dtest` selector is meant for service modules only, do not run it against the full root reactor.
+
+Compensation ops audit controller regression command:
+
+```powershell
+.\mvnw.cmd -q -pl services/sangui-order-service,services/sangui-payment-service -am "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Why this shape is required:
+
+- `-pl` limits the targeted test selector to the owning service modules instead of every module in the root reactor.
+- `-am` builds required upstream local SNAPSHOT dependencies from the same checkout.
+- `-Dsurefire.failIfNoSpecifiedTests=false` is allowed only with `-am` for upstream dependency modules that do not own the selected service test classes.
+
+Required review checks:
+
+- Confirm the Maven output shows the intended service test classes ran; the no-specified-tests flag must not hide a typo in the target class names.
+- Confirm the touched service modules are listed in `-pl`; do not rely on root `-Dtest` discovery for service-specific controller tests.
+- If the command is copied into a runbook, include the expected assertion points, not only the raw command.
+
+Good/Base/Bad cases:
+
+- Good: compensation ops audit changes run the documented command and verify both `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest` executed.
+- Good: a single-service investigation uses `-pl <service> -am "-Dtest=<OwningServiceTest>" "-Dsurefire.failIfNoSpecifiedTests=false" test` and confirms that test class ran.
+- Base: full `.\mvnw.cmd -q test` remains valid before release or broad backend changes.
+- Bad: root `.\mvnw.cmd -q "-Dtest=<service-controller-test>" test` can fail in common modules with `No tests matching pattern`.
+- Bad: `-pl <service>` without `-am` can fail on a clean checkout because required local SNAPSHOT dependencies are not installed.
+- Bad: global `mvn` is not accepted in reproducible project docs or CI instructions.
+
 ## Phase 1 Foundation Tests
 
 The minimum scaffold test suite must stay cheap and executable:

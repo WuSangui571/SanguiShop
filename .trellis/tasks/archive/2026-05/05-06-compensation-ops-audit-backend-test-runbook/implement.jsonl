@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis\\spec\\backend\\logging-guidelines.md", "reason": "Compensation ops audit event contract"}
+{"file": "docs\\compensation-ops-audit-search.md", "reason": "Existing operator audit search documentation to extend"}
+{"file": ".trellis\\spec\\backend\\observability-devops.md", "reason": "Maven wrapper and local verification command contract"}

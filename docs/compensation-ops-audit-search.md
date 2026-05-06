@@ -44,6 +44,35 @@ For real-environment operator acceptance, use `docs/compensation-ops-audit-manua
 | `ops.payment.reconcile.manual` | `POST /api/internal/payments/reconciliations/manual` |
 | `ops.payment.reconcile.bulk` | `POST /api/internal/payments/reconciliations/bulk` |
 
+## Backend Regression Test Runbook
+
+Use this targeted backend command after changing compensation ops audit logging, controller authorization, or audit field assertions for order and payment replay/reconcile surfaces:
+
+```powershell
+.\mvnw.cmd -q -pl services/sangui-order-service,services/sangui-payment-service -am "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+The command is intentionally scoped to the order and payment service modules while still building required upstream reactor dependencies:
+
+- `-pl services/sangui-order-service,services/sangui-payment-service` keeps the test selector on the service modules that own the controller tests.
+- `-am` builds required local SNAPSHOT dependencies from the same checkout, so a clean workstation does not need those artifacts pre-installed.
+- `-Dsurefire.failIfNoSpecifiedTests=false` prevents upstream dependency modules that are included by `-am`, such as common modules, from failing with `No tests matching pattern` when the service-only `-Dtest` selector does not apply to them.
+
+Expected service-level coverage:
+
+- `InternalOrderCompensationControllerTest` asserts order compensation query denial audit events, manual timeout replay audit fields, bulk timeout replay audit fields, and failed bulk replay fields including `outcome=failed`, `targetCount`, `dryRun`, `errorCode`, `path`, and `method`.
+- `InternalPaymentCompensationControllerTest` asserts payment compensation query denial audit events, manual reconcile audit fields, bulk reconcile audit fields, and failed bulk reconcile fields including `outcome=failed`, `targetCount`, `dryRun`, `errorCode`, `path`, and `method`.
+
+After the command finishes, confirm the Maven output shows both controller test classes ran in their service modules. The `failIfNoSpecifiedTests=false` flag is only for upstream dependency modules pulled in by `-am`; it must not be used as a substitute for checking that the intended service tests executed.
+
+Good / Base / Bad command cases:
+
+- Good: run the command above from the repository root after changing compensation ops audit controller tests or logging fields.
+- Base: run one service at a time with the same pattern when investigating a single failing module, for example `-pl services/sangui-order-service -am "-Dtest=InternalOrderCompensationControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`.
+- Bad: run root `.\mvnw.cmd -q "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" test`; common modules can fail before the target service tests with `No tests matching pattern`.
+- Bad: run service-only `.\mvnw.cmd -q -pl services/sangui-order-service "-Dtest=InternalOrderCompensationControllerTest" test` on a clean checkout; local SNAPSHOT dependencies may be missing because upstream modules were not built.
+- Bad: use global `mvn` instead of the project Maven wrapper in docs, CI, or reproducible acceptance notes.
+
 ## Query Templates
 
 Use these templates as baselines. Adjust index names, labels, or service filters to match the deployed log pipeline.
