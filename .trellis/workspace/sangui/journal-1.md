@@ -83,6 +83,46 @@ Built the first-phase SanguiShop foundation scaffold with Maven multi-module str
 - None - task complete
 
 
+## Session 32: Compensation Ops Audit Test Script
+
+**Date**: 2026-05-06
+**Task**: Compensation Ops Audit Test Script
+**Branch**: `main`
+
+### Summary
+
+Scripted the compensation ops audit controller regression entry in `scripts/verify-compensation-ops-audit.ps1`, wrapping the verified Maven reactor command for order and payment audit tests. Updated the backend regression runbook and backend quality spec so future ops audit changes use the script as the recommended Good case while retaining the raw Maven command as a troubleshooting fallback.
+
+### Main Changes
+
+- Added `scripts/verify-compensation-ops-audit.ps1` with `-Service all|order|payment` and optional `-MavenRepoLocal`.
+- Updated `docs/compensation-ops-audit-search.md` with the recommended script entry, single-service examples, local Maven cache example, ExecutionPolicy workaround, and raw Maven fallback.
+- Updated `.trellis/spec/backend/quality-guidelines.md` to document the script contract and preserve direct reactor command rules.
+- Kept CI unchanged; the script is ready for future manual workflow or CI matrix reuse.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `08e0bb2` | chore(compensation): 脚本化 ops 审计测试入口 |
+
+### Testing
+
+- [OK] Human verified tests passed.
+- [OK] `powershell -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1`
+- [OK] `powershell -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1 -Service order`
+- [OK] `powershell -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1 -Service payment`
+- [OK] `git diff --check`
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Consider adding a manual GitHub Actions workflow for compensation ops audit tests instead of making them mandatory on every PR.
+
+
 ## Session 3: Phase 1 Quality Closure
 
 **Date**: 2026-04-29
