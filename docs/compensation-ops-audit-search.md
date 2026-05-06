@@ -91,11 +91,15 @@ Use the GitHub Actions manual workflow when the same targeted regression needs t
 - Workflow file: `.github/workflows/compensation-ops-audit.yml`
 - Trigger: `workflow_dispatch`
 - Runner: `ubuntu-latest`
+- Permissions: `contents: read`
+- Actions: `actions/checkout@v6`, `actions/setup-java@v5`
 - Shell: `pwsh`
 - Input: `service` = `all`, `order`, or `payment`
 - Command: `./scripts/verify-compensation-ops-audit.ps1 -Service <service>`
 
 The workflow has no `pull_request` or `push` trigger. Treat it as an operator/developer controlled acceptance entry for compensation ops audit work, not as a required PR check.
+
+If GitHub annotates the run with Node.js action runtime deprecation warnings, keep the workflow on Node 24-compatible action versions before investigating Maven behavior. If checkout fails with `/usr/bin/git` exit code `128`, inspect the `Checkout` step log for the exact `fatal:` line first; this is a repository checkout/token/ref problem, not proof that the compensation Maven command ran.
 
 The script intentionally uses the same targeted Maven reactor shape as the command below. Keep the raw command as a troubleshooting fallback when diagnosing script or shell issues:
 
@@ -127,7 +131,9 @@ Good / Base / Bad command cases:
 - Good: run `.\scripts\verify-compensation-ops-audit.ps1` from the repository root after changing compensation ops audit controller tests or logging fields.
 - Good: run `.\scripts\verify-compensation-ops-audit.ps1 -Service order` or `.\scripts\verify-compensation-ops-audit.ps1 -Service payment` for single-service investigation, then confirm the matching test class executed.
 - Good: use the `Compensation Ops Audit` GitHub Actions `workflow_dispatch` workflow with `service=all`, `service=order`, or `service=payment` for on-demand Linux CI verification without adding a PR-required check.
+- Good: the manual workflow uses Node 24-compatible official actions and `permissions: contents: read` so checkout succeeds before the `pwsh` Maven script starts.
 - Base: run the raw Maven fallback command above when troubleshooting the script itself.
+- Base: if checkout reports `/usr/bin/git` exit code `128`, capture the exact `fatal:` line from the `Checkout` step before changing the Maven script.
 - Bad: run root `.\mvnw.cmd -q "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" test`; common modules can fail before the target service tests with `No tests matching pattern`.
 - Bad: run service-only `.\mvnw.cmd -q -pl services/sangui-order-service "-Dtest=InternalOrderCompensationControllerTest" test` on a clean checkout; local SNAPSHOT dependencies may be missing because upstream modules were not built.
 - Bad: use global `mvn` instead of the project Maven wrapper in docs, CI, or reproducible acceptance notes.
