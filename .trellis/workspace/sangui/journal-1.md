@@ -1789,3 +1789,37 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 39: 商城商品初始化与商品公开读取修复
+
+**Date**: 2026-05-06
+**Task**: 商城商品初始化与商品公开读取修复
+**Branch**: `main`
+
+### Summary
+
+新增本地商城 demo seed 脚本，一键创建/校验 mall demo 用户、active demo 商品、两个 SKU 和库存；补充 product catalog seed 契约。修复 Gateway JWT 过滤器漏放行 GET /api/products 与 GET /api/products/{productId} 的问题，补充 gateway 测试并更新 authentication contract。人工网页登录和商品展示测试通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9f3a066` | (see git log) |
+| `c12d4e0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

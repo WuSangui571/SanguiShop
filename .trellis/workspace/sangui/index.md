@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 38
+- **Total Sessions**: 39
 - **Last Active**: 2026-05-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1791 | Active |
+| `journal-1.md` | ~1825 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-05-06 | 商城商品初始化与商品公开读取修复 | `9f3a066`, `c12d4e0` | `main` |
 | 38 | 2026-05-06 | 商城端购物车与多商品结算 MVP | `0311406` | `main` |
 | 37 | 2026-05-06 | 商城订单支付状态闭环 MVP | `92110c0` | `main` |
 | 36 | 2026-05-06 | 商城端商品浏览与下单入口 Frontend MVP | `23141f3` | `main` |
