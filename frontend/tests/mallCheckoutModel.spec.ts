@@ -104,7 +104,7 @@ describe('mall checkout model', () => {
     const secondSubmit = checkout.submitOrder()
 
     expect(createOrder).toHaveBeenCalledOnce()
-    expect(secondSubmit).resolves.toBeNull()
+    await expect(secondSubmit).resolves.toBeNull()
 
     deferredOrder.resolve(createOrderResponse())
     await firstSubmit

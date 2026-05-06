@@ -18,10 +18,10 @@ describe('AuditQueryTemplateCard', () => {
   it('disables the open button when the observability link is unavailable', () => {
     const rendered = renderCard({ link: '' })
 
-    const openButton = findButtonByText(rendered.root, 'Open in Kibana')
+    const openButton = findButtonByText(rendered.root, '在 Kibana 打开')
 
     expect(openButton.props.disabled).toBe(true)
-    expect(openButton.props.title).toBe('Set VITE_KIBANA_DISCOVER_URL to enable')
+    expect(openButton.props.title).toBe('设置 VITE_KIBANA_DISCOVER_URL 后启用')
     expect(rendered.emitted.open).toEqual([])
   })
 
@@ -30,11 +30,11 @@ describe('AuditQueryTemplateCard', () => {
       link: 'https://kibana.example/app/discover#/?_a=(query:(language:kuery,query:test))',
     })
 
-    const openButton = findButtonByText(rendered.root, 'Open in Kibana')
-    const copyButton = findButtonByText(rendered.root, 'Copy query')
+    const openButton = findButtonByText(rendered.root, '在 Kibana 打开')
+    const copyButton = findButtonByText(rendered.root, '复制查询')
 
     expect(openButton.props.disabled).toBeUndefined()
-    expect(openButton.props.title).toBe('Open in Kibana Discover')
+    expect(openButton.props.title).toBe('在 Kibana Discover 打开')
 
     click(copyButton)
     click(openButton)
@@ -54,8 +54,8 @@ describe('AuditQueryTemplateCard', () => {
       disabledTitle: 'Set VITE_LOKI_EXPLORE_URL to enable',
     })
 
-    const copyButton = findButtonByText(rendered.root, 'Copied')
-    const openButton = findButtonByText(rendered.root, 'Open in Loki')
+    const copyButton = findButtonByText(rendered.root, '已复制')
+    const openButton = findButtonByText(rendered.root, '在 Loki 打开')
 
     click(copyButton)
     click(openButton)
@@ -78,8 +78,8 @@ function renderCard(options: Partial<CardOptions> = {}) {
     kind: 'kibanaKql',
     platformLabel: 'Kibana',
     copied: false,
-    disabledTitle: 'Set VITE_KIBANA_DISCOVER_URL to enable',
-    enabledTitle: 'Open in Kibana Discover',
+    disabledTitle: '设置 VITE_KIBANA_DISCOVER_URL 后启用',
+    enabledTitle: '在 Kibana Discover 打开',
     ...options,
   }
 

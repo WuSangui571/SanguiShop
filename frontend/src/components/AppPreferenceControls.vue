@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import {
   appLocales,
   getLocaleLabel,
@@ -7,33 +8,53 @@ import {
 } from '../composables/useAppPreferences'
 
 const preferences = useAppPreferences()
+const isLanguageMenuOpen = ref(false)
+
+function toggleLanguageMenu() {
+  isLanguageMenuOpen.value = !isLanguageMenuOpen.value
+}
 
 function selectLocale(locale: AppLocale) {
   preferences.setLocale(locale)
+  isLanguageMenuOpen.value = false
 }
 </script>
 
 <template>
   <aside class="preference-controls" :aria-label="preferences.t('app.language')">
-    <div class="language-group" role="group" :aria-label="preferences.t('app.language')">
+    <div class="language-menu">
       <button
-        v-for="locale in appLocales"
-        :key="locale"
         type="button"
-        class="preference-button"
-        :data-active="preferences.locale.value === locale"
-        @click="selectLocale(locale)"
+        class="icon-button"
+        :aria-label="preferences.t('app.language')"
+        :aria-expanded="isLanguageMenuOpen"
+        @click="toggleLanguageMenu"
       >
-        {{ getLocaleLabel(locale) }}
+        <span aria-hidden="true">文</span>
       </button>
+      <div v-if="isLanguageMenuOpen" class="language-options" role="menu">
+        <button
+          v-for="locale in appLocales"
+          :key="locale"
+          type="button"
+          class="language-option"
+          role="menuitemradio"
+          :aria-checked="preferences.locale.value === locale"
+          :data-active="preferences.locale.value === locale"
+          @click="selectLocale(locale)"
+        >
+          {{ getLocaleLabel(locale) }}
+        </button>
+      </div>
     </div>
+
     <button
       type="button"
       class="theme-button"
       :aria-label="preferences.t('app.theme')"
       @click="preferences.toggleTheme()"
     >
-      <span aria-hidden="true">{{ preferences.theme.value === 'dark' ? '☾' : '☀' }}</span>
+      <span aria-hidden="true">{{ preferences.theme.value === 'dark' ? 'D' : 'L' }}</span>
       {{ preferences.themeLabel }}
     </button>
   </aside>
@@ -56,49 +77,66 @@ function selectLocale(locale: AppLocale) {
   backdrop-filter: blur(16px);
 }
 
-.language-group {
-  display: flex;
-  gap: 0.25rem;
+.language-menu {
+  position: relative;
 }
 
-.preference-button,
-.theme-button {
+.icon-button,
+.theme-button,
+.language-option {
   min-height: 2.2rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-soft);
   border-radius: 7px;
-  padding: 0 0.65rem;
-  background: transparent;
-  color: var(--text-muted);
+  background: var(--button-secondary-bg);
+  color: var(--text-main);
   font-size: 0.84rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
-.preference-button[data-active='true'],
-.theme-button {
-  background: var(--button-secondary-bg);
-  color: var(--text-main);
-  border-color: var(--border-soft);
+.icon-button {
+  width: 2.2rem;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+
+.language-options {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  min-width: 8rem;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--bg-floating);
+  box-shadow: var(--shadow-soft);
+}
+
+.language-option {
+  width: 100%;
+  padding: 0 0.75rem;
+  text-align: left;
+}
+
+.language-option[data-active='true'] {
+  background: var(--active-bg);
+  color: var(--accent-strong);
 }
 
 .theme-button {
   display: inline-flex;
   gap: 0.35rem;
   align-items: center;
+  padding: 0 0.65rem;
 }
 
 @media (max-width: 640px) {
   .preference-controls {
-    left: 0.5rem;
     right: 0.5rem;
     top: 0.5rem;
-    justify-content: space-between;
-  }
-
-  .preference-button,
-  .theme-button {
-    padding: 0 0.45rem;
-    font-size: 0.78rem;
   }
 }
 </style>
