@@ -1,0 +1,13 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Mall frontend file placement and module boundaries"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Cart and checkout UI state boundaries"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable structure and async state rules"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Local cart draft store rules"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Money and API DTO typing"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Order/payment gateway contracts and requestId rules"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Create order multi-item contract and idempotency"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Product detail/list SKU snapshot fields"}
+{"file": ".trellis/spec/backend/inventory-reserve-contracts.md", "reason": "Inventory backend source of truth for stock/price"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer order/cart risk checklist"}

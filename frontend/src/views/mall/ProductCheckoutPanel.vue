@@ -4,6 +4,7 @@ import { useMallCheckout } from '../../composables/useMallCheckout'
 import type { MallSession } from '../../types/api/auth'
 import type { ProductDetailResponse, ProductSkuResponse } from '../../types/api/product'
 import { formatMoney } from '../../utils/format'
+import type { CartItemInput } from './mallCartModel'
 
 const props = defineProps<{
   product: ProductDetailResponse
@@ -12,7 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   orderCreated: [orderId: number]
-  paymentCreated: [orderId: number, paymentNo: string]
+  addToCart: [item: CartItemInput]
 }>()
 
 const checkout = useMallCheckout({
@@ -44,11 +45,21 @@ async function submitOrder() {
   }
 }
 
-async function submitPayment() {
-  const payment = await checkout.submitPayment()
-  if (payment) {
-    emit('paymentCreated', payment.orderId, payment.paymentNo)
+function addSelectedToCart() {
+  const sku = checkout.selectedSku.value
+  if (!sku || !props.session || !checkout.canSubmit.value) {
+    return
   }
+
+  emit('addToCart', {
+    productId: props.product.productId,
+    productName: props.product.productName,
+    skuId: sku.skuId,
+    skuName: sku.skuName,
+    priceCent: sku.priceCent,
+    availableStock: sku.availableStock,
+    quantity: checkout.quantity.value,
+  })
 }
 </script>
 
@@ -112,27 +123,22 @@ async function submitPayment() {
       <strong>{{ formatMoney(checkout.order.value.totalAmountCent) }}</strong>
     </div>
 
-    <div v-if="checkout.payment.value" class="result-strip paid">
-      <span>Payment {{ checkout.payment.value.paymentNo }}</span>
-      <strong>{{ checkout.payment.value.status }}</strong>
-    </div>
-
     <div class="checkout-actions">
+      <button
+        type="button"
+        class="secondary-action"
+        :disabled="!session || !checkout.canSubmit.value"
+        @click="addSelectedToCart()"
+      >
+        Add to cart
+      </button>
       <button
         type="button"
         class="primary-action"
         :disabled="!session || !checkout.canSubmit.value"
         @click="submitOrder()"
       >
-        {{ checkout.isSubmittingOrder.value ? 'Creating...' : checkout.order.value ? 'Order created' : 'Create order' }}
-      </button>
-      <button
-        type="button"
-        class="secondary-action"
-        :disabled="!checkout.canPay.value"
-        @click="submitPayment()"
-      >
-        {{ checkout.isSubmittingPayment.value ? 'Paying...' : checkout.payment.value ? 'Paid' : 'Mock pay' }}
+        {{ checkout.isSubmittingOrder.value ? 'Creating...' : checkout.order.value ? 'Order created' : 'Buy now' }}
       </button>
     </div>
   </section>

@@ -2,16 +2,21 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { getProduct, listProducts } from '../../services/productApi'
 import { HttpClientError } from '../../services/httpClient'
+import { useMallCart } from '../../composables/useMallCart'
 import { useMallOrderStatus } from '../../composables/useMallOrderStatus'
 import { useMallSession } from '../../composables/useMallSession'
 import type { ProductDetailResponse, ProductSummaryResponse } from '../../types/api/product'
 import { formatDateTime, formatMoney } from '../../utils/format'
+import type { CartItemInput } from './mallCartModel'
 import ProductCheckoutPanel from './ProductCheckoutPanel.vue'
 
 const DEFAULT_PAGE_SIZE = 12
 
 const mallSession = useMallSession()
 const orderStatus = useMallOrderStatus()
+const cart = useMallCart({
+  session: computed(() => mallSession.state.session),
+})
 const products = ref<ProductSummaryResponse[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -99,12 +104,6 @@ async function handleOrderCreated(orderId: number) {
   await orderStatus.loadOrders()
 }
 
-async function handlePaymentCreated(orderId: number, paymentNo: string) {
-  replaceOrderUrl(orderId, paymentNo)
-  await orderStatus.loadOrder(orderId, paymentNo)
-  await orderStatus.loadOrders()
-}
-
 async function selectOrder(orderId: number) {
   replaceOrderUrl(orderId, '')
   await orderStatus.loadOrder(orderId, '')
@@ -114,6 +113,31 @@ async function cancelCurrentOrder() {
   const cancelled = await orderStatus.cancelCurrentOrder()
   if (cancelled) {
     replaceOrderUrl(cancelled.orderId, '')
+    await orderStatus.loadOrders()
+  }
+}
+
+function handleAddToCart(item: CartItemInput) {
+  cart.addItem(item)
+}
+
+async function checkoutCart() {
+  const order = await cart.submitCheckout()
+  if (order) {
+    await handleOrderCreated(order.orderId)
+  }
+}
+
+async function submitPaymentForCurrentOrder() {
+  const session = mallSession.state.session
+  if (!session) {
+    return
+  }
+
+  const payment = await orderStatus.submitPayment(session)
+  if (payment) {
+    replaceOrderUrl(payment.orderId, payment.paymentNo)
+    await orderStatus.loadOrder(payment.orderId, payment.paymentNo)
     await orderStatus.loadOrders()
   }
 }
@@ -279,6 +303,14 @@ function resolveDefaultShopId(): number {
             <div class="checkout-actions">
               <button
                 type="button"
+                class="primary-action"
+                :disabled="!orderStatus.canPay.value"
+                @click="submitPaymentForCurrentOrder()"
+              >
+                {{ orderStatus.isSubmittingPayment.value ? 'Paying...' : orderStatus.payment.value ? 'Paid' : 'Mock pay' }}
+              </button>
+              <button
+                type="button"
                 class="secondary-action"
                 :disabled="!orderStatus.paymentNo.value || orderStatus.isRefreshingPayment.value"
                 @click="orderStatus.refreshPayment()"
@@ -296,6 +328,56 @@ function resolveDefaultShopId(): number {
             </div>
           </div>
         </section>
+      </div>
+    </section>
+
+    <section v-if="mallSession.isAuthenticated.value" class="cart-band">
+      <div class="cart-panel">
+        <div class="list-header">
+          <div>
+            <p class="eyebrow">Cart</p>
+            <h2>Draft checkout</h2>
+          </div>
+          <div class="cart-summary">
+            <span>{{ cart.itemCount.value }} items</span>
+            <strong>{{ formatMoney(cart.totalPreviewCent.value) }}</strong>
+          </div>
+        </div>
+
+        <div v-if="cart.errorMessage.value" class="status-block danger">
+          {{ cart.errorMessage }}
+        </div>
+        <div v-else-if="cart.items.value.length === 0" class="status-block">Cart is empty.</div>
+        <div v-else class="cart-content">
+          <div class="cart-items">
+            <article v-for="item in cart.items.value" :key="item.skuId" class="cart-item">
+              <div>
+                <strong>{{ item.productName }}</strong>
+                <small>{{ item.skuName }} - stock snapshot {{ item.availableStock }}</small>
+              </div>
+              <span>{{ formatMoney(item.priceCent) }}</span>
+              <div class="cart-stepper">
+                <button type="button" :disabled="item.quantity <= 1" @click="cart.setQuantity(item.skuId, item.quantity - 1)">-</button>
+                <output>{{ item.quantity }}</output>
+                <button type="button" @click="cart.setQuantity(item.skuId, item.quantity + 1)">+</button>
+              </div>
+              <strong>{{ formatMoney(item.priceCent * item.quantity) }}</strong>
+              <button type="button" class="text-action subtle" @click="cart.removeItem(item.skuId)">Remove</button>
+            </article>
+          </div>
+
+          <div class="cart-actions">
+            <button type="button" class="secondary-action" @click="cart.clearCart()">Clear cart</button>
+            <button
+              type="button"
+              class="primary-action"
+              :disabled="!cart.canCheckout.value"
+              @click="checkoutCart()"
+            >
+              {{ cart.isCheckingOut.value ? 'Checking out...' : 'Checkout cart' }}
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -356,8 +438,8 @@ function resolveDefaultShopId(): number {
               :key="selectedProduct.productId"
               :product="selectedProduct"
               :session="mallSession.state.session"
+              @add-to-cart="handleAddToCart"
               @order-created="handleOrderCreated"
-              @payment-created="handlePaymentCreated"
             />
           </div>
           <div v-else class="status-block">Select a product.</div>
@@ -471,8 +553,19 @@ function resolveDefaultShopId(): number {
   padding: 1rem 0 2rem;
 }
 
-.order-band {
+.order-band,
+.cart-band {
   padding: 0 0 1rem;
+}
+
+.cart-panel {
+  width: min(1220px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
 }
 
 .catalog-grid,
@@ -560,6 +653,80 @@ h2 {
   margin-top: 1rem;
 }
 
+.cart-summary {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: end;
+}
+
+.cart-summary span {
+  color: var(--text-muted);
+  font-weight: 800;
+}
+
+.cart-content,
+.cart-items {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cart-content {
+  margin-top: 1rem;
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) auto auto auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.cart-item div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.cart-item small {
+  color: var(--text-muted);
+}
+
+.cart-stepper {
+  display: grid;
+  grid-template-columns: 2rem 2.75rem 2rem;
+  align-items: center;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cart-stepper button {
+  min-height: 2.25rem;
+  border: 0;
+  background: #f8fafc;
+  font-weight: 900;
+}
+
+.cart-stepper button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cart-stepper output {
+  text-align: center;
+  font-weight: 900;
+}
+
+.cart-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .order-detail {
   display: grid;
   gap: 1rem;
@@ -612,6 +779,7 @@ h2 {
   flex-wrap: wrap;
 }
 
+.primary-action,
 .secondary-action,
 .danger-action {
   min-height: 2.75rem;
@@ -620,6 +788,11 @@ h2 {
   border: 1px solid transparent;
   padding: 0 1rem;
   font-weight: 900;
+}
+
+.primary-action {
+  background: #0f766e;
+  color: #ffffff;
 }
 
 .secondary-action {
@@ -634,10 +807,16 @@ h2 {
   border-color: #fecaca;
 }
 
+.primary-action:disabled,
 .secondary-action:disabled,
 .danger-action:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.text-action.subtle {
+  background: #f1f5f9;
+  color: #334155;
 }
 
 .status-block {
@@ -708,7 +887,8 @@ h2 {
 @media (max-width: 640px) {
   .mall-hero,
   .catalog-grid,
-  .order-grid {
+  .order-grid,
+  .cart-panel {
     width: min(100% - 1rem, 1220px);
   }
 
@@ -720,8 +900,13 @@ h2 {
 
   .order-headline,
   .order-item,
+  .cart-item,
   .checkout-actions {
     display: grid;
+  }
+
+  .cart-summary {
+    justify-items: start;
   }
 }
 </style>

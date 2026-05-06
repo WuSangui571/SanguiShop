@@ -8,6 +8,7 @@ import {
   selectInitialSku,
 } from '../src/views/mall/mallCheckoutModel'
 import { useMallCheckout } from '../src/composables/useMallCheckout'
+import { useMallCart } from '../src/composables/useMallCart'
 import { useMallOrderStatus } from '../src/composables/useMallOrderStatus'
 import type { ProductDetailResponse } from '../src/types/api/product'
 import type { MallSession } from '../src/types/api/auth'
@@ -174,6 +175,146 @@ describe('mall checkout model', () => {
     expect(orderStatus.errorMessage.value).toBe('ORDER_NOT_FOUND: Order missing. Trace ID trace-order-404.')
     expect(orderStatus.order.value).toBeNull()
   })
+
+  it('persists cart drafts by shop and user and builds a multi-item checkout payload', async () => {
+    const storage = createMemoryStorage()
+    const createOrder = vi.fn(async () => createMultiItemOrderResponse())
+    const cart = useMallCart({
+      session,
+      storage,
+      createOrder,
+      createRequestId: () => 'req-cart-001',
+    })
+
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 401,
+      skuName: '42',
+      priceCent: 59900,
+      availableStock: 5,
+      quantity: 1,
+    })
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 402,
+      skuName: '43',
+      priceCent: 64500,
+      availableStock: 4,
+      quantity: 2,
+    })
+    cart.setQuantity(401, 3)
+
+    expect(cart.itemCount.value).toBe(5)
+    expect(cart.totalPreviewCent.value).toBe(308700)
+
+    const restored = useMallCart({
+      session,
+      storage,
+      createOrder,
+      createRequestId: () => 'req-cart-001',
+    })
+
+    expect(restored.items.value.map((item) => [item.skuId, item.quantity])).toEqual([[401, 3], [402, 2]])
+
+    await restored.submitCheckout()
+
+    expect(createOrder).toHaveBeenCalledWith({
+      shopId: 1,
+      userId: '10001',
+      requestId: 'req-cart-001',
+      items: [
+        { skuId: 401, quantity: 3 },
+        { skuId: 402, quantity: 2 },
+      ],
+    })
+    expect(restored.items.value).toEqual([])
+
+    const otherUserCart = useMallCart({
+      session: { ...session, userId: 10002 },
+      storage,
+      createOrder,
+    })
+    expect(otherUserCart.items.value).toEqual([])
+  })
+
+  it('guards duplicate cart checkout and keeps traceId errors visible', async () => {
+    const storage = createMemoryStorage()
+    const deferredOrder = createDeferred<OrderResponse>()
+    const createOrder = vi.fn(() => deferredOrder.promise)
+    const cart = useMallCart({
+      session,
+      storage,
+      createOrder,
+      createRequestId: () => 'req-cart-duplicate',
+    })
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 401,
+      skuName: '42',
+      priceCent: 59900,
+      availableStock: 2,
+      quantity: 1,
+    })
+
+    const firstCheckout = cart.submitCheckout()
+    const secondCheckout = cart.submitCheckout()
+
+    expect(createOrder).toHaveBeenCalledOnce()
+    await expect(secondCheckout).resolves.toBeNull()
+
+    deferredOrder.resolve(createOrderResponse())
+    await firstCheckout
+
+    const failedCart = useMallCart({
+      session,
+      storage,
+      createOrder: vi.fn(async () => {
+        throw new HttpClientError('Stock is not enough.', {
+          code: 'ORDER_STOCK_NOT_ENOUGH',
+          status: 409,
+          traceId: 'trace-cart-stock',
+        })
+      }),
+    })
+    failedCart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 401,
+      skuName: '42',
+      priceCent: 59900,
+      availableStock: 2,
+      quantity: 1,
+    })
+
+    await failedCart.submitCheckout()
+
+    expect(failedCart.errorMessage.value).toBe('ORDER_STOCK_NOT_ENOUGH: Stock is not enough. Trace ID trace-cart-stock.')
+    expect(failedCart.items.value).toHaveLength(1)
+  })
+
+  it('creates mock payment from the shared order status panel', async () => {
+    const createPayment = vi.fn(async () => createPaymentResponse())
+    const orderStatus = useMallOrderStatus({
+      createPayment,
+      createPaymentNo: () => 'PAY-shared-result',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse())
+
+    await orderStatus.submitPayment(session)
+
+    expect(createPayment).toHaveBeenCalledWith({
+      shopId: 1,
+      userId: '10001',
+      orderId: 501,
+      paymentNo: 'PAY-shared-result',
+      channel: 'mock',
+    })
+    expect(orderStatus.paymentStatus.value).toBe('paid')
+    expect(orderStatus.order.value?.status).toBe('paid')
+  })
 })
 
 function createOrderResponse(): OrderResponse {
@@ -193,6 +334,32 @@ function createOrderResponse(): OrderResponse {
         priceCent: 59900,
         quantity: 1,
         lineAmountCent: 59900,
+      },
+    ],
+  }
+}
+
+function createMultiItemOrderResponse(): OrderResponse {
+  return {
+    ...createOrderResponse(),
+    requestId: 'req-cart-001',
+    totalAmountCent: 308700,
+    items: [
+      {
+        productId: 301,
+        skuId: 401,
+        skuName: '42',
+        priceCent: 59900,
+        quantity: 3,
+        lineAmountCent: 179700,
+      },
+      {
+        productId: 301,
+        skuId: 402,
+        skuName: '43',
+        priceCent: 64500,
+        quantity: 2,
+        lineAmountCent: 129000,
       },
     ],
   }
@@ -219,5 +386,18 @@ function createPaymentResponse(): PaymentResponse {
     channel: 'mock',
     status: 'paid',
     amountCent: 59900,
+  }
+}
+
+function createMemoryStorage() {
+  const data = new Map<string, string>()
+  return {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      data.set(key, value)
+    },
+    removeItem: (key: string) => {
+      data.delete(key)
+    },
   }
 }

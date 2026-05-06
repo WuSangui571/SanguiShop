@@ -4,11 +4,14 @@ import {
   getOrder as getOrderApi,
   listOrders as listOrdersApi,
 } from '../services/orderApi'
-import { getPayment as getPaymentApi } from '../services/paymentApi'
+import { createPayment as createPaymentApi, getPayment as getPaymentApi } from '../services/paymentApi'
+import type { MallSession } from '../types/api/auth'
 import type { OrderPageResponse, OrderResponse } from '../types/api/order'
-import type { PaymentResponse } from '../types/api/payment'
+import type { CreatePaymentRequest, PaymentResponse } from '../types/api/payment'
 import {
+  buildCreatePaymentRequest,
   canCancelOrder,
+  createPaymentNo,
   describeMallApiError,
   describePaymentStatus,
 } from '../views/mall/mallCheckoutModel'
@@ -17,7 +20,9 @@ interface UseMallOrderStatusOptions {
   getOrder?: (orderId: number) => Promise<OrderResponse>
   listOrders?: (params: { page?: number, size?: number }) => Promise<OrderPageResponse>
   cancelOrder?: (orderId: number) => Promise<OrderResponse>
+  createPayment?: (payload: CreatePaymentRequest) => Promise<PaymentResponse>
   getPayment?: (paymentNo: string) => Promise<PaymentResponse>
+  createPaymentNo?: () => string
 }
 
 export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
@@ -33,8 +38,10 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
   const isLoadingOrders = ref(false)
   const isRefreshingPayment = ref(false)
   const isCancelling = ref(false)
+  const isSubmittingPayment = ref(false)
 
   const canCancel = computed(() => canCancelOrder(order.value) && !isCancelling.value)
+  const canPay = computed(() => order.value?.status === 'created' && !payment.value && !isSubmittingPayment.value)
   const paymentStatus = computed(() => describePaymentStatus(order.value, payment.value))
 
   async function loadOrder(orderId: number, nextPaymentNo = paymentNo.value): Promise<OrderResponse | null> {
@@ -48,6 +55,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
         paymentNo.value = nextPaymentNo
         await refreshPayment(nextPaymentNo)
       } else {
+        paymentNo.value = ''
         payment.value = null
       }
       return response
@@ -115,6 +123,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
       const response = await (options.cancelOrder ?? defaultCancelOrder)(order.value.orderId)
       order.value = response
       payment.value = null
+      paymentNo.value = ''
       return response
     } catch (caught) {
       errorMessage.value = describeMallApiError(caught)
@@ -141,6 +150,33 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     }
   }
 
+  async function submitPayment(session: MallSession): Promise<PaymentResponse | null> {
+    if (!order.value || !canPay.value) {
+      return null
+    }
+
+    isSubmittingPayment.value = true
+    errorMessage.value = ''
+
+    try {
+      const createPayment = options.createPayment ?? defaultCreatePayment
+      const nextPaymentNo = paymentNo.value || (options.createPaymentNo ?? createPaymentNo)()
+      paymentNo.value = nextPaymentNo
+      const response = await createPayment(buildCreatePaymentRequest({
+        session,
+        orderId: order.value.orderId,
+        paymentNo: nextPaymentNo,
+      }))
+      acceptPayment(response)
+      return response
+    } catch (caught) {
+      errorMessage.value = describeMallApiError(caught)
+      return null
+    } finally {
+      isSubmittingPayment.value = false
+    }
+  }
+
   return {
     order,
     orders,
@@ -154,12 +190,15 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     isLoadingOrders,
     isRefreshingPayment,
     isCancelling,
+    isSubmittingPayment,
     canCancel,
+    canPay,
     paymentStatus,
     loadOrder,
     loadOrders,
     refreshPayment,
     cancelCurrentOrder,
+    submitPayment,
     acceptCreatedOrder,
     acceptPayment,
   }
@@ -182,5 +221,10 @@ async function defaultCancelOrder(orderId: number): Promise<OrderResponse> {
 
 async function defaultGetPayment(paymentNo: string): Promise<PaymentResponse> {
   const result = await getPaymentApi(paymentNo)
+  return result.data
+}
+
+async function defaultCreatePayment(payload: CreatePaymentRequest): Promise<PaymentResponse> {
+  const result = await createPaymentApi(payload)
   return result.data
 }

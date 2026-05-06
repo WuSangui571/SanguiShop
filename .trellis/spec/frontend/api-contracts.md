@@ -60,6 +60,74 @@ Required tests:
 - Duplicate cancel click guard.
 - API errors preserve `code`, `message`, and `traceId`.
 
+## Mall Cart Draft MVP
+
+Frontend cart is a local draft only. It must not introduce a backend cart table or a new cart API for the MVP.
+
+Storage contract:
+
+- File pattern: `frontend/src/composables/useMallCart.ts` plus pure model helpers under `frontend/src/views/mall/`.
+- Storage API: `window.localStorage`.
+- Key shape: `sangui.mall.cart.v1:{shopId}:{userId}`.
+- The key must be rebuilt from the current mall session after login/bootstrap and cleared from memory on sign-out.
+- Cart data for a different `{shopId,userId}` must not be loaded into the current session.
+
+Persisted item fields:
+
+```json
+{
+  "version": 1,
+  "shopId": 1,
+  "userId": "10001",
+  "items": [
+    {
+      "shopId": 1,
+      "userId": "10001",
+      "productId": 301,
+      "productName": "Daily trainer",
+      "skuId": 401,
+      "skuName": "42",
+      "priceCent": 59900,
+      "availableStock": 2,
+      "quantity": 1,
+      "addedAt": "2026-05-06T10:00:00.000Z",
+      "updatedAt": "2026-05-06T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+Rules:
+
+- `priceCent` and `availableStock` are display snapshots only. Final price and stock validity come from `POST /api/orders`.
+- Cart checkout must build the normal `CreateOrderRequest` with `shopId`, `userId`, `requestId`, and `items[]` containing only `skuId` and `quantity`.
+- Quantity controls clamp to positive integers and keep an upper UI bound from the local stock snapshot when available, but backend order creation remains the final validation point.
+- Checkout must disable duplicate submit while pending and preserve the same `requestId` until cart contents change or checkout succeeds.
+- Successful checkout clears only submitted SKU items from the current cart.
+- Failed checkout must keep cart items and show backend `code`, `message`, and `traceId`.
+- Shared order result UI may create mock payment for any current `created` order and must preserve the generated `paymentNo` across payment retry attempts.
+
+Validation and error matrix:
+
+| Case | Frontend behavior |
+| --- | --- |
+| No mall session | Add/checkout blocked with sign-in guidance. |
+| Different `shopId/userId` | Load an empty cart for the new session key. |
+| Duplicate SKU added | Merge quantities into one cart line. |
+| Quantity below 1 | Clamp to 1. |
+| Checkout duplicate click | Return no second request while pending. |
+| `ORDER_STOCK_NOT_ENOUGH` or unavailable SKU | Keep cart items and display backend error plus `traceId`. |
+
+Required tests:
+
+- Add item, merge duplicate SKU, remove item, clear cart.
+- Quantity lower and upper boundaries.
+- `localStorage` persistence and `{shopId,userId}` isolation.
+- Multi-item `CreateOrderRequest` payload shape.
+- Duplicate checkout guard.
+- Checkout failure preserves items and displays `traceId`.
+- Shared result payment submit preserves `paymentNo` for retry.
+
 ## Public Environment Configuration
 
 - `VITE_API_BASE_URL`: optional gateway origin prefix; empty means same origin.
