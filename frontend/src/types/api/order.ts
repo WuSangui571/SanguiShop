@@ -30,4 +30,13 @@ export interface OrderResponse {
   status: OrderStatus
   totalAmountCent: number
   items: OrderItemResponse[]
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+export interface OrderPageResponse {
+  page: number
+  size: number
+  total: number
+  items: OrderResponse[]
 }

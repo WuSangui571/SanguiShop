@@ -134,26 +134,7 @@ public class OrderCreateService {
     }
 
     private OrderResponse toResponse(OrderSnapshot snapshot) {
-        List<OrderItemResponse> items = snapshot.items().stream()
-                .map(item -> new OrderItemResponse(
-                        item.productId(),
-                        item.skuId(),
-                        item.skuName(),
-                        item.priceCent(),
-                        item.quantity(),
-                        item.lineAmountCent()
-                ))
-                .toList();
-        return new OrderResponse(
-                snapshot.order().id(),
-                snapshot.order().orderNo(),
-                snapshot.order().shopId(),
-                snapshot.order().userId(),
-                snapshot.order().requestId(),
-                snapshot.order().status().value(),
-                snapshot.order().totalAmountCent(),
-                items
-        );
+        return OrderResponseMapper.toResponse(snapshot);
     }
 
     private OrderResponse toResponse(

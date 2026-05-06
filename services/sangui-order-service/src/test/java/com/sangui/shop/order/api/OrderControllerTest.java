@@ -1,8 +1,10 @@
 package com.sangui.shop.order.api;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,8 +19,10 @@ import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.order.api.dto.CreateOrderRequest;
 import com.sangui.shop.order.api.dto.OrderItemResponse;
 import com.sangui.shop.order.api.dto.OrderResponse;
+import com.sangui.shop.order.api.dto.OrderPageResponse;
 import com.sangui.shop.order.application.OrderCancelService;
 import com.sangui.shop.order.application.OrderCreateService;
+import com.sangui.shop.order.application.OrderQueryService;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -49,6 +53,9 @@ class OrderControllerTest {
 
     @MockBean
     private OrderCancelService orderCancelService;
+
+    @MockBean
+    private OrderQueryService orderQueryService;
 
     @Test
     void createOrderUsesPrincipalParameterInsteadOfBodyIdentity() throws Exception {
@@ -145,6 +152,67 @@ class OrderControllerTest {
                         ))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ORDER_SKU_NOT_FOUND"));
+    }
+
+    @Test
+    void getOrderUsesPrincipalScope() throws Exception {
+        when(orderQueryService.getOrder(any(), eq(101L)))
+                .thenReturn(new OrderResponse(
+                        101L,
+                        "ORD-101",
+                        1L,
+                        "10001",
+                        "req-101",
+                        "created",
+                        59900L,
+                        List.of(new OrderItemResponse(301L, 401L, "Sneaker 42", 59900L, 1, 59900L))
+                ));
+
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt-1");
+        mockMvc.perform(get("/api/orders/101")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-order-detail"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ORDER_DETAIL"))
+                .andExpect(jsonPath("$.traceId").value("trace-order-detail"))
+                .andExpect(jsonPath("$.data.orderId").value(101))
+                .andExpect(jsonPath("$.data.userId").value("10001"));
+
+        ArgumentCaptor<SanguiPrincipal> principalCaptor = ArgumentCaptor.forClass(SanguiPrincipal.class);
+        verify(orderQueryService).getOrder(principalCaptor.capture(), eq(101L));
+        org.assertj.core.api.Assertions.assertThat(principalCaptor.getValue().shopId()).isEqualTo(1L);
+        org.assertj.core.api.Assertions.assertThat(principalCaptor.getValue().userId()).isEqualTo("10001");
+    }
+
+    @Test
+    void listOrdersUsesPrincipalScopeAndBoundedPagination() throws Exception {
+        when(orderQueryService.listOrders(any(), eq(1), eq(10)))
+                .thenReturn(new OrderPageResponse(
+                        1,
+                        10,
+                        1,
+                        List.of(new OrderResponse(
+                                101L,
+                                "ORD-101",
+                                1L,
+                                "10001",
+                                "req-101",
+                                "created",
+                                59900L,
+                                List.of(new OrderItemResponse(301L, 401L, "Sneaker 42", 59900L, 1, 59900L))
+                        ))
+                ));
+
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt-1");
+        mockMvc.perform(get("/api/orders")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-order-list")
+                        .queryParam("page", "1")
+                        .queryParam("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ORDER_LIST"))
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.items[0].orderNo").value("ORD-101"));
     }
 
     @TestConfiguration

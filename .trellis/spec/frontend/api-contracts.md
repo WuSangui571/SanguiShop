@@ -34,6 +34,32 @@ const request: SubmitSeckillRequest = {
 }
 ```
 
+## Mall Order Status APIs
+
+Frontend customer order status flows must use these gateway routes through `services/orderApi.ts` and `services/paymentApi.ts`:
+
+| Function | Route | Auth Context | Required UI Handling |
+| --- | --- | --- | --- |
+| `createOrder(payload)` | `POST /api/orders` | `mall` | Disable duplicate submit while pending and preserve `requestId`. |
+| `getOrder(orderId)` | `GET /api/orders/{orderId}` | `mall` | Load detail after refresh from `orderId` URL state. |
+| `listOrders({page,size})` | `GET /api/orders?page=&size=` | `mall` | Show empty/loading/error states and never send `shopId` / `userId` query fields. |
+| `cancelOrder(orderId)` | `POST /api/orders/{orderId}/cancel` | `mall` | Enable only for `created` orders and guard duplicate clicks. |
+| `getPayment(paymentNo)` | `GET /api/payments/{paymentNo}` | `mall` | Manual refresh only unless bounded polling with cleanup is explicitly implemented. |
+
+Order status display rules:
+
+- `created` means unpaid and cancellable.
+- `paid` means payment complete and cancel is disabled.
+- `cancelled` means payment actions and cancel are disabled.
+- If `paymentNo` is unavailable for a historical order, the UI may derive the payment summary from order status but must not invent a `PaymentResponse`.
+
+Required tests:
+
+- Order detail load from `orderId`.
+- Payment refresh by `paymentNo`.
+- Duplicate cancel click guard.
+- API errors preserve `code`, `message`, and `traceId`.
+
 ## Public Environment Configuration
 
 - `VITE_API_BASE_URL`: optional gateway origin prefix; empty means same origin.

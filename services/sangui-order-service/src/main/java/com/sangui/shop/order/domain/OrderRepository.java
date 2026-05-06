@@ -12,6 +12,14 @@ public interface OrderRepository {
 
     Optional<OrderSnapshot> findByRequestId(Long shopId, String userId, String requestId);
 
+    default List<OrderSnapshot> findSnapshotsByUser(Long shopId, String userId, int offset, int limit) {
+        throw new UnsupportedOperationException("Customer order list query is not implemented");
+    }
+
+    default long countByUser(Long shopId, String userId) {
+        throw new UnsupportedOperationException("Customer order count query is not implemented");
+    }
+
     List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit);
 
     List<OrderRecord> findCancelledOrders(Long shopId, int limit);

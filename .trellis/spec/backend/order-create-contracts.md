@@ -70,6 +70,54 @@ Rules:
 - Cancel must release the associated inventory reservation before the order becomes `cancelled`.
 - Repeating cancel on an already `cancelled` order is idempotent and returns the current cancelled snapshot.
 
+### `GET /api/orders/{orderId}`
+
+Response success code: `ORDER_DETAIL`.
+
+Response:
+
+```json
+{
+  "orderId": 101,
+  "orderNo": "ORD9F5C0A1B2C3D4E5F6A7B",
+  "shopId": 1,
+  "userId": "10001",
+  "requestId": "req-20260501-0001",
+  "status": "created",
+  "totalAmountCent": 119800,
+  "items": [
+    {
+      "productId": 301,
+      "skuId": 401,
+      "skuName": "Sneaker 42",
+      "priceCent": 59900,
+      "quantity": 2,
+      "lineAmountCent": 119800
+    }
+  ],
+  "createdAt": "2026-05-01T21:30:00+08:00",
+  "updatedAt": "2026-05-01T21:30:00+08:00"
+}
+```
+
+Rules:
+
+- Controller must use trusted `SanguiPrincipal`.
+- Effective `shopId` / `userId` come from principal only.
+- Missing order or an order owned by another user returns `ORDER_NOT_FOUND`.
+- DTO fields come from `OrderSnapshot`; controller must not expose `oms_order` entity objects.
+
+### `GET /api/orders?page=&size=`
+
+Response success code: `ORDER_LIST`.
+
+Rules:
+
+- Controller must use trusted `SanguiPrincipal`; query parameters must never carry `shopId` or `userId`.
+- `page` defaults to 1 and must be positive.
+- `size` defaults to 10, must be positive, and is capped at 50.
+- Results are scoped to `(shopId, userId)` and ordered by newest order first.
+
 ## Product Inventory Dependency Contract
 
 Order-service uses:
@@ -161,6 +209,8 @@ Required constraints and indexes:
 | --- | --- | --- |
 | Missing trusted principal | 401 | `AUTH_TOKEN_MISSING` |
 | DTO validation failure | 400 | `VALIDATION_FAILED` |
+| Detail/list pagination validation failure | 400 | `VALIDATION_FAILED` |
+| Order detail missing or wrong owner | 404 | `ORDER_NOT_FOUND` |
 | Duplicate `skuId` in one request | 409 | `ORDER_SKU_DUPLICATED` |
 | Unknown or inactive SKU | 404 | `ORDER_SKU_NOT_FOUND` |
 | Stock not enough | 409 | `ORDER_STOCK_NOT_ENOUGH` |
@@ -179,9 +229,11 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 - Good: create order reserves stock exactly once and persists `reservation_no`.
 - Good: duplicate submit with same principal + requestId returns the original order.
 - Good: cancel order releases inventory and returns `cancelled`.
+- Good: order detail/list use principal `(shopId,userId)` scope and return only the current user's order snapshots.
 - Base: payment flow reads `reservationNo` through internal order snapshot instead of recomputing it.
 - Bad: order-service writes order rows before inventory reserve succeeds.
 - Bad: order-service trusts body `shopId` or `userId`.
+- Bad: list/detail endpoints accept `shopId` or `userId` query parameters to widen scope.
 - Bad: cancel path marks order `cancelled` without releasing inventory.
 
 ## Timeout Cancellation Addendum

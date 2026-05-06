@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "Composable loading/error/action state rules"}
+{"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Order create/cancel/query state machine"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Order and payment external API contracts"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Cross-layer order/payment DTO consistency"}
+{"file": ".trellis\\spec\\backend\\payment-pay-contracts.md", "reason": "Payment status API contract"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Frontend gateway API and error handling"}

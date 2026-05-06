@@ -8,6 +8,7 @@ import {
   selectInitialSku,
 } from '../src/views/mall/mallCheckoutModel'
 import { useMallCheckout } from '../src/composables/useMallCheckout'
+import { useMallOrderStatus } from '../src/composables/useMallOrderStatus'
 import type { ProductDetailResponse } from '../src/types/api/product'
 import type { MallSession } from '../src/types/api/auth'
 import type { OrderResponse } from '../src/types/api/order'
@@ -116,6 +117,62 @@ describe('mall checkout model', () => {
     })
 
     expect(describeMallApiError(error)).toBe('ORDER_STOCK_NOT_ENOUGH: Stock is not enough. Trace ID trace-stock-001.')
+  })
+
+  it('loads order detail and refreshes known payment status', async () => {
+    const getOrder = vi.fn(async () => createOrderResponse())
+    const getPayment = vi.fn(async () => createPaymentResponse())
+    const orderStatus = useMallOrderStatus({
+      getOrder,
+      getPayment,
+    })
+
+    await orderStatus.loadOrder(501, 'PAY-duplicate')
+
+    expect(getOrder).toHaveBeenCalledWith(501)
+    expect(getPayment).toHaveBeenCalledWith('PAY-duplicate')
+    expect(orderStatus.order.value?.orderNo).toBe('ORD-501')
+    expect(orderStatus.paymentStatus.value).toBe('paid')
+  })
+
+  it('blocks duplicate pending cancellation attempts', async () => {
+    const deferredCancel = createDeferred<OrderResponse>()
+    const cancelOrder = vi.fn(() => deferredCancel.promise)
+    const orderStatus = useMallOrderStatus({
+      cancelOrder,
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse())
+
+    const firstCancel = orderStatus.cancelCurrentOrder()
+    const secondCancel = orderStatus.cancelCurrentOrder()
+
+    expect(cancelOrder).toHaveBeenCalledOnce()
+    await expect(secondCancel).resolves.toBeNull()
+
+    deferredCancel.resolve({
+      ...createOrderResponse(),
+      status: 'cancelled',
+    })
+    await firstCancel
+
+    expect(orderStatus.order.value?.status).toBe('cancelled')
+    expect(orderStatus.canCancel.value).toBe(false)
+  })
+
+  it('shows traceId when order detail loading fails', async () => {
+    const getOrder = vi.fn(async () => {
+      throw new HttpClientError('Order missing.', {
+        code: 'ORDER_NOT_FOUND',
+        status: 404,
+        traceId: 'trace-order-404',
+      })
+    })
+    const orderStatus = useMallOrderStatus({ getOrder })
+
+    await orderStatus.loadOrder(404)
+
+    expect(orderStatus.errorMessage.value).toBe('ORDER_NOT_FOUND: Order missing. Trace ID trace-order-404.')
+    expect(orderStatus.order.value).toBeNull()
   })
 })
 

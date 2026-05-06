@@ -2,14 +2,16 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { getProduct, listProducts } from '../../services/productApi'
 import { HttpClientError } from '../../services/httpClient'
+import { useMallOrderStatus } from '../../composables/useMallOrderStatus'
 import { useMallSession } from '../../composables/useMallSession'
 import type { ProductDetailResponse, ProductSummaryResponse } from '../../types/api/product'
-import { formatMoney } from '../../utils/format'
+import { formatDateTime, formatMoney } from '../../utils/format'
 import ProductCheckoutPanel from './ProductCheckoutPanel.vue'
 
 const DEFAULT_PAGE_SIZE = 12
 
 const mallSession = useMallSession()
+const orderStatus = useMallOrderStatus()
 const products = ref<ProductSummaryResponse[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -28,10 +30,17 @@ const loginForm = reactive({
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 const canGoPrev = computed(() => page.value > 1)
 const canGoNext = computed(() => page.value < totalPages.value)
+const orderTotalPages = computed(() => Math.max(1, Math.ceil(orderStatus.total.value / orderStatus.size.value)))
+const canGoPrevOrderPage = computed(() => orderStatus.page.value > 1)
+const canGoNextOrderPage = computed(() => orderStatus.page.value < orderTotalPages.value)
 
 onMounted(() => {
   mallSession.bootstrap()
   void fetchProducts()
+  if (mallSession.isAuthenticated.value) {
+    void orderStatus.loadOrders()
+    restoreOrderFromUrl()
+  }
 })
 
 async function fetchProducts(nextPage = page.value) {
@@ -78,6 +87,63 @@ async function submitLogin() {
     password: loginForm.password,
   })
   loginForm.password = ''
+  if (mallSession.isAuthenticated.value) {
+    await orderStatus.loadOrders()
+    restoreOrderFromUrl()
+  }
+}
+
+async function handleOrderCreated(orderId: number) {
+  replaceOrderUrl(orderId, '')
+  await orderStatus.loadOrder(orderId, '')
+  await orderStatus.loadOrders()
+}
+
+async function handlePaymentCreated(orderId: number, paymentNo: string) {
+  replaceOrderUrl(orderId, paymentNo)
+  await orderStatus.loadOrder(orderId, paymentNo)
+  await orderStatus.loadOrders()
+}
+
+async function selectOrder(orderId: number) {
+  replaceOrderUrl(orderId, '')
+  await orderStatus.loadOrder(orderId, '')
+}
+
+async function cancelCurrentOrder() {
+  const cancelled = await orderStatus.cancelCurrentOrder()
+  if (cancelled) {
+    replaceOrderUrl(cancelled.orderId, '')
+    await orderStatus.loadOrders()
+  }
+}
+
+function restoreOrderFromUrl() {
+  if (typeof window === 'undefined') {
+    return
+  }
+  const params = new URLSearchParams(window.location.search)
+  const orderId = Number(params.get('orderId'))
+  const paymentNo = params.get('paymentNo') ?? ''
+  if (Number.isFinite(orderId) && orderId > 0) {
+    void orderStatus.loadOrder(orderId, paymentNo)
+  }
+}
+
+function replaceOrderUrl(orderId: number, paymentNo: string) {
+  if (typeof window === 'undefined') {
+    return
+  }
+  const params = new URLSearchParams(window.location.search)
+  params.set('orderId', String(orderId))
+  if (paymentNo) {
+    params.set('paymentNo', paymentNo)
+  } else {
+    params.delete('paymentNo')
+  }
+  const nextSearch = params.toString()
+  const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
+  window.history.replaceState(null, '', nextUrl)
 }
 
 function describePriceRange(product: ProductSummaryResponse): string {
@@ -127,6 +193,109 @@ function resolveDefaultShopId(): number {
       <div v-else class="session-strip">
         <span>User {{ mallSession.state.session?.userId }} · shop {{ mallSession.state.session?.shopId }}</span>
         <button type="button" @click="mallSession.signOut()">Sign out</button>
+      </div>
+    </section>
+
+    <section v-if="mallSession.isAuthenticated.value" class="order-band">
+      <div class="order-grid">
+        <aside class="order-list">
+          <div class="list-header">
+            <div>
+              <p class="eyebrow">Orders</p>
+              <h2>Recent purchases</h2>
+            </div>
+            <button type="button" class="text-action" :disabled="orderStatus.isLoadingOrders.value" @click="orderStatus.loadOrders()">
+              {{ orderStatus.isLoadingOrders.value ? 'Refreshing...' : 'Refresh' }}
+            </button>
+          </div>
+
+          <div v-if="orderStatus.isLoadingOrders.value" class="status-block">Loading orders...</div>
+          <div v-else-if="orderStatus.orders.value.length === 0" class="status-block">No orders yet.</div>
+          <div v-else class="order-cards">
+            <button
+              v-for="order in orderStatus.orders.value"
+              :key="order.orderId"
+              type="button"
+              :class="orderStatus.order.value?.orderId === order.orderId ? 'order-card active' : 'order-card'"
+              @click="selectOrder(order.orderId)"
+            >
+              <span>{{ order.orderNo }}</span>
+              <strong>{{ formatMoney(order.totalAmountCent) }}</strong>
+              <small>{{ order.status }} · {{ formatDateTime(order.createdAt) }}</small>
+            </button>
+          </div>
+
+          <div class="pager">
+            <button type="button" :disabled="!canGoPrevOrderPage" @click="orderStatus.loadOrders(orderStatus.page.value - 1)">Prev</button>
+            <span>{{ orderStatus.page }} / {{ orderTotalPages }}</span>
+            <button type="button" :disabled="!canGoNextOrderPage" @click="orderStatus.loadOrders(orderStatus.page.value + 1)">Next</button>
+          </div>
+        </aside>
+
+        <section class="order-detail-panel">
+          <div class="list-header">
+            <div>
+              <p class="eyebrow">Status</p>
+              <h2>Order result</h2>
+            </div>
+            <button
+              type="button"
+              class="text-action"
+              :disabled="!orderStatus.order.value || orderStatus.isLoadingOrder.value"
+              @click="orderStatus.order.value && orderStatus.loadOrder(orderStatus.order.value.orderId, orderStatus.paymentNo.value)"
+            >
+              {{ orderStatus.isLoadingOrder.value ? 'Refreshing...' : 'Refresh order' }}
+            </button>
+          </div>
+
+          <div v-if="orderStatus.errorMessage.value" class="status-block danger">
+            {{ orderStatus.errorMessage }}
+          </div>
+          <div v-else-if="orderStatus.isLoadingOrder.value" class="status-block">Loading order detail...</div>
+          <div v-else-if="!orderStatus.order.value" class="status-block">Create or select an order.</div>
+          <div v-else class="order-detail">
+            <div class="detail-facts">
+              <span>{{ orderStatus.order.value.status }}</span>
+              <span>Payment {{ orderStatus.paymentStatus.value }}</span>
+              <span>{{ formatDateTime(orderStatus.order.value.updatedAt) }}</span>
+            </div>
+
+            <div class="order-headline">
+              <div>
+                <p class="eyebrow">Order {{ orderStatus.order.value.orderId }}</p>
+                <h3>{{ orderStatus.order.value.orderNo }}</h3>
+              </div>
+              <strong>{{ formatMoney(orderStatus.order.value.totalAmountCent) }}</strong>
+            </div>
+
+            <div class="order-items">
+              <div v-for="item in orderStatus.order.value.items" :key="`${item.productId}-${item.skuId}`" class="order-item">
+                <span>{{ item.skuName }}</span>
+                <small>SKU {{ item.skuId }} x {{ item.quantity }}</small>
+                <strong>{{ formatMoney(item.lineAmountCent) }}</strong>
+              </div>
+            </div>
+
+            <div class="checkout-actions">
+              <button
+                type="button"
+                class="secondary-action"
+                :disabled="!orderStatus.paymentNo.value || orderStatus.isRefreshingPayment.value"
+                @click="orderStatus.refreshPayment()"
+              >
+                {{ orderStatus.isRefreshingPayment.value ? 'Refreshing...' : 'Refresh payment' }}
+              </button>
+              <button
+                type="button"
+                class="danger-action"
+                :disabled="!orderStatus.canCancel.value"
+                @click="cancelCurrentOrder()"
+              >
+                {{ orderStatus.isCancelling.value ? 'Cancelling...' : 'Cancel unpaid order' }}
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
 
@@ -187,6 +356,8 @@ function resolveDefaultShopId(): number {
               :key="selectedProduct.productId"
               :product="selectedProduct"
               :session="mallSession.state.session"
+              @order-created="handleOrderCreated"
+              @payment-created="handlePaymentCreated"
             />
           </div>
           <div v-else class="status-block">Select a product.</div>
@@ -206,7 +377,8 @@ function resolveDefaultShopId(): number {
 }
 
 .mall-hero,
-.catalog-grid {
+.catalog-grid,
+.order-grid {
   width: min(1220px, calc(100% - 2rem));
   margin: 0 auto;
 }
@@ -265,7 +437,8 @@ function resolveDefaultShopId(): number {
 .login-strip button,
 .session-strip button,
 .status-block button,
-.pager button {
+.pager button,
+.text-action {
   min-height: 2.5rem;
   border: 0;
   border-radius: 8px;
@@ -276,7 +449,8 @@ function resolveDefaultShopId(): number {
 }
 
 .login-strip button:disabled,
-.pager button:disabled {
+.pager button:disabled,
+.text-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -297,7 +471,12 @@ function resolveDefaultShopId(): number {
   padding: 1rem 0 2rem;
 }
 
-.catalog-grid {
+.order-band {
+  padding: 0 0 1rem;
+}
+
+.catalog-grid,
+.order-grid {
   display: grid;
   grid-template-columns: minmax(18rem, 25rem) minmax(0, 1fr);
   gap: 1rem;
@@ -305,7 +484,9 @@ function resolveDefaultShopId(): number {
 }
 
 .product-list,
-.product-detail {
+.product-detail,
+.order-list,
+.order-detail-panel {
   min-width: 0;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
@@ -313,11 +494,13 @@ function resolveDefaultShopId(): number {
   box-shadow: var(--shadow-soft);
 }
 
-.product-list {
+.product-list,
+.order-list {
   padding: 1rem;
 }
 
-.product-detail {
+.product-detail,
+.order-detail-panel {
   padding: 1.25rem;
 }
 
@@ -341,7 +524,8 @@ h2 {
   margin-top: 1rem;
 }
 
-.product-card {
+.product-card,
+.order-card {
   min-height: 6.25rem;
   display: grid;
   gap: 0.25rem;
@@ -354,7 +538,8 @@ h2 {
   text-align: left;
 }
 
-.product-card.active {
+.product-card.active,
+.order-card.active {
   border-color: #0f766e;
   background: #ecfdf5;
 }
@@ -364,8 +549,95 @@ h2 {
 }
 
 .product-card small,
+.order-card small,
 .detail-copy p {
   color: var(--text-muted);
+}
+
+.order-cards {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.order-detail {
+  display: grid;
+  gap: 1rem;
+}
+
+.order-headline {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+}
+
+.order-headline h3 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.75rem);
+  line-height: 0.95;
+}
+
+.order-headline strong {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.order-items {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.order-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.order-item span {
+  font-weight: 900;
+}
+
+.order-item small {
+  color: var(--text-muted);
+}
+
+.checkout-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.secondary-action,
+.danger-action {
+  min-height: 2.75rem;
+  flex: 1;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0 1rem;
+  font-weight: 900;
+}
+
+.secondary-action {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.danger-action {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.secondary-action:disabled,
+.danger-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .status-block {
@@ -427,20 +699,28 @@ h2 {
 
 @media (max-width: 900px) {
   .mall-hero,
-  .catalog-grid {
+  .catalog-grid,
+  .order-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 640px) {
   .mall-hero,
-  .catalog-grid {
+  .catalog-grid,
+  .order-grid {
     width: min(100% - 1rem, 1220px);
   }
 
   .session-strip,
   .list-header,
   .pager {
+    display: grid;
+  }
+
+  .order-headline,
+  .order-item,
+  .checkout-actions {
     display: grid;
   }
 }

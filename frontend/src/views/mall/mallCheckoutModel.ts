@@ -1,7 +1,9 @@
 import { HttpClientError } from '../../services/httpClient'
 import type { MallSession } from '../../types/api/auth'
 import type { CreateOrderRequest } from '../../types/api/order'
+import type { OrderResponse } from '../../types/api/order'
 import type { CreatePaymentRequest } from '../../types/api/payment'
+import type { PaymentResponse } from '../../types/api/payment'
 import type { ProductDetailResponse, ProductSkuResponse } from '../../types/api/product'
 
 export interface SubmitOrderState {
@@ -71,6 +73,26 @@ export function describeMallApiError(caught: unknown): string {
   }
 
   return 'UNEXPECTED_ERROR: Unexpected request failure.'
+}
+
+export function canCancelOrder(order: OrderResponse | null): boolean {
+  return order?.status === 'created'
+}
+
+export function describePaymentStatus(order: OrderResponse | null, payment: PaymentResponse | null): string {
+  if (payment) {
+    return payment.status
+  }
+  if (order?.status === 'paid') {
+    return 'paid'
+  }
+  if (order?.status === 'cancelled') {
+    return 'cancelled'
+  }
+  if (order?.status === 'created') {
+    return 'unpaid'
+  }
+  return 'unknown'
 }
 
 function createRandomId(): string {

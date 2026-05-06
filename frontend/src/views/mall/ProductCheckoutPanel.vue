@@ -10,6 +10,11 @@ const props = defineProps<{
   session: MallSession | null
 }>()
 
+const emit = defineEmits<{
+  orderCreated: [orderId: number]
+  paymentCreated: [orderId: number, paymentNo: string]
+}>()
+
 const checkout = useMallCheckout({
   product: computed(() => props.product),
   session: computed(() => props.session),
@@ -30,6 +35,20 @@ function skuTone(sku: ProductSkuResponse): string {
     return 'sku-option disabled'
   }
   return sku.skuId === checkout.selectedSkuId.value ? 'sku-option active' : 'sku-option'
+}
+
+async function submitOrder() {
+  const order = await checkout.submitOrder()
+  if (order) {
+    emit('orderCreated', order.orderId)
+  }
+}
+
+async function submitPayment() {
+  const payment = await checkout.submitPayment()
+  if (payment) {
+    emit('paymentCreated', payment.orderId, payment.paymentNo)
+  }
 }
 </script>
 
@@ -103,7 +122,7 @@ function skuTone(sku: ProductSkuResponse): string {
         type="button"
         class="primary-action"
         :disabled="!session || !checkout.canSubmit.value"
-        @click="checkout.submitOrder()"
+        @click="submitOrder()"
       >
         {{ checkout.isSubmittingOrder.value ? 'Creating...' : checkout.order.value ? 'Order created' : 'Create order' }}
       </button>
@@ -111,7 +130,7 @@ function skuTone(sku: ProductSkuResponse): string {
         type="button"
         class="secondary-action"
         :disabled="!checkout.canPay.value"
-        @click="checkout.submitPayment()"
+        @click="submitPayment()"
       >
         {{ checkout.isSubmittingPayment.value ? 'Paying...' : checkout.payment.value ? 'Paid' : 'Mock pay' }}
       </button>

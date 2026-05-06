@@ -129,6 +129,42 @@ public class JdbcOrderRepository implements OrderRepository {
     }
 
     @Override
+    public List<OrderSnapshot> findSnapshotsByUser(Long shopId, String userId, int offset, int limit) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, user_id, order_no, request_id, reservation_no, status, total_amount_cent, trace_id,
+                               created_at, updated_at, last_compensation_result, last_compensation_error_code,
+                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
+                               last_compensation_operator, last_compensated_at
+                        FROM oms_order
+                        WHERE shop_id = ? AND user_id = ? AND deleted = 0
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT ? OFFSET ?
+                        """,
+                ORDER_ROW_MAPPER,
+                shopId,
+                userId,
+                limit,
+                offset
+        ).stream().map(this::toSnapshot).toList();
+    }
+
+    @Override
+    public long countByUser(Long shopId, String userId) {
+        Long count = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(*)
+                        FROM oms_order
+                        WHERE shop_id = ? AND user_id = ? AND deleted = 0
+                        """,
+                Long.class,
+                shopId,
+                userId
+        );
+        return count == null ? 0L : count;
+    }
+
+    @Override
     public List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit) {
         return jdbcTemplate.query(
                 """
