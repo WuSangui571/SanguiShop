@@ -1727,3 +1727,65 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 38: 商城端购物车与多商品结算 MVP
+
+**Date**: 2026-05-06
+**Task**: 商城端购物车与多商品结算 MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Cart Model | Added local mall cart draft model and composable with `localStorage` key isolation by `shopId/userId`, add/merge/remove/clear, quantity bounds, draft total, and multi-item checkout payload generation. |
+| Storefront UI | Product detail now supports `Add to cart` and `Buy now`; mall storefront now includes a cart panel with SKU lines, quantity steppers, clear/remove actions, and cart checkout. |
+| Order/Payment Reuse | Cart checkout reuses existing `POST /api/orders` multi-item contract and existing order status result area. Mock pay was moved to the shared order result panel so direct-buy and cart-created orders follow the same payment/status path. |
+| Idempotency/Error Handling | Checkout pending blocks duplicate submits; successful cart checkout clears submitted items only; failed checkout preserves items and displays backend `code/message/traceId`. Shared payment submit now preserves `paymentNo` across retry attempts. |
+| Tests | Added frontend model/composable tests for cart persistence, user isolation, multi-item payload, duplicate checkout guard, traceId errors, and shared payment creation. Backend multi-item order create was already covered by `OrderCreateServiceTest`. |
+| Spec Sync | Updated frontend API contract spec with executable Mall Cart Draft MVP storage, payload, error, and test requirements. |
+| Known Gap | Manual testing revealed a clean environment has no product-management or seed-data path. Existing product admin APIs require an `ADMIN` role, while current `/admin` UI is compensation ops only and does not grant broad product admin. Follow-up should add a product initialization/demo seed path before broader product management. |
+
+**Verification**:
+- Human manual testing: passed for the implemented cart/order flow after commit.
+- AI checks before commit: `cmd /c npm run typecheck`, `cmd /c npm run lint`, `cmd /c npm run build` passed.
+- Backend regression before commit: `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -pl services/sangui-order-service -am "-Dtest=OrderCreateServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed.
+- Vitest remained blocked in the sandbox by `spawn EPERM`; escalation retry was blocked by the approval service.
+
+**Updated Files / Modules**:
+- `frontend/src/views/mall/mallCartModel.ts`
+- `frontend/src/composables/useMallCart.ts`
+- `frontend/src/composables/useMallOrderStatus.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/ProductCheckoutPanel.vue`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/05-06-mall-cart-checkout-mvp/prd.md`
+
+**Result**:
+- SanguiShop mall storefront now supports local cart drafts and multi-SKU checkout through the existing order/payment recovery loop.
+- The next practical task is product initialization/demo seed data so a clean local environment can reach the cart flow without manual database/API setup.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0311406` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
