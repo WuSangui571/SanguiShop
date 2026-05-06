@@ -93,6 +93,7 @@ Use the GitHub Actions manual workflow when the same targeted regression needs t
 - Runner: `ubuntu-latest`
 - Permissions: `contents: read`
 - Actions: `actions/checkout@v6`, `actions/setup-java@v5`
+- Checkout: `persist-credentials: false`
 - Shell: `pwsh`
 - Input: `service` = `all`, `order`, or `payment`
 - Command: `./scripts/verify-compensation-ops-audit.ps1 -Service <service>`
@@ -131,7 +132,7 @@ Good / Base / Bad command cases:
 - Good: run `.\scripts\verify-compensation-ops-audit.ps1` from the repository root after changing compensation ops audit controller tests or logging fields.
 - Good: run `.\scripts\verify-compensation-ops-audit.ps1 -Service order` or `.\scripts\verify-compensation-ops-audit.ps1 -Service payment` for single-service investigation, then confirm the matching test class executed.
 - Good: use the `Compensation Ops Audit` GitHub Actions `workflow_dispatch` workflow with `service=all`, `service=order`, or `service=payment` for on-demand Linux CI verification without adding a PR-required check.
-- Good: the manual workflow uses Node 24-compatible official actions and `permissions: contents: read` so checkout succeeds before the `pwsh` Maven script starts.
+- Good: the manual workflow uses Node 24-compatible official actions, `permissions: contents: read`, and `persist-credentials: false` so checkout succeeds before the `pwsh` Maven script starts without keeping unused git credentials for post-job cleanup.
 - Base: run the raw Maven fallback command above when troubleshooting the script itself.
 - Base: if checkout reports `/usr/bin/git` exit code `128`, capture the exact `fatal:` line from the `Checkout` step before changing the Maven script.
 - Bad: run root `.\mvnw.cmd -q "-Dtest=InternalOrderCompensationControllerTest,InternalPaymentCompensationControllerTest" test`; common modules can fail before the target service tests with `No tests matching pattern`.

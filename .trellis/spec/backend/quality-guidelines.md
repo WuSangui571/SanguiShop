@@ -93,7 +93,7 @@ Good/Base/Bad cases:
 
 - Good: compensation ops audit changes run `.\scripts\verify-compensation-ops-audit.ps1` and verify both `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest` executed.
 - Good: a single-service investigation uses `.\scripts\verify-compensation-ops-audit.ps1 -Service order` or `.\scripts\verify-compensation-ops-audit.ps1 -Service payment` and confirms the selected test class ran.
-- Good: the manual `.github/workflows/compensation-ops-audit.yml` `workflow_dispatch` workflow uses Node 24-compatible official actions, declares `permissions: contents: read`, runs `./scripts/verify-compensation-ops-audit.ps1 -Service <all|order|payment>` on `ubuntu-latest` with `pwsh`, and the run log confirms the target test class or classes executed.
+- Good: the manual `.github/workflows/compensation-ops-audit.yml` `workflow_dispatch` workflow uses Node 24-compatible official actions, declares `permissions: contents: read`, sets checkout `persist-credentials: false`, runs `./scripts/verify-compensation-ops-audit.ps1 -Service <all|order|payment>` on `ubuntu-latest` with `pwsh`, and the run log confirms the target test class or classes executed.
 - Base: a direct Maven fallback uses `-pl <service> -am "-Dtest=<OwningServiceTest>" "-Dsurefire.failIfNoSpecifiedTests=false" test` and confirms that test class ran.
 - Base: a GitHub checkout failure such as `/usr/bin/git` exit code `128` is diagnosed from the `Checkout` step `fatal:` line before changing Maven selectors or the PowerShell script.
 - Base: full `.\mvnw.cmd -q test` remains valid before release or broad backend changes.
