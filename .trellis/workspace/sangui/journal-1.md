@@ -1655,3 +1655,75 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 37: 商城订单支付状态闭环 MVP
+
+**Date**: 2026-05-06
+**Task**: 商城订单支付状态闭环 MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Backend Order Query APIs | Added customer-facing `GET /api/orders/{orderId}` and `GET /api/orders?page=&size=` in order-service, scoped exclusively by trusted `SanguiPrincipal` shop/user identity. |
+| Order DTO / Repository | Added paged order response DTO, order response timestamp support, reusable order response mapper, and repository queries for current-user order snapshots. |
+| Frontend Order Loop | Added `orderApi` detail/list/cancel calls, `useMallOrderStatus`, URL-based order/payment recovery, recent order list, order detail/result view, manual payment refresh, and unpaid-order cancellation guard. |
+| Payment Status Closure | Confirmed existing `GET /api/payments/{paymentNo}` and wired it into the storefront for manual status refresh after mock payment. |
+| Tests | Added backend controller/service tests for principal scope, not found, owner isolation, and paid-cancel rejection coverage; added frontend model/composable tests for detail load, payment refresh, duplicate cancel guard, and traceId error display. |
+| Spec Sync | Updated backend order contract and frontend API contract specs with executable order status APIs, validation/error expectations, and required tests. |
+| Manual Verification | Human reported all manual testing passed, then committed `92110c0 feat(order): ?????????? MVP`. |
+
+**Verification Run During AI Session**:
+- `cmd /c npm run lint` passed.
+- `cmd /c npm run typecheck` passed.
+- `cmd /c npm run build` passed.
+- `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -pl services/sangui-order-service -am "-Dtest=OrderControllerTest,OrderQueryServiceTest,OrderCancelServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed.
+- `git diff --check` passed with only LF/CRLF warnings.
+- Vitest remained blocked in the sandbox by `spawn EPERM`; escalation retry was blocked by the approval service. Human manual testing passed afterward.
+
+**Updated Files / Modules**:
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/OrderController.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/dto/OrderPageResponse.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/dto/OrderResponse.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderQueryService.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderResponseMapper.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderRepository.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/persistence/JdbcOrderRepository.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/OrderControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/application/OrderQueryServiceTest.java`
+- `frontend/src/services/orderApi.ts`
+- `frontend/src/composables/useMallOrderStatus.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/ProductCheckoutPanel.vue`
+- `frontend/src/views/mall/mallCheckoutModel.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `.trellis/spec/backend/order-create-contracts.md`
+- `.trellis/spec/frontend/api-contracts.md`
+
+**Result**:
+- The mall customer flow is now recoverable after checkout: users can create orders, pay through mock payment, refresh back into order/payment state, review recent purchases, and cancel unpaid orders while invalid paid/cancelled actions are blocked.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `92110c0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
