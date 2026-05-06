@@ -1424,3 +1424,51 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 33: Compensation Ops Audit Cross Platform Manual CI
+
+**Date**: 2026-05-06
+**Task**: Compensation Ops Audit Cross Platform Manual CI
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Cross-platform Script | Updated `scripts/verify-compensation-ops-audit.ps1` so Windows uses `.\mvnw.cmd` and non-Windows `pwsh` uses `./mvnw`. Preserved `-Service all/order/payment` and `-MavenRepoLocal`, and added `-PrintCommandOnly`. |
+| Command Transparency | Script now prints Maven executable, module selector, test selector, expanded Maven command, and expected controller test classes before execution. |
+| Manual CI Entry | Added `.github/workflows/compensation-ops-audit.yml` with `workflow_dispatch`, `service=all/order/payment`, `ubuntu-latest`, Java 21, Maven wrapper chmod, and `pwsh` script execution. |
+| Runbook Sync | Updated `docs/compensation-ops-audit-search.md` with Manual CI workflow usage, local PowerShell entry, `-PrintCommandOnly`, Windows/non-Windows raw Maven fallbacks, and non-PR-gate positioning. |
+| Backend Spec Sync | Updated `.trellis/spec/backend/quality-guidelines.md` with the cross-platform script contract, manual `workflow_dispatch` Good case, and continued requirement to confirm target test classes executed. |
+| Verification | Human verified `-PrintCommandOnly` and full script execution on Windows. Maven output showed both `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest` ran successfully. |
+
+**Testing**:
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1 -PrintCommandOnly`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-compensation-ops-audit.ps1`
+
+**Commit**:
+- `d59ddc7 chore(compensation): ???? ops ???? CI ??`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d59ddc7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
