@@ -89,14 +89,50 @@ Required review checks:
 - Confirm the touched service modules are listed in `-pl`; do not rely on root `-Dtest` discovery for service-specific controller tests.
 - If the command is copied into a runbook, include the expected assertion points, not only the raw command.
 
+Manual GitHub workflow triage contract:
+
+- File: `.github/workflows/compensation-ops-audit.yml`.
+- Trigger: manual `workflow_dispatch` only; no default `pull_request` gate without an explicit runtime decision.
+- Runner: `ubuntu-latest`.
+- Java: Temurin 21 via `actions/setup-java@v5`.
+- Checkout: `actions/checkout@v6` with workflow `permissions: contents: read`, `persist-credentials: false`, and `submodules: false`.
+- Linux wrapper setup: run `chmod +x ./mvnw` before invoking the `pwsh` script.
+- Acceptance command: `./scripts/verify-compensation-ops-audit.ps1 -Service <all|order|payment>`.
+
+Failure matrix:
+
+| Signal | Step | Blocking | Owner | Required Response |
+| --- | --- | --- | --- | --- |
+| `Node.js 20 actions are deprecated` | Checkout or Setup Java annotation | Usually non-blocking warning | GitHub runner/action runtime | Upgrade official actions to Node 24-compatible majors before diagnosing Maven. |
+| `/usr/bin/git failed with exit code 128` | Checkout | Blocking | Checkout/ref/token/repo metadata | Read the exact `fatal:` line in the Checkout step before changing scripts. |
+| `No url found for submodule path 'Trellis' in .gitmodules` | Checkout | Blocking | Repo metadata | Ensure the tracked gitlink has matching root `.gitmodules` metadata; keep this workflow `submodules: false` unless submodule contents are required. |
+| `./mvnw` permission denied | chmod or pwsh script | Blocking | Linux wrapper setup | Keep `chmod +x ./mvnw`; continue to use the project wrapper rather than global `mvn`. |
+| Windows path used on Linux, or Linux path used on Windows | pwsh script | Blocking | PowerShell portability | Verify the script prints `./mvnw` on non-Windows and `.\mvnw.cmd` on Windows. |
+| Target Surefire class missing from Maven output | Maven test | Blocking for acceptance | Maven selector/test contract | Check actual Surefire output for `InternalOrderCompensationControllerTest` and/or `InternalPaymentCompensationControllerTest`; do not accept the script preamble as proof. |
+
+Manual acceptance evidence must include:
+
+- GitHub run URL, branch, commit, `service` input, and runner.
+- Checkout result and any exact `fatal:` line if checkout failed.
+- Action versions and whether any Node runtime annotation remains.
+- Java version assertion for Temurin 21.
+- Maven executable line printed by the script.
+- Module selector and test selector printed by the script.
+- Actual Surefire class output proving the expected controller test class or classes ran.
+- Final conclusion: accepted with no warnings/errors, accepted with non-blocking warning, or rejected with blocking failure category.
+
 Good/Base/Bad cases:
 
 - Good: compensation ops audit changes run `.\scripts\verify-compensation-ops-audit.ps1` and verify both `InternalOrderCompensationControllerTest` and `InternalPaymentCompensationControllerTest` executed.
 - Good: a single-service investigation uses `.\scripts\verify-compensation-ops-audit.ps1 -Service order` or `.\scripts\verify-compensation-ops-audit.ps1 -Service payment` and confirms the selected test class ran.
 - Good: the manual `.github/workflows/compensation-ops-audit.yml` `workflow_dispatch` workflow uses Node 24-compatible official actions, declares `permissions: contents: read`, sets checkout `persist-credentials: false` and `submodules: false`, runs `./scripts/verify-compensation-ops-audit.ps1 -Service <all|order|payment>` on `ubuntu-latest` with `pwsh`, and the run log confirms the target test class or classes executed.
+- Good: `service=all` completes with no warning/error annotations, `Maven executable: ./mvnw`, both service modules in `-pl`, and both target controller test classes in Surefire output.
+- Base: the run succeeds with a warning annotation; the reviewer classifies it with the failure matrix and records why it is non-blocking or schedules the action upgrade.
 - Base: a direct Maven fallback uses `-pl <service> -am "-Dtest=<OwningServiceTest>" "-Dsurefire.failIfNoSpecifiedTests=false" test` and confirms that test class ran.
 - Base: a GitHub checkout failure such as `/usr/bin/git` exit code `128` is diagnosed from the `Checkout` step `fatal:` line before changing Maven selectors or the PowerShell script; `No url found for submodule path '<path>' in .gitmodules` means a tracked gitlink is missing `.gitmodules` metadata.
 - Base: full `.\mvnw.cmd -q test` remains valid before release or broad backend changes.
+- Bad: a checkout failure leads to edits in the Maven script even though the `pwsh` step never started.
+- Bad: a reviewer accepts the run from the script line `Expected Maven output should show` without checking actual Surefire class output.
 - Bad: root `.\mvnw.cmd -q "-Dtest=<service-controller-test>" test` can fail in common modules with `No tests matching pattern`.
 - Bad: `-pl <service>` without `-am` can fail on a clean checkout because required local SNAPSHOT dependencies are not installed.
 - Bad: global `mvn` is not accepted in reproducible project docs or CI instructions.

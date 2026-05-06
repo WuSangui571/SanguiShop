@@ -1,0 +1,5 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Check docs include executable commands, assertions, Good/Base/Bad"}
+{"file": ".trellis\\spec\\backend\\observability-devops.md", "reason": "Check CI/CD and Maven wrapper guidance stays synchronized"}
+{"file": "docs\\compensation-ops-audit-search.md", "reason": "Check runbook matrix and acceptance template are actionable"}

@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Manual CI/Maven wrapper/test-selector executable contract"}
+{"file": ".trellis\\spec\\backend\\observability-devops.md", "reason": "CI/CD and Maven wrapper runtime contract"}
+{"file": ".trellis\\spec\\guides\\architecture-review-checklist.md", "reason": "Good/Base/Bad infra acceptance review framing"}
+{"file": "docs\\compensation-ops-audit-search.md", "reason": "Existing compensation ops audit runbook to extend"}
