@@ -1351,3 +1351,36 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: Compensation Ops Audit Backend Test Runbook
+
+**Date**: 2026-05-06
+**Task**: Compensation Ops Audit Backend Test Runbook
+**Branch**: `main`
+
+### Summary
+
+固化 compensation ops audit 后端 Maven reactor 测试命令：在 docs/compensation-ops-audit-search.md 增加 Backend Regression Test Runbook，在 backend quality spec 增加 Targeted Maven Reactor Tests，说明 -pl、-am、failIfNoSpecifiedTests 的使用边界和 Good/Base/Bad 案例；人工已用文档命令验证 order/payment controller audit tests 通过并输出预期 Ops audit event 场景。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7f75f10` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
