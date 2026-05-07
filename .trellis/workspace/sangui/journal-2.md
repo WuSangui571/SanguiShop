@@ -709,3 +709,55 @@ The buyer order experience now continues cleanly after payment success: users ca
 ### Next Steps
 
 - None - task complete
+
+
+## Session 53: 用户侧确认收货与订单完成体验补强
+
+**Date**: 2026-05-07
+**Task**: 用户侧确认收货与订单完成体验补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+|------|---------|
+| Backend API | Added customer receipt confirmation endpoint `POST /api/orders/{orderId}/receipt-confirmations` with trusted principal ownership checks, `requestId` validation, trace logging, and `ORDER_RECEIPT_CONFIRMED` response semantics. |
+| Order lifecycle | Added persisted `completed` order state and receipt snapshot fields `receipt_request_id`, `receipt_trace_id`, `completed_at`; valid transition is shipped to completed, and completed replays return the current completed snapshot idempotently. |
+| Persistence | Added Flyway migration `V7__add_order_receipt_confirmation_snapshot.sql` and repository `markCompleted(...)`; extended order selects and response mapping to include completion snapshot data. |
+| Frontend API/model | Added `confirmOrderReceipt(...)`, receipt request id helper, completed lifecycle/filter/action/payment refresh contracts, and completed deep-link snapshot handling. |
+| Frontend UX | Shipped order detail now shows a pending-safe confirm receipt action; success merges completed state into detail/list/filter, failure keeps shipped detail and backend trace context visible. |
+| Tests | Added backend service/controller/query/migration coverage and frontend model/composable coverage for allowed states, invalid states, duplicate pending guard, idempotent replay, failure retention, filter movement, and deep-link completed snapshots. |
+| Follow-up fix | After manual Vitest run exposed a stale lifecycle assertion, updated `mallOrderStatusModel.spec.ts` to include the new pending `completed` node for created, paid, and shipped timeline expectations. |
+
+**Human verification**:
+- Backend targeted Maven tests passed before commit.
+- Frontend `typecheck`, `lint`, and `build` passed before commit.
+- Human reran `cmd /c npm run test -- mallOrderStatusModel mallCheckoutModel`; all tests passed after the lifecycle assertion fix.
+
+**Commits**:
+- `2ac15d1 feat(mall): ????????????`
+- `de30873 feat(mall): ????????????`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2ac15d1` | (see git log) |
+| `de30873` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
