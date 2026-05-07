@@ -507,3 +507,70 @@ The buyer order center now behaves predictably across historical pages: users ca
 ### Next Steps
 
 - None - task complete
+
+
+## Session 50: 用户侧购物车与订单创建失败恢复体验补强
+
+**Date**: 2026-05-07
+**Task**: 用户侧购物车与订单创建失败恢复体验补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Cart draft recovery | Added session-scoped cart restore state for `{shopId,userId}`, including empty, restored, invalid, signed-out, and unavailable storage downgrade states. |
+| User isolation | Cart memory and storage now switch by current mall session key so login changes do not leak drafts across users. |
+| Checkout failure recovery | Cart checkout failures are classified into stock, SKU unavailable, auth, validation, system, and unknown while preserving backend `code/message/traceId`. Failed checkout keeps cart items and request details. |
+| Stock snapshot boundary | Mall cart UI now states that cart stock is a local snapshot and final price/stock validation comes from order creation. Quantity controls remain bounded by snapshot. |
+| Idempotency UX | Cart checkout disables duplicate pending submits, keeps the same `requestId` after failed retries, and regenerates `requestId` only when cart content changes or checkout succeeds. |
+| Order success handoff | Created orders are accepted as full `OrderResponse` objects, immediately inserted into order detail/list state, and URL/list/detail stay aligned after cart or buy-now order creation. |
+| Localization | Added typed Simplified Chinese, Traditional Chinese, and English copy for restore states, stock boundary, failure guidance, and requestId hints. |
+| Tests | Expanded mall checkout/cart tests for login switch isolation, unreadable storage downgrade, storage unavailable downgrade, traceId preservation, requestId retry stability, partial cart clearing, and multi-item order detail/list handoff. |
+
+**Updated Files**:
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/composables/useMallCart.ts`
+- `frontend/src/composables/useMallOrderStatus.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/ProductCheckoutPanel.vue`
+- `frontend/src/views/mall/mallCartModel.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-07-user-cart-order-create-recovery/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human command passed: `cd frontend; npm run typecheck; npm run lint; npm run build; npm run test -- mallCheckoutModel;`
+- AI: `cmd /c npm run typecheck` passed.
+- AI: `cmd /c npm run lint` passed.
+- AI: `cmd /c npm run build` passed.
+- AI: `git diff --check` passed.
+- AI targeted Vitest remained blocked in sandbox by Vite/esbuild `spawn EPERM`; human local run passed after requestId assertion fix.
+
+### Result
+
+The buyer cart and order creation path now has a clearer recovery contract before users enter the order center. Cart drafts are isolated by current shop/user, damaged storage degrades safely, failed checkout keeps cart content and backend trace details, retry idempotency stays stable, and successful multi-item orders flow directly into order detail/list state.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ba914bd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
