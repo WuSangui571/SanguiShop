@@ -1,0 +1,5 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Final lint/typecheck/test and mobile/error-state quality pass"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify API errors preserve code/message/traceId and no fake payment DTOs"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify nullable and unknown status fallbacks"}

@@ -136,6 +136,104 @@ describe('mall checkout model', () => {
     expect(orderStatus.paymentStatus.value).toBe('paid')
   })
 
+  it('merges refreshed order detail into recent purchases', async () => {
+    const listOrders = vi.fn(async () => ({
+      page: 1,
+      size: 5,
+      total: 1,
+      items: [createOrderResponse({
+        status: 'paid',
+        fulfillmentStatus: 'unshipped',
+      })],
+    }))
+    const getOrder = vi.fn(async () => createOrderResponse({
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      updatedAt: '2026-05-07T12:00:00+08:00',
+    }))
+    const orderStatus = useMallOrderStatus({
+      getOrder,
+      listOrders,
+    })
+
+    await orderStatus.loadOrders()
+    await orderStatus.loadOrder(501, '')
+
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      orderId: 501,
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+    })
+  })
+
+  it('keeps current order detail visible when refresh fails', async () => {
+    const getOrder = vi.fn(async () => {
+      throw new HttpClientError('Order refresh failed.', {
+        code: 'ORDER_REFRESH_FAILED',
+        status: 503,
+        traceId: 'trace-refresh-503',
+      })
+    })
+    const orderStatus = useMallOrderStatus({ getOrder })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    }))
+
+    await orderStatus.refreshCurrentOrder()
+
+    expect(orderStatus.order.value).toMatchObject({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+    expect(orderStatus.orderRefreshResult.value).toBe('error')
+    expect(orderStatus.errorMessage.value).toBe(
+      'ORDER_REFRESH_FAILED: Order refresh failed. Trace ID trace-refresh-503.',
+    )
+  })
+
+  it('keeps order status when payment refresh fails', async () => {
+    const getPayment = vi.fn(async () => {
+      throw new HttpClientError('Payment service unavailable.', {
+        code: 'PAYMENT_REFRESH_FAILED',
+        status: 503,
+        traceId: 'trace-payment-503',
+      })
+    })
+    const orderStatus = useMallOrderStatus({ getPayment })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    }))
+    orderStatus.paymentNo.value = 'PAY-501'
+
+    await orderStatus.refreshPayment()
+
+    expect(orderStatus.order.value?.status).toBe('paid')
+    expect(orderStatus.paymentStatus.value).toBe('paid')
+    expect(orderStatus.errorMessage.value).toBe(
+      'PAYMENT_REFRESH_FAILED: Payment service unavailable. Trace ID trace-payment-503.',
+    )
+  })
+
+  it('keeps no payment response for paid orders without payment numbers', async () => {
+    const orderStatus = useMallOrderStatus()
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    }))
+
+    await orderStatus.refreshPayment()
+
+    expect(orderStatus.paymentNo.value).toBe('')
+    expect(orderStatus.payment.value).toBeNull()
+    expect(orderStatus.paymentStatus.value).toBe('paid')
+  })
+
   it('blocks duplicate pending cancellation attempts', async () => {
     const deferredCancel = createDeferred<OrderResponse>()
     const cancelOrder = vi.fn(() => deferredCancel.promise)
@@ -317,7 +415,7 @@ describe('mall checkout model', () => {
   })
 })
 
-function createOrderResponse(): OrderResponse {
+function createOrderResponse(patch: Partial<OrderResponse> = {}): OrderResponse {
   return {
     orderId: 501,
     orderNo: 'ORD-501',
@@ -336,6 +434,7 @@ function createOrderResponse(): OrderResponse {
         lineAmountCent: 59900,
       },
     ],
+    ...patch,
   }
 }
 

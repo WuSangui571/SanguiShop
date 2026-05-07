@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall order detail/payment refresh API behavior and error preservation"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Order detail/list UI states and mobile-safe component rendering"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Server order facts merged into local selected order and recent purchases state"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Order and payment DTO fallbacks, nullable paymentNo, unknown statuses"}

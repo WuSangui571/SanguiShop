@@ -92,6 +92,21 @@ export interface MallOrderActionView {
   actionHint: string
 }
 
+export interface MallPaymentRefreshLabels {
+  available: string
+  fromOrderSnapshot: string
+  missingPaymentNo: string
+  shipped: string
+  cancelled: string
+  unknownPrefix: string
+}
+
+export interface MallPaymentRefreshView {
+  canRefresh: boolean
+  disabledReason: string | null
+  sourceDescription: string
+}
+
 type MallOrderLifecyclePhase = 'created' | 'paidAwaitingShipment' | 'shipped' | 'cancelled' | 'unknown'
 
 export function describeMallOrderListSummary(order: OrderResponse, labels: MallOrderSummaryLabels): string {
@@ -268,6 +283,80 @@ export function createMallOrderActionView(
     cancelDisabledReason: reason,
     actionHint: reason,
   }
+}
+
+export function createMallPaymentRefreshView(
+  order: OrderResponse | null,
+  paymentNo: string,
+  labels: MallPaymentRefreshLabels,
+  options: { isRefreshing?: boolean } = {},
+): MallPaymentRefreshView {
+  const normalizedPaymentNo = normalizeText(paymentNo)
+  const phase = resolveLifecyclePhase(order)
+
+  if (phase === 'cancelled') {
+    return {
+      canRefresh: false,
+      disabledReason: labels.cancelled,
+      sourceDescription: labels.cancelled,
+    }
+  }
+  if (phase === 'shipped') {
+    return {
+      canRefresh: false,
+      disabledReason: labels.shipped,
+      sourceDescription: labels.shipped,
+    }
+  }
+  if (normalizedPaymentNo) {
+    return {
+      canRefresh: !options.isRefreshing,
+      disabledReason: null,
+      sourceDescription: `${labels.available}${normalizedPaymentNo}`,
+    }
+  }
+  if (normalizeText(order?.status) === 'paid') {
+    return {
+      canRefresh: false,
+      disabledReason: labels.fromOrderSnapshot,
+      sourceDescription: labels.fromOrderSnapshot,
+    }
+  }
+  if (phase === 'created') {
+    return {
+      canRefresh: false,
+      disabledReason: labels.missingPaymentNo,
+      sourceDescription: labels.missingPaymentNo,
+    }
+  }
+
+  const rawStatus = resolveRawUnknownStatus(order)
+  const missingReason = rawStatus
+    ? `${labels.unknownPrefix}${rawStatus}. ${labels.missingPaymentNo}`
+    : labels.missingPaymentNo
+
+  return {
+    canRefresh: false,
+    disabledReason: missingReason,
+    sourceDescription: missingReason,
+  }
+}
+
+export function mergeOrderIntoList(orders: OrderResponse[], updatedOrder: OrderResponse): OrderResponse[] {
+  let didMerge = false
+  const nextOrders = orders.map((order) => {
+    if (order.orderId !== updatedOrder.orderId) {
+      return order
+    }
+
+    didMerge = true
+    return {
+      ...order,
+      ...updatedOrder,
+    }
+  })
+
+  return didMerge ? nextOrders : orders
 }
 
 function isShipped(order: OrderResponse): boolean {

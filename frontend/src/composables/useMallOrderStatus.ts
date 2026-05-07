@@ -15,6 +15,7 @@ import {
   describeMallApiError,
   describePaymentStatus,
 } from '../views/mall/mallCheckoutModel'
+import { mergeOrderIntoList } from '../views/mall/mallOrderStatusModel'
 
 interface UseMallOrderStatusOptions {
   getOrder?: (orderId: number) => Promise<OrderResponse>
@@ -24,6 +25,8 @@ interface UseMallOrderStatusOptions {
   getPayment?: (paymentNo: string) => Promise<PaymentResponse>
   createPaymentNo?: () => string
 }
+
+type OrderRefreshResult = 'idle' | 'success' | 'error'
 
 export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
   const order = ref<OrderResponse | null>(null)
@@ -39,21 +42,32 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
   const isRefreshingPayment = ref(false)
   const isCancelling = ref(false)
   const isSubmittingPayment = ref(false)
+  const orderRefreshResult = ref<OrderRefreshResult>('idle')
 
   const canCancel = computed(() => canCancelOrder(order.value) && !isCancelling.value)
   const canPay = computed(() => order.value?.status === 'created' && !payment.value && !isSubmittingPayment.value)
   const paymentStatus = computed(() => describePaymentStatus(order.value, payment.value))
 
-  async function loadOrder(orderId: number, nextPaymentNo = paymentNo.value): Promise<OrderResponse | null> {
+  async function loadOrder(
+    orderId: number,
+    nextPaymentNo = paymentNo.value,
+    loadOptions: { refreshPayment?: boolean } = {},
+  ): Promise<OrderResponse | null> {
     isLoadingOrder.value = true
     errorMessage.value = ''
+    orderRefreshResult.value = 'idle'
+    const shouldPreserveExistingOrder = order.value?.orderId === orderId
+    const shouldRefreshPayment = loadOptions.refreshPayment ?? Boolean(nextPaymentNo)
 
     try {
       const response = await (options.getOrder ?? defaultGetOrder)(orderId)
       order.value = response
+      orders.value = mergeOrderIntoList(orders.value, response)
       if (nextPaymentNo) {
         paymentNo.value = nextPaymentNo
-        await refreshPayment(nextPaymentNo)
+        if (shouldRefreshPayment) {
+          await refreshPayment(nextPaymentNo)
+        }
       } else {
         paymentNo.value = ''
         payment.value = null
@@ -61,12 +75,26 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
       return response
     } catch (caught) {
       errorMessage.value = describeMallApiError(caught)
-      order.value = null
-      payment.value = null
+      if (!shouldPreserveExistingOrder) {
+        order.value = null
+        payment.value = null
+      }
       return null
     } finally {
       isLoadingOrder.value = false
     }
+  }
+
+  async function refreshCurrentOrder(): Promise<OrderResponse | null> {
+    if (!order.value || isLoadingOrder.value) {
+      return null
+    }
+
+    const response = await loadOrder(order.value.orderId, paymentNo.value, {
+      refreshPayment: false,
+    })
+    orderRefreshResult.value = response ? 'success' : 'error'
+    return response
   }
 
   async function loadOrders(nextPage = page.value): Promise<OrderPageResponse | null> {
@@ -122,6 +150,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     try {
       const response = await (options.cancelOrder ?? defaultCancelOrder)(order.value.orderId)
       order.value = response
+      orders.value = mergeOrderIntoList(orders.value, response)
       payment.value = null
       paymentNo.value = ''
       return response
@@ -147,6 +176,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
         ...order.value,
         status: createdPayment.status === 'paid' ? 'paid' : order.value.status,
       }
+      orders.value = mergeOrderIntoList(orders.value, order.value)
     }
   }
 
@@ -191,10 +221,12 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     isRefreshingPayment,
     isCancelling,
     isSubmittingPayment,
+    orderRefreshResult,
     canCancel,
     canPay,
     paymentStatus,
     loadOrder,
+    refreshCurrentOrder,
     loadOrders,
     refreshPayment,
     cancelCurrentOrder,

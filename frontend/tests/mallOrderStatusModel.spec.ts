@@ -4,8 +4,10 @@ import {
   createMallOrderActionView,
   createMallOrderFulfillmentView,
   createMallOrderLifecycleTimeline,
+  createMallPaymentRefreshView,
   describeMallOrderListSummary,
   getMallOrderStatusLabel,
+  mergeOrderIntoList,
 } from '../src/views/mall/mallOrderStatusModel'
 
 const summaryLabels = {
@@ -57,6 +59,15 @@ const actionLabels = {
   cancelled: 'The order was cancelled.',
   unknownPrefix: 'Unknown order status: ',
   refreshSuggestion: 'Refresh the order before trying again.',
+}
+
+const paymentRefreshLabels = {
+  available: 'Refresh from payment ',
+  fromOrderSnapshot: 'Payment status comes from order snapshot.',
+  missingPaymentNo: 'Missing payment number.',
+  shipped: 'Shipped orders cannot refresh payment.',
+  cancelled: 'Cancelled orders cannot refresh payment.',
+  unknownPrefix: 'Unknown order status: ',
 }
 
 describe('mallOrderStatusModel', () => {
@@ -235,6 +246,62 @@ describe('mallOrderStatusModel', () => {
     const unknown = createMallOrderActionView(createOrder({ status: 'reviewing' }), actionLabels)
     expect(unknown.payDisabledReason).toBe('Unknown order status: reviewing. Refresh the order before trying again.')
     expect(unknown.cancelDisabledReason).toBe('Unknown order status: reviewing. Refresh the order before trying again.')
+  })
+
+  it('merges refreshed order detail into the recent order list', () => {
+    const original = createOrder({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+      updatedAt: '2026-05-07T10:00:00+08:00',
+    })
+    const refreshed = createOrder({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      updatedAt: '2026-05-07T11:00:00+08:00',
+    })
+    const otherOrder = createOrder({ orderId: 502, orderNo: 'ORD-502' })
+
+    expect(mergeOrderIntoList([original, otherOrder], refreshed)).toEqual([refreshed, otherOrder])
+    expect(mergeOrderIntoList([otherOrder], refreshed)).toEqual([otherOrder])
+  })
+
+  it('explains payment refresh source for payment numbers and paid order snapshots', () => {
+    expect(createMallPaymentRefreshView(
+      createOrder({ status: 'paid', fulfillmentStatus: 'unshipped' }),
+      'PAY-501',
+      paymentRefreshLabels,
+    )).toEqual({
+      canRefresh: true,
+      disabledReason: null,
+      sourceDescription: 'Refresh from payment PAY-501',
+    })
+
+    expect(createMallPaymentRefreshView(
+      createOrder({ status: 'paid', fulfillmentStatus: 'unshipped' }),
+      '',
+      paymentRefreshLabels,
+    )).toEqual({
+      canRefresh: false,
+      disabledReason: 'Payment status comes from order snapshot.',
+      sourceDescription: 'Payment status comes from order snapshot.',
+    })
+  })
+
+  it('returns clear payment refresh disabled reasons for missing, cancelled, shipped, and unknown states', () => {
+    expect(createMallPaymentRefreshView(createOrder({ status: 'created' }), '', paymentRefreshLabels).disabledReason)
+      .toBe('Missing payment number.')
+    expect(createMallPaymentRefreshView(createOrder({ status: 'cancelled' }), 'PAY-501', paymentRefreshLabels).disabledReason)
+      .toBe('Cancelled orders cannot refresh payment.')
+    expect(createMallPaymentRefreshView(createOrder({
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+    }), 'PAY-501', paymentRefreshLabels).disabledReason).toBe('Shipped orders cannot refresh payment.')
+    expect(createMallPaymentRefreshView(createOrder({ status: 'reviewing' }), '', paymentRefreshLabels).disabledReason)
+      .toBe('Unknown order status: reviewing. Missing payment number.')
   })
 })
 

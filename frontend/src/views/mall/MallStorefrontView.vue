@@ -14,6 +14,7 @@ import {
   createMallOrderActionView,
   createMallOrderFulfillmentView,
   createMallOrderLifecycleTimeline,
+  createMallPaymentRefreshView,
   describeMallOrderListSummary,
   getMallOrderStatusLabel,
 } from './mallOrderStatusModel'
@@ -36,6 +37,7 @@ const productError = ref('')
 const selectedProduct = ref<ProductDetailResponse | null>(null)
 const isLoadingDetail = ref(false)
 const detailError = ref('')
+const isRestoringOrderFromUrl = ref(false)
 const loginForm = reactive({
   shopId: resolveDefaultShopId(),
   usernameOrMobile: '',
@@ -65,13 +67,21 @@ const currentAction = computed(() => createMallOrderActionView(
     isCancelling: orderStatus.isCancelling.value,
   },
 ))
+const currentPaymentRefresh = computed(() => createMallPaymentRefreshView(
+  orderStatus.order.value,
+  orderStatus.paymentNo.value,
+  getPaymentRefreshLabels(),
+  {
+    isRefreshing: orderStatus.isRefreshingPayment.value,
+  },
+))
 
 onMounted(() => {
   mallSession.bootstrap()
   void fetchProducts()
   if (mallSession.isAuthenticated.value) {
     void orderStatus.loadOrders()
-    restoreOrderFromUrl()
+    void restoreOrderFromUrl()
   }
 })
 
@@ -121,7 +131,7 @@ async function submitLogin() {
   loginForm.password = ''
   if (mallSession.isAuthenticated.value) {
     await orderStatus.loadOrders()
-    restoreOrderFromUrl()
+    await restoreOrderFromUrl()
   }
 }
 
@@ -134,6 +144,10 @@ async function handleOrderCreated(orderId: number) {
 async function selectOrder(orderId: number) {
   replaceOrderUrl(orderId, '')
   await orderStatus.loadOrder(orderId, '')
+}
+
+async function refreshSelectedOrder() {
+  await orderStatus.refreshCurrentOrder()
 }
 
 async function cancelCurrentOrder() {
@@ -169,7 +183,7 @@ async function submitPaymentForCurrentOrder() {
   }
 }
 
-function restoreOrderFromUrl() {
+async function restoreOrderFromUrl() {
   if (typeof window === 'undefined') {
     return
   }
@@ -177,7 +191,12 @@ function restoreOrderFromUrl() {
   const orderId = Number(params.get('orderId'))
   const paymentNo = params.get('paymentNo') ?? ''
   if (Number.isFinite(orderId) && orderId > 0) {
-    void orderStatus.loadOrder(orderId, paymentNo)
+    isRestoringOrderFromUrl.value = true
+    try {
+      await orderStatus.loadOrder(orderId, paymentNo)
+    } finally {
+      isRestoringOrderFromUrl.value = false
+    }
   }
 }
 
@@ -296,6 +315,17 @@ function getActionLabels() {
   }
 }
 
+function getPaymentRefreshLabels() {
+  return {
+    available: t('mall.orders.paymentRefreshAvailable'),
+    fromOrderSnapshot: t('mall.orders.paymentFromOrderSnapshot'),
+    missingPaymentNo: t('mall.orders.paymentNoMissing'),
+    shipped: t('mall.orders.paymentRefreshDisabledShipped'),
+    cancelled: t('mall.orders.paymentRefreshDisabledCancelled'),
+    unknownPrefix: t('mall.orders.paymentRefreshUnknownPrefix'),
+  }
+}
+
 function resolveDefaultShopId(): number {
   const configured = Number(import.meta.env.VITE_DEFAULT_SHOP_ID ?? 1)
   return Number.isFinite(configured) && configured > 0 ? configured : 1
@@ -375,27 +405,41 @@ function resolveDefaultShopId(): number {
               <p class="eyebrow">{{ t('mall.orders.resultKicker') }}</p>
               <h2>{{ t('mall.orders.resultTitle') }}</h2>
             </div>
-            <button
-              type="button"
-              class="text-action"
-              :disabled="!orderStatus.order.value || orderStatus.isLoadingOrder.value"
-              @click="orderStatus.order.value && orderStatus.loadOrder(orderStatus.order.value.orderId, orderStatus.paymentNo.value)"
-            >
-              {{ orderStatus.isLoadingOrder.value ? t('common.refreshing') : t('mall.orders.refreshOrder') }}
-            </button>
+            <div class="refresh-control">
+              <button
+                type="button"
+                class="text-action"
+                :disabled="!orderStatus.order.value || orderStatus.isLoadingOrder.value"
+                @click="refreshSelectedOrder()"
+              >
+                {{ orderStatus.isLoadingOrder.value ? t('common.refreshing') : t('mall.orders.refreshOrder') }}
+              </button>
+              <small>{{ t('mall.orders.refreshOrderHint') }}</small>
+            </div>
           </div>
 
-          <div v-if="orderStatus.errorMessage.value" class="status-block danger">
-            {{ orderStatus.errorMessage }}
+          <div v-if="orderStatus.errorMessage.value && !orderStatus.order.value" class="status-block danger">
+            <p>{{ orderStatus.errorMessage }}</p>
+            <small>{{ t('mall.orders.restoreErrorSuggestion') }}</small>
+            <button type="button" @click="orderStatus.loadOrders()">{{ t('mall.orders.backToRecent') }}</button>
           </div>
-          <div v-else-if="orderStatus.isLoadingOrder.value" class="status-block">{{ t('mall.orders.loadingDetail') }}</div>
+          <div v-else-if="orderStatus.isLoadingOrder.value && isRestoringOrderFromUrl && !orderStatus.order.value" class="status-block">{{ t('mall.orders.restoringDetail') }}</div>
+          <div v-else-if="orderStatus.isLoadingOrder.value && !orderStatus.order.value" class="status-block">{{ t('mall.orders.loadingDetail') }}</div>
           <div v-else-if="!orderStatus.order.value" class="status-block">{{ t('mall.orders.emptyDetail') }}</div>
           <div v-else class="order-detail">
+            <div v-if="orderStatus.orderRefreshResult.value === 'success'" class="inline-feedback success">
+              {{ t('mall.orders.refreshSuccess') }}
+            </div>
+            <div v-if="orderStatus.errorMessage.value" class="inline-feedback danger">
+              <strong>{{ t('mall.orders.refreshFailedKeepDetail') }}</strong>
+              <span>{{ orderStatus.errorMessage }}</span>
+            </div>
+
             <div class="detail-facts">
               <span>{{ describeOrderStatus(orderStatus.order.value.status) }}</span>
               <span>{{ t('mall.orders.paymentStatus', { status: orderStatus.paymentStatus.value }) }}</span>
               <span>{{ t('mall.orders.fulfillmentStatus', { status: currentFulfillment.statusLabel }) }}</span>
-              <span>{{ formatDateTime(orderStatus.order.value.updatedAt) }}</span>
+              <span>{{ t('mall.orders.lastUpdated', { time: formatDateTime(orderStatus.order.value.updatedAt) }) }}</span>
             </div>
 
             <div class="order-headline">
@@ -474,7 +518,8 @@ function resolveDefaultShopId(): number {
               <button
                 type="button"
                 class="secondary-action"
-                :disabled="!orderStatus.paymentNo.value || orderStatus.isRefreshingPayment.value"
+                :disabled="!currentPaymentRefresh.canRefresh"
+                :title="currentPaymentRefresh.disabledReason ?? currentPaymentRefresh.sourceDescription"
                 @click="orderStatus.refreshPayment()"
               >
                 {{ orderStatus.isRefreshingPayment.value ? t('common.refreshing') : t('mall.orders.refreshPayment') }}
@@ -488,6 +533,7 @@ function resolveDefaultShopId(): number {
                 {{ orderStatus.isCancelling.value ? t('mall.orders.cancelling') : currentAction.cancelLabel }}
               </button>
             </div>
+            <p class="payment-source">{{ currentPaymentRefresh.sourceDescription }}</p>
             <p class="action-boundary">{{ currentAction.actionHint }}</p>
           </div>
         </section>
@@ -768,6 +814,21 @@ function resolveDefaultShopId(): number {
   gap: 1rem;
 }
 
+.refresh-control {
+  display: grid;
+  justify-items: end;
+  gap: 0.3rem;
+  min-width: min(100%, 13rem);
+}
+
+.refresh-control small {
+  max-width: 13rem;
+  color: var(--text-muted);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
 h2 {
   margin: 0;
   font-size: 1.55rem;
@@ -919,6 +980,25 @@ h2 {
 .order-detail {
   display: grid;
   gap: 1rem;
+}
+
+.inline-feedback {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.inline-feedback.success {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.inline-feedback.danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .lifecycle-panel {
@@ -1107,6 +1187,13 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.payment-source {
+  margin: -0.2rem 0 0;
+  color: var(--text-muted);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
 .primary-action,
 .secondary-action,
 .danger-action {
@@ -1157,6 +1244,12 @@ h2 {
   background: var(--surface-subtle);
   color: var(--text-muted);
   font-weight: 700;
+}
+
+.status-block p,
+.status-block small {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .status-block.danger {
@@ -1224,6 +1317,14 @@ h2 {
   .list-header,
   .pager {
     display: grid;
+  }
+
+  .refresh-control {
+    justify-items: start;
+  }
+
+  .refresh-control small {
+    text-align: left;
   }
 
   .order-headline,
