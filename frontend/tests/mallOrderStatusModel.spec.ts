@@ -214,6 +214,7 @@ describe('mallOrderStatusModel', () => {
         { key: 'created', title: 'Order created', state: 'current' },
         { key: 'paid', title: 'Payment complete', state: 'pending' },
         { key: 'shipped', title: 'Order shipped', state: 'pending' },
+        { key: 'completed', title: 'Order completed', state: 'pending' },
       ],
     })
 
@@ -227,6 +228,7 @@ describe('mallOrderStatusModel', () => {
         { key: 'created', state: 'complete' },
         { key: 'paid', state: 'current' },
         { key: 'shipped', state: 'pending' },
+        { key: 'completed', state: 'pending' },
       ],
     })
 
@@ -240,6 +242,7 @@ describe('mallOrderStatusModel', () => {
         { key: 'created', state: 'complete' },
         { key: 'paid', state: 'complete' },
         { key: 'shipped', state: 'current' },
+        { key: 'completed', state: 'pending' },
       ],
     })
 
