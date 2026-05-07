@@ -189,6 +189,22 @@ function describeError(caught: unknown, fallback: string): string {
   return fallback
 }
 
+function describeFulfillmentStatus(): string {
+  const currentOrder = orderStatus.order.value
+  if (!currentOrder) {
+    return t('common.unknown')
+  }
+  if (currentOrder.fulfillmentStatus === 'shipped' || currentOrder.status === 'shipped') {
+    const carrier = currentOrder.carrier ?? '--'
+    const trackingNo = currentOrder.trackingNo ?? '--'
+    return t('mall.orders.shippedWithTracking', { carrier, trackingNo })
+  }
+  if (currentOrder.status === 'paid' || currentOrder.fulfillmentStatus === 'unshipped') {
+    return t('mall.orders.awaitingShipment')
+  }
+  return currentOrder.fulfillmentStatus ?? currentOrder.status
+}
+
 function resolveDefaultShopId(): number {
   const configured = Number(import.meta.env.VITE_DEFAULT_SHOP_ID ?? 1)
   return Number.isFinite(configured) && configured > 0 ? configured : 1
@@ -283,6 +299,7 @@ function resolveDefaultShopId(): number {
             <div class="detail-facts">
               <span>{{ orderStatus.order.value.status }}</span>
               <span>{{ t('mall.orders.paymentStatus', { status: orderStatus.paymentStatus.value }) }}</span>
+              <span>{{ t('mall.orders.fulfillmentStatus', { status: describeFulfillmentStatus() }) }}</span>
               <span>{{ formatDateTime(orderStatus.order.value.updatedAt) }}</span>
             </div>
 

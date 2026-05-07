@@ -65,7 +65,8 @@ class OpsAuthServiceTest {
         assertThat(response.permissions()).containsExactly(
                 SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
                 SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN,
-                SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN
+                SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN,
+                SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN
         );
     }
 

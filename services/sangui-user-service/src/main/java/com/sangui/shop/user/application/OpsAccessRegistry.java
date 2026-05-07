@@ -15,7 +15,8 @@ public class OpsAccessRegistry {
     private static final List<String> LEGACY_ADMIN_PERMISSIONS = List.of(
             SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
             SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN,
-            SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN
+            SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN,
+            SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN
     );
 
     private List<OpsAccessBinding> bindings = new ArrayList<>();

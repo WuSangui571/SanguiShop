@@ -13,7 +13,11 @@ public record OrderResponse(
         Long totalAmountCent,
         List<OrderItemResponse> items,
         OffsetDateTime createdAt,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        String fulfillmentStatus,
+        String carrier,
+        String trackingNo,
+        OffsetDateTime shippedAt
 ) {
     public OrderResponse(
             Long orderId,
@@ -25,6 +29,21 @@ public record OrderResponse(
             Long totalAmountCent,
             List<OrderItemResponse> items
     ) {
-        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, null, null);
+        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, null, null, null, null, null, null);
+    }
+
+    public OrderResponse(
+            Long orderId,
+            String orderNo,
+            Long shopId,
+            String userId,
+            String requestId,
+            String status,
+            Long totalAmountCent,
+            List<OrderItemResponse> items,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt
+    ) {
+        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, createdAt, updatedAt, null, null, null, null);
     }
 }

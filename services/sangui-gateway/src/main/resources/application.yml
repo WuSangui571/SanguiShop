@@ -72,6 +72,10 @@ spring:
           uri: lb://sangui-logistics
           predicates:
             - Path=/api/logistics/**
+        - id: sangui-logistics-admin
+          uri: lb://sangui-logistics
+          predicates:
+            - Path=/api/admin/fulfillments/**
         - id: sangui-review
           uri: lb://sangui-review
           predicates:

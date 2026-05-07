@@ -6,6 +6,7 @@ import { useOpsAuthSession } from './composables/useOpsAuthSession'
 import OpsForbiddenView from './views/auth/OpsForbiddenView.vue'
 import OpsLoginView from './views/auth/OpsLoginView.vue'
 import CompensationDashboardView from './views/admin/CompensationDashboardView.vue'
+import FulfillmentManagementView from './views/admin/FulfillmentManagementView.vue'
 import OrderManagementView from './views/admin/OrderManagementView.vue'
 import ProductManagementView from './views/admin/ProductManagementView.vue'
 import MallStorefrontView from './views/mall/MallStorefrontView.vue'
@@ -26,8 +27,9 @@ const {
 
 const PRODUCT_CATALOG_ADMIN_PERMISSION = 'PRODUCT_CATALOG_ADMIN'
 const ORDER_MANAGEMENT_ADMIN_PERMISSION = 'ORDER_MANAGEMENT_ADMIN'
+const LOGISTICS_FULFILLMENT_ADMIN_PERMISSION = 'LOGISTICS_FULFILLMENT_ADMIN'
 const OPS_COMPENSATION_ADMIN_PERMISSION = 'OPS_COMPENSATION_ADMIN'
-const activeAdminWorkspace = ref<'product' | 'order' | 'compensation'>('product')
+const activeAdminWorkspace = ref<'product' | 'order' | 'fulfillment' | 'compensation'>('product')
 
 const isAdminSurface = computed(() => {
   if (typeof window === 'undefined') {
@@ -61,13 +63,24 @@ const canAccessOrderWorkspace = computed(() => {
   return session.roles.includes('ADMIN') || session.permissions.includes(ORDER_MANAGEMENT_ADMIN_PERMISSION)
 })
 
+const canAccessFulfillmentWorkspace = computed(() => {
+  const session = state.session
+  if (!session) {
+    return false
+  }
+  return session.roles.includes('ADMIN') || session.permissions.includes(LOGISTICS_FULFILLMENT_ADMIN_PERMISSION)
+})
+
 const availableAdminWorkspaces = computed(() => {
-  const workspaces: Array<'product' | 'order' | 'compensation'> = []
+  const workspaces: Array<'product' | 'order' | 'fulfillment' | 'compensation'> = []
   if (canAccessProductWorkspace.value) {
     workspaces.push('product')
   }
   if (canAccessOrderWorkspace.value) {
     workspaces.push('order')
+  }
+  if (canAccessFulfillmentWorkspace.value) {
+    workspaces.push('fulfillment')
   }
   if (canAccessCompensationWorkspace.value) {
     workspaces.push('compensation')
@@ -88,7 +101,7 @@ watch(
   { immediate: true },
 )
 
-function selectWorkspace(workspace: 'product' | 'order' | 'compensation') {
+function selectWorkspace(workspace: 'product' | 'order' | 'fulfillment' | 'compensation') {
   activeAdminWorkspace.value = workspace
 }
 
@@ -156,6 +169,16 @@ onMounted(() => {
           {{ t('admin.orderWorkspace') }}
         </button>
         <button
+          v-if="canAccessFulfillmentWorkspace"
+          type="button"
+          class="workspace-tab"
+          :class="{ active: activeAdminWorkspace === 'fulfillment' }"
+          :aria-pressed="activeAdminWorkspace === 'fulfillment'"
+          @click="selectWorkspace('fulfillment')"
+        >
+          {{ t('admin.fulfillmentWorkspace') }}
+        </button>
+        <button
           v-if="canAccessCompensationWorkspace"
           type="button"
           class="workspace-tab"
@@ -182,7 +205,22 @@ onMounted(() => {
         :session="state.session"
         :can-access-order-workspace="canAccessOrderWorkspace"
       />
-      <CompensationDashboardView v-else />
+      <FulfillmentManagementView
+        v-else-if="activeAdminWorkspace === 'fulfillment' && canAccessFulfillmentWorkspace"
+        :session="state.session"
+        :can-access-fulfillment-workspace="canAccessFulfillmentWorkspace"
+      />
+      <CompensationDashboardView
+        v-else-if="activeAdminWorkspace === 'compensation' && canAccessCompensationWorkspace"
+      />
+      <OpsForbiddenView
+        v-else
+        :username="state.session?.username ?? '--'"
+        :shop-id="state.session?.shopId ?? 0"
+        :message="state.error?.message ?? t('ops.forbiddenFallback')"
+        @refresh-session="refreshSession()"
+        @sign-out="signOut()"
+      />
     </section>
 
     <OpsForbiddenView

@@ -28,6 +28,14 @@ public interface OrderRepository {
         throw new UnsupportedOperationException("Admin order count query is not implemented");
     }
 
+    default List<OrderSnapshot> findFulfillmentSnapshots(FulfillmentOrderQuery query, int offset, int limit) {
+        throw new UnsupportedOperationException("Fulfillment order list query is not implemented");
+    }
+
+    default long countFulfillmentOrders(FulfillmentOrderQuery query) {
+        throw new UnsupportedOperationException("Fulfillment order count query is not implemented");
+    }
+
     List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit);
 
     List<OrderRecord> findCancelledOrders(Long shopId, int limit);
@@ -51,6 +59,18 @@ public interface OrderRepository {
     Long createOrder(Long shopId, String userId, String orderNo, String traceId, OrderStatus status, OrderCreateDraft draft);
 
     int updateStatus(Long shopId, Long orderId, OrderStatus currentStatus, OrderStatus nextStatus);
+
+    default int markShipped(
+            Long shopId,
+            Long orderId,
+            String requestId,
+            String carrier,
+            String trackingNo,
+            String traceId,
+            LocalDateTime shippedAt
+    ) {
+        throw new UnsupportedOperationException("Shipment confirmation is not implemented");
+    }
 
     void updateCompensationMetadata(
             Long shopId,

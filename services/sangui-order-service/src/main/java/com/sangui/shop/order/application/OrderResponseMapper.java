@@ -28,8 +28,22 @@ final class OrderResponseMapper {
                 snapshot.order().totalAmountCent(),
                 items,
                 toOffsetDateTime(snapshot.order().createdAt()),
-                toOffsetDateTime(snapshot.order().updatedAt())
+                toOffsetDateTime(snapshot.order().updatedAt()),
+                fulfillmentStatus(snapshot.order().status().value(), snapshot.order().fulfillmentStatus()),
+                snapshot.order().carrier(),
+                snapshot.order().trackingNo(),
+                toOffsetDateTime(snapshot.order().shippedAt())
         );
+    }
+
+    private static String fulfillmentStatus(String orderStatus, String persistedStatus) {
+        if ("shipped".equals(orderStatus)) {
+            return "shipped";
+        }
+        if ("paid".equals(orderStatus)) {
+            return "unshipped";
+        }
+        return persistedStatus == null ? "pending" : persistedStatus;
     }
 
     private static OrderItemResponse toItemResponse(OrderItemRecord item) {

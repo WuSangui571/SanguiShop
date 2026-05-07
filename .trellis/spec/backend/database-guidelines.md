@@ -225,3 +225,53 @@ Rules:
 - `reason` remains sanitized single-line operational text; do not persist stack traces or raw payloads.
 - Keep latest metadata on business rows for fast query APIs; the history table is the audit trail, not a replacement for the fast-path row snapshot.
 - History-backed ops query APIs should page by distinct business object (`order_id` or `payment_id`) and return the latest business-row snapshot together with ordered attempt details so on-call can drill down without a second fetch.
+
+## Logistics Shipment MVP Tables
+
+Logistics fulfillment records are owned by `services/sangui-logistics-service`.
+
+Migration:
+
+- `services/sangui-logistics-service/src/main/resources/db/migration/V1__create_shipment_tables.sql`
+
+Required table:
+
+```sql
+CREATE TABLE lgs_shipment (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    shop_id BIGINT NOT NULL DEFAULT 1,
+    order_id BIGINT NOT NULL,
+    order_no VARCHAR(64) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    carrier VARCHAR(64) NOT NULL,
+    tracking_no VARCHAR(128) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    request_id VARCHAR(64) NOT NULL,
+    trace_id VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    version INT NOT NULL DEFAULT 0
+);
+```
+
+Required constraints and indexes:
+
+- `uk_lgs_shipment_shop_order (shop_id, order_id)`
+- `uk_lgs_shipment_shop_request (shop_id, request_id)`
+- `idx_lgs_shipment_shop_status_created (shop_id, status, created_at)`
+- `idx_lgs_shipment_shop_order_no (shop_id, order_no)`
+- `idx_lgs_shipment_shop_user_created (shop_id, user_id, created_at)`
+
+Executable validation:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-logistics-service" -am "-Dtest=ShipmentMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: `(shop_id, order_id)` prevents one order from receiving two shipment rows.
+- Good: `(shop_id, request_id)` prevents duplicate operator submits from creating multiple shipments.
+- Base: shipment status is `shipped` until delivered tracking is introduced.
+- Bad: fulfillment records omit `shop_id`, `request_id`, or `trace_id`.

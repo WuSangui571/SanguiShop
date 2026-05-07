@@ -1,0 +1,19 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\spec\\backend\\directory-structure.md", "reason": "service/package boundaries for logistics and order changes"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "admin/internal API DTOs, envelopes, idempotency, errors"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "admin route protection and fulfillment permission boundary"}
+{"file": ".trellis\\spec\\backend\\database-guidelines.md", "reason": "lgs_shipment and oms_order migration/index contracts"}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "controller/service error mapping and traceId response rules"}
+{"file": ".trellis\\spec\\backend\\logging-guidelines.md", "reason": "shipment business logs and trace context"}
+{"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "order state machine and admin/mall order DTO extension"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "backend DoD and targeted Maven test strategy"}
+{"file": ".trellis\\spec\\frontend\\directory-structure.md", "reason": "admin and mall frontend file placement"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "admin fulfillment UI state requirements"}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "fulfillment composable/service boundaries"}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "i18n and CSS variable preference rules"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "DTO enum fallback and money/time typing"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "admin order API precedent and frontend requestId/error handling"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "frontend DoD and duplicate-submit checks"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "cross-layer API/DB/UI risk checklist"}
+{"file": ".trellis\\spec\\guides\\architecture-review-checklist.md", "reason": "microservice boundary and consistency review"}

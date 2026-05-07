@@ -10,7 +10,7 @@ export interface CreateOrderRequest {
   items: CreateOrderItemRequest[]
 }
 
-export type OrderStatus = 'created' | 'cancelled' | 'paid' | string
+export type OrderStatus = 'created' | 'cancelled' | 'paid' | 'shipped' | string
 
 export interface OrderItemResponse {
   productId: number
@@ -32,6 +32,10 @@ export interface OrderResponse {
   items: OrderItemResponse[]
   createdAt?: string | null
   updatedAt?: string | null
+  fulfillmentStatus?: FulfillmentStatus | null
+  carrier?: string | null
+  trackingNo?: string | null
+  shippedAt?: string | null
 }
 
 export interface OrderPageResponse {
@@ -99,4 +103,45 @@ export interface AdminOrderPageResponse {
 
 export interface AdminCancelOrderRequest {
   requestId: string
+}
+
+export type FulfillmentStatus = 'all' | 'unshipped' | 'shipped' | string
+
+export interface AdminFulfillmentQueryParams {
+  page: number
+  size: number
+  status?: FulfillmentStatus
+  orderNo?: string
+  userId?: string
+  fromTime?: string
+  toTime?: string
+}
+
+export interface AdminFulfillmentResponse {
+  orderId: number
+  orderNo: string
+  shopId: number
+  userId: string
+  status: OrderStatus
+  fulfillmentStatus: FulfillmentStatus
+  totalAmountCent: number
+  carrier: string | null
+  trackingNo: string | null
+  shippedAt: string | null
+  traceId: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export interface AdminFulfillmentPageResponse {
+  page: number
+  size: number
+  total: number
+  items: AdminFulfillmentResponse[]
+}
+
+export interface ShipFulfillmentRequest {
+  requestId: string
+  carrier: string
+  trackingNo: string
 }

@@ -1,0 +1,21 @@
+CREATE TABLE lgs_shipment (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    shop_id BIGINT NOT NULL DEFAULT 1,
+    order_id BIGINT NOT NULL,
+    order_no VARCHAR(64) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    carrier VARCHAR(64) NOT NULL,
+    tracking_no VARCHAR(128) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    request_id VARCHAR(64) NOT NULL,
+    trace_id VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    version INT NOT NULL DEFAULT 0,
+    UNIQUE KEY uk_lgs_shipment_shop_order (shop_id, order_id),
+    UNIQUE KEY uk_lgs_shipment_shop_request (shop_id, request_id),
+    KEY idx_lgs_shipment_shop_status_created (shop_id, status, created_at),
+    KEY idx_lgs_shipment_shop_order_no (shop_id, order_no),
+    KEY idx_lgs_shipment_shop_user_created (shop_id, user_id, created_at)
+);

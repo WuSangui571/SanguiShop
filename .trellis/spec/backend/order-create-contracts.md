@@ -632,3 +632,115 @@ Good/Base/Bad cases:
 - Good: admin cancel releases inventory through the existing order cancellation path before returning `cancelled`.
 - Base: `paymentNo` stays nullable in order responses; payment status is read via payment-service admin API.
 - Bad: order-service directly reads `pay_*` payment tables or trusts a frontend `shopId`.
+
+## Fulfillment / Shipment Addendum
+
+### Persisted State
+
+Order-service owns the order state machine. Fulfillment MVP adds:
+
+- `shipped`
+
+Valid shipment transition:
+
+| Current | Operation | Next |
+| --- | --- | --- |
+| `paid` | shipment confirmation | `shipped` |
+| `created` | shipment confirmation | invalid |
+| `cancelled` | shipment confirmation | invalid |
+| `shipped` with same request/payload | shipment confirmation replay | `shipped` |
+| `shipped` with different request/payload | shipment confirmation replay | invalid / idempotency conflict |
+
+### `POST /internal/orders/fulfillment-records/query`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "page": 1,
+  "size": 20,
+  "fulfillmentStatus": "unshipped",
+  "orderNo": "ORD",
+  "userId": "10001",
+  "fromTime": "2026-05-07T10:00:00+08:00",
+  "toTime": "2026-05-07T18:00:00+08:00"
+}
+```
+
+Response code: `ORDER_FULFILLMENT_RECORDS_FETCHED`.
+
+Rules:
+
+- `shopId` is required and comes from logistics-service trusted principal scope.
+- `fulfillmentStatus=unshipped` means order `status = paid`.
+- `fulfillmentStatus=shipped` means order `status = shipped`.
+- Omit or `all` means both `paid` and `shipped`.
+- Query never returns `created` or `cancelled` rows.
+- Results are ordered by `created_at DESC, id DESC`.
+
+Response item fields:
+
+- `orderId`, `orderNo`, `shopId`, `userId`, `status`, `fulfillmentStatus`, `totalAmountCent`, `carrier`, `trackingNo`, `shippedAt`, `traceId`, `createdAt`, `updatedAt`.
+
+### `POST /internal/orders/shipments/confirmations`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "orderId": 101,
+  "requestId": "ship-20260507-0001",
+  "carrier": "SF Express",
+  "trackingNo": "SF1234567890"
+}
+```
+
+Response code: `ORDER_SHIPPED`.
+
+Rules:
+
+- order-service validates `(shopId, orderId)` scope.
+- Only `paid -> shipped` is accepted for a new shipment.
+- Existing `shipped` order with same `shipment_request_id`, `carrier`, and `tracking_no` is idempotent and returns current snapshot.
+- Existing `shipped` order with a different `requestId`, `carrier`, or `trackingNo` returns `IDEMPOTENCY_CONFLICT`.
+- `created` and `cancelled` return `ORDER_STATUS_INVALID`.
+- `carrier` and `trackingNo` are trimmed and persisted as the order fulfillment snapshot.
+- `shipment_trace_id` is the request trace id used to confirm shipment.
+
+Order detail APIs expose read-only fulfillment fields:
+
+- `fulfillmentStatus`: `unshipped` for `paid`, `shipped` for `shipped`, otherwise `pending`.
+- `carrier`
+- `trackingNo`
+- `shippedAt`
+
+Database addendum:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V6__add_order_shipment_snapshot.sql`
+- Required columns on `oms_order`: `fulfillment_status`, `carrier`, `tracking_no`, `shipped_at`, `shipment_request_id`, `shipment_trace_id`.
+- Required index: `idx_oms_order_shop_fulfillment_created (shop_id, fulfillment_status, created_at)`.
+
+Validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Missing `shopId`, invalid `orderId`, blank `requestId`, blank `carrier`, blank `trackingNo` | 400 | `VALIDATION_FAILED` |
+| Missing order or wrong shop scope | 404 | `ORDER_NOT_FOUND` |
+| Ship `created` or `cancelled` order | 409 | `ORDER_STATUS_INVALID` |
+| Replayed shipped order with different request/payload | 409 | `IDEMPOTENCY_CONFLICT` |
+
+Required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=OrderShipmentServiceTest,InternalOrderShipmentControllerTest,OrderShipmentMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: a paid order becomes shipped and persists carrier, tracking number, shipped time, request id, and trace id.
+- Good: customer order detail shows fulfillment fields after shipment.
+- Good: same shipment request and same payload returns the current shipped snapshot.
+- Base: full third-party logistics tracking is out of scope; carrier/tracking number are operator-entered snapshots.
+- Bad: logistics-service writes `oms_order` directly or hardcodes shop id.

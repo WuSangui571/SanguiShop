@@ -93,6 +93,33 @@ Required tests:
 - Duplicate cancel submit guard.
 - Cancel request `requestId` generation and trimming.
 
+## Admin Fulfillment Management APIs
+
+Frontend admin fulfillment management must use gateway routes through `services/fulfillmentApi.ts` with `authContext: 'ops'`.
+
+| Function | Route | Auth Context | Required UI Handling |
+| --- | --- | --- | --- |
+| `listAdminFulfillments({page,size,status,orderNo,userId,fromTime,toTime})` | `GET /api/admin/fulfillments` | `ops` | Show loading, empty, error, retry, pagination; omit `status` when filter is `all`; omit blank text filters. |
+| `getAdminFulfillment(orderId)` | `GET /api/admin/fulfillments/{orderId}` | `ops` | Load order fulfillment snapshot and preserve backend errors. |
+| `shipAdminFulfillment(orderId,{requestId,carrier,trackingNo})` | `POST /api/admin/fulfillments/{orderId}/ship` | `ops` | Enable only for unshipped paid orders; trim fields; generate/preserve `requestId`; disable duplicate clicks while pending. |
+
+Admin fulfillment model rules:
+
+- Page copy must use `useAppPreferences().t()` and new colors must rely on semantic CSS variables.
+- Fulfillment status must display `unshipped` and `shipped`, and fall back to raw unknown backend values.
+- Money is integer cents and display uses `formatMoney(cents)`.
+- Time filters from `datetime-local` inputs must be normalized to ISO-8601 values before sending.
+- API errors must preserve and display backend `code`, `message`, and `traceId`.
+- `OPS_COMPENSATION_ADMIN` alone must not show the fulfillment workspace; require `ADMIN` role or `LOGISTICS_FULFILLMENT_ADMIN`.
+
+Required tests:
+
+- Filter payload trimming, `all` omission, blank filter omission, and time normalization.
+- Status labels for `unshipped`, `shipped`, and unknown raw values.
+- Ship payload trimming and `requestId` trimming.
+- Backend error `code/message/traceId` preservation.
+- Duplicate ship submit guard.
+
 ## Mall Order Status APIs
 
 Frontend customer order status flows must use these gateway routes through `services/orderApi.ts` and `services/paymentApi.ts`:
@@ -111,6 +138,9 @@ Order status display rules:
 - `paid` means payment complete and cancel is disabled.
 - `cancelled` means payment actions and cancel are disabled.
 - If `paymentNo` is unavailable for a historical order, the UI may derive the payment summary from order status but must not invent a `PaymentResponse`.
+- Fulfillment display uses order detail fields: `fulfillmentStatus`, `carrier`, `trackingNo`, and `shippedAt`.
+- `paid` with `fulfillmentStatus=unshipped` displays "待发货" / "Awaiting shipment".
+- `shipped` displays carrier and tracking number without calling a tracking API.
 
 Required tests:
 

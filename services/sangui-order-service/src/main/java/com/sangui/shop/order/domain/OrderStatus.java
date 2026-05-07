@@ -3,7 +3,8 @@ package com.sangui.shop.order.domain;
 public enum OrderStatus {
     CREATED("created"),
     CANCELLED("cancelled"),
-    PAID("paid");
+    PAID("paid"),
+    SHIPPED("shipped");
 
     private final String value;
 

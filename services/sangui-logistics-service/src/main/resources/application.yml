@@ -35,6 +35,11 @@ sangui:
       password: ${MYSQL_PASSWORD:}
     mq:
       name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+  client:
+    order:
+      base-url: ${SANGUI_ORDER_SERVICE_BASE_URL:http://localhost:8104}
+      connect-timeout-ms: ${SANGUI_ORDER_SERVICE_CONNECT_TIMEOUT_MS:2000}
+      read-timeout-ms: ${SANGUI_ORDER_SERVICE_READ_TIMEOUT_MS:3000}
 
 management:
   endpoints:
