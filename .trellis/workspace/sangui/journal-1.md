@@ -1895,3 +1895,66 @@ Added backend controller tests for order bulk timeout replay and payment bulk re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 41: 管理端商品管理 MVP
+
+**Date**: 2026-05-07
+**Task**: 管理端商品管理 MVP
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+### Summary
+
+Completed the admin product management MVP after human testing and commit `aa2326c feat(admin): ???? MVP`.
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Admin Workspace | Split `/admin` into visible Product Management and Compensation Ops workspaces while keeping permission boundaries explicit. |
+| Backend Product Admin APIs | Added gateway-routed `/api/admin/products/**` product admin list/detail/create/update/status/stock-adjustment contracts backed by product-service. |
+| Permissions | Added `PRODUCT_CATALOG_ADMIN` and allowed the existing ops/admin session to carry product catalog admin access alongside compensation ops access. |
+| Product Service | Added admin product summaries with price range, SKU count, available stock total, reserved stock total, principal-scoped status updates, and SKU stock adjustment. |
+| Frontend Product Admin | Added product admin API types/services, `useProductManagement`, pure `productManagementModel`, and `ProductManagementView` with loading, empty, error, retry, pending disabled actions, and CSS-variable styling. |
+| i18n / Theme | Added `admin.*` and `productAdmin.*` translations for `zh-Hans`, `zh-Hant`, and `en`; all new UI copy uses `useAppPreferences().t()`. |
+| Error Contract | Product admin UI now preserves and displays backend `code`, `message`, and `traceId` as structured error state. |
+| Specs | Updated backend product catalog contracts and frontend API contracts for admin product APIs, permissions, payloads, status/stock rules, and required model tests. |
+
+### Verification
+
+- AI: `cmd /c npm run typecheck` passed.
+- AI: `cmd /c npm run lint` passed.
+- AI: `cmd /c npm run build` passed.
+- AI: `./mvnw.cmd -q "-Dmaven.repo.local=D:\\02-WorkSpace\\02-Java\\SanguiShop\\.m2\\repository" -pl services/sangui-product-service -am "-Dtest=ProductCatalogServiceTest,ProductInventoryServiceTest,ProductCatalogControllerTest,InternalProductSnapshotControllerTest,InternalProductInventoryControllerTest,ProductMigrationContractTest,ProductInventoryMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed.
+- AI: `./mvnw.cmd -q "-Dmaven.repo.local=D:\\02-WorkSpace\\02-Java\\SanguiShop\\.m2\\repository" -pl services/sangui-user-service -am "-Dtest=OpsAuthServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed.
+- AI: `./mvnw.cmd -q "-Dmaven.repo.local=D:\\02-WorkSpace\\02-Java\\SanguiShop\\.m2\\repository" -pl services/sangui-gateway -am "-Dtest=SanguiGatewayApplicationSmokeTest,GatewayJwtAuthenticationFilterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed.
+- Human: `cmd /c npm test -- src/views/admin/productManagementModel.test.ts` passed, 1 file / 6 tests.
+
+### Result
+
+Admin product management MVP is implemented, tested, committed, and archived. The admin UI can now maintain products, SKUs, statuses, and sellable stock without relying on seed scripts for ongoing catalog iteration.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aa2326c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
