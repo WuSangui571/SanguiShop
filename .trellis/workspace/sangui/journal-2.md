@@ -444,3 +444,66 @@ The user order entry now behaves like an order center rather than only a recent-
 ### Next Steps
 
 - None - task complete
+
+
+## Session 49: 用户订单历史分页体验补强
+
+**Date**: 2026-05-07
+**Task**: 用户订单历史分页体验补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Order history pagination | Added explicit customer order pagination summary with current page, total pages, total count, and page size while preserving active filters across page changes. |
+| Current-page search | Kept exact numeric `orderId` precedence over fuzzy `orderNo`, added current-page miss state, and provided previous/next page continuation actions without claiming full-history search. |
+| Deep-link detail recovery | Upserted restored linked order details into the loaded order list when the detail is outside the current page, kept URL/detail/highlight behavior stable, and added a temporary linked-detail label. |
+| Empty/error states | Distinguished no orders, current-page filter empty, current-page search miss, and deep-link failure while preserving backend `code/message/traceId` error text. |
+| Tests | Expanded pure model coverage for pagination/search hints, filter plus pagination behavior, empty-state distinctions, linked-detail labels, and added composable coverage for linked detail insertion. |
+
+### Verification
+
+- Human manual testing: passed.
+- Human tests: passed.
+- AI: `cd frontend; npm run typecheck` passed.
+- AI: `cd frontend; npm run lint` passed.
+- AI: `cd frontend; npm run build` passed.
+- AI: `git diff --check` passed.
+- AI targeted Vitest command was blocked in sandbox by Vite/esbuild `spawn EPERM`; human local test run passed.
+
+**Updated Files**:
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/composables/useMallOrderStatus.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-07-user-order-history-pagination/prd.md`
+
+### Result
+
+The buyer order center now behaves predictably across historical pages: users can see page boundaries, keep filters while browsing, continue a current-page search across adjacent pages, open detail links even when the order is outside the current list page, and recover from bad links without losing recent purchases.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b7f6d8d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
