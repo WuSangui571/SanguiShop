@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 44
+- **Total Sessions**: 45
 - **Last Active**: 2026-05-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~207 | Active |
+| `journal-2.md` | ~269 | Active |
 | `journal-1.md` | ~1960 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 45 | 2026-05-07 | 用户侧订单物流展示补强 | `1491d99` | `main` |
 | 44 | 2026-05-07 | 管理端订单管理交互打磨 | `1c15406` | `main` |
 | 43 | 2026-05-07 | 管理端发货物流履约 MVP | `1cabf72` | `main` |
 | 42 | 2026-05-07 | 管理端订单管理 MVP | `2ff097b` | `main` |

@@ -205,3 +205,65 @@ The admin order workspace now supports direct operational handoff links, refresh
 ### Next Steps
 
 - None - task complete
+
+
+## Session 45: 用户侧订单物流展示补强
+
+**Date**: 2026-05-07
+**Task**: 用户侧订单物流展示补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Mall order list | Added customer-readable order summaries for unpaid, paid awaiting shipment, cancelled, shipped, and unknown fallback states. |
+| Mall order detail | Added a logistics panel that shows awaiting-shipment placeholders before shipping and carrier / tracking number / shipped time after shipment. |
+| Model rules | Added `mallOrderStatusModel` to centralize customer order summary and fulfillment display derivation. |
+| i18n | Added Simplified Chinese, Traditional Chinese, and English text for fulfillment and logistics states. |
+| Tests | Added model tests for no logistics data, awaiting shipment, shipped logistics fields, missing logistics placeholders, and unknown fulfillment status. |
+
+### Verification
+
+- Human manual testing: passed.
+- Human commit: `1491d99 feat(mall): ???????????`.
+- AI: `cmd /c npm run typecheck` passed.
+- AI: `cmd /c npm run lint` passed.
+- AI: `cmd /c npm run build` passed.
+- AI: `git diff --check` passed.
+- AI: `cmd /c npm run test -- mallOrderStatusModel` was blocked in sandbox by Vite/esbuild `spawn EPERM`; escalation was rejected by approval service 403, consistent with prior Vitest sandbox behavior.
+
+### Updated Files / Modules
+
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-07-user-order-fulfillment-display/prd.md`
+
+### Result
+
+The buyer-facing order flow now visibly reflects admin fulfillment: paid orders show awaiting shipment, shipped orders expose logistics fields, and missing or unknown fulfillment states degrade with clear copy instead of raw gaps.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1491d99` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
