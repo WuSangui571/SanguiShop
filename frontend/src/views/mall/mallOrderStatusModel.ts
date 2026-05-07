@@ -107,6 +107,45 @@ export interface MallPaymentRefreshView {
   sourceDescription: string
 }
 
+export type MallOrderListFilter = 'all' | 'created' | 'paidAwaitingShipment' | 'shipped' | 'cancelled' | 'unknown'
+
+export interface MallOrderListFilterOption {
+  key: MallOrderListFilter
+  label: string
+  count: number
+}
+
+export interface MallOrderListFilterLabels {
+  all: string
+  created: string
+  paidAwaitingShipment: string
+  shipped: string
+  cancelled: string
+  unknown: string
+}
+
+export type MallOrderSearchMatchReason = 'orderNo' | 'orderId'
+
+export interface MallOrderSearchResult {
+  order: OrderResponse | null
+  query: string
+  matchReason: MallOrderSearchMatchReason | null
+}
+
+export interface MallOrderDeepLinkRecoveryLabels {
+  noOrderId: string
+  invalidOrderId: string
+  restoreFailedPrefix: string
+  suggestion: string
+}
+
+export interface MallOrderDeepLinkRecoveryView {
+  isLinkIssue: boolean
+  title: string
+  message: string
+  canClearLink: boolean
+}
+
 type MallOrderLifecyclePhase = 'created' | 'paidAwaitingShipment' | 'shipped' | 'cancelled' | 'unknown'
 
 export function describeMallOrderListSummary(order: OrderResponse, labels: MallOrderSummaryLabels): string {
@@ -357,6 +396,114 @@ export function mergeOrderIntoList(orders: OrderResponse[], updatedOrder: OrderR
   })
 
   return didMerge ? nextOrders : orders
+}
+
+export function resolveMallOrderListFilter(order: OrderResponse): MallOrderListFilter {
+  return resolveLifecyclePhase(order)
+}
+
+export function filterMallOrders(
+  orders: OrderResponse[],
+  filter: MallOrderListFilter,
+): OrderResponse[] {
+  if (filter === 'all') {
+    return orders
+  }
+
+  return orders.filter((order) => resolveMallOrderListFilter(order) === filter)
+}
+
+export function createMallOrderListFilterOptions(
+  orders: OrderResponse[],
+  labels: MallOrderListFilterLabels,
+): MallOrderListFilterOption[] {
+  const counts: Record<MallOrderListFilter, number> = {
+    all: orders.length,
+    created: 0,
+    paidAwaitingShipment: 0,
+    shipped: 0,
+    cancelled: 0,
+    unknown: 0,
+  }
+
+  for (const order of orders) {
+    counts[resolveMallOrderListFilter(order)] += 1
+  }
+
+  return [
+    { key: 'all', label: labels.all, count: counts.all },
+    { key: 'created', label: labels.created, count: counts.created },
+    { key: 'paidAwaitingShipment', label: labels.paidAwaitingShipment, count: counts.paidAwaitingShipment },
+    { key: 'shipped', label: labels.shipped, count: counts.shipped },
+    { key: 'cancelled', label: labels.cancelled, count: counts.cancelled },
+    { key: 'unknown', label: labels.unknown, count: counts.unknown },
+  ]
+}
+
+export function findLoadedMallOrder(
+  orders: OrderResponse[],
+  rawQuery: string,
+): MallOrderSearchResult {
+  const query = normalizeText(rawQuery) ?? ''
+  if (!query) {
+    return {
+      order: null,
+      query,
+      matchReason: null,
+    }
+  }
+
+  const normalizedQuery = query.toLowerCase()
+  const orderNoMatch = orders.find((order) => order.orderNo.toLowerCase().includes(normalizedQuery))
+  if (orderNoMatch) {
+    return {
+      order: orderNoMatch,
+      query,
+      matchReason: 'orderNo',
+    }
+  }
+
+  const orderIdMatch = orders.find((order) => String(order.orderId) === query)
+  return {
+    order: orderIdMatch ?? null,
+    query,
+    matchReason: orderIdMatch ? 'orderId' : null,
+  }
+}
+
+export function createMallOrderDeepLinkRecoveryView(
+  rawOrderId: string | null,
+  errorMessage: string,
+  labels: MallOrderDeepLinkRecoveryLabels,
+): MallOrderDeepLinkRecoveryView {
+  const orderId = normalizeText(rawOrderId)
+
+  if (!orderId) {
+    return {
+      isLinkIssue: false,
+      title: labels.noOrderId,
+      message: labels.suggestion,
+      canClearLink: false,
+    }
+  }
+
+  const parsedOrderId = Number(orderId)
+  if (!Number.isFinite(parsedOrderId) || parsedOrderId <= 0) {
+    return {
+      isLinkIssue: true,
+      title: labels.invalidOrderId,
+      message: `${labels.invalidOrderId}: ${orderId}. ${labels.suggestion}`,
+      canClearLink: true,
+    }
+  }
+
+  const fallback = `${labels.restoreFailedPrefix}${orderId}. ${labels.suggestion}`
+  return {
+    isLinkIssue: true,
+    title: labels.restoreFailedPrefix,
+    message: errorMessage ? `${errorMessage} ${labels.suggestion}` : fallback,
+    canClearLink: true,
+  }
 }
 
 function isShipped(order: OrderResponse): boolean {

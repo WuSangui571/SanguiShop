@@ -12,12 +12,17 @@ import { formatDateTime, formatMoney } from '../../utils/format'
 import type { CartItemInput } from './mallCartModel'
 import {
   createMallOrderActionView,
+  createMallOrderDeepLinkRecoveryView,
   createMallOrderFulfillmentView,
   createMallOrderLifecycleTimeline,
   createMallPaymentRefreshView,
   describeMallOrderListSummary,
+  filterMallOrders,
+  findLoadedMallOrder,
+  createMallOrderListFilterOptions,
   getMallOrderStatusLabel,
 } from './mallOrderStatusModel'
+import type { MallOrderListFilter } from './mallOrderStatusModel'
 import ProductCheckoutPanel from './ProductCheckoutPanel.vue'
 
 const DEFAULT_PAGE_SIZE = 12
@@ -38,6 +43,11 @@ const selectedProduct = ref<ProductDetailResponse | null>(null)
 const isLoadingDetail = ref(false)
 const detailError = ref('')
 const isRestoringOrderFromUrl = ref(false)
+const orderListFilter = ref<MallOrderListFilter>('all')
+const orderSearchQuery = ref('')
+const orderSearchFeedback = ref('')
+const deepLinkOrderId = ref<string | null>(null)
+const deepLinkFailureMessage = ref('')
 const loginForm = reactive({
   shopId: resolveDefaultShopId(),
   usernameOrMobile: '',
@@ -74,6 +84,16 @@ const currentPaymentRefresh = computed(() => createMallPaymentRefreshView(
   {
     isRefreshing: orderStatus.isRefreshingPayment.value,
   },
+))
+const orderFilterOptions = computed(() => createMallOrderListFilterOptions(
+  orderStatus.orders.value,
+  getOrderListFilterLabels(),
+))
+const visibleOrders = computed(() => filterMallOrders(orderStatus.orders.value, orderListFilter.value))
+const deepLinkRecovery = computed(() => createMallOrderDeepLinkRecoveryView(
+  deepLinkOrderId.value,
+  deepLinkFailureMessage.value,
+  getDeepLinkRecoveryLabels(),
 ))
 
 onMounted(() => {
@@ -143,6 +163,8 @@ async function handleOrderCreated(orderId: number) {
 
 async function selectOrder(orderId: number) {
   replaceOrderUrl(orderId, '')
+  deepLinkOrderId.value = null
+  deepLinkFailureMessage.value = ''
   await orderStatus.loadOrder(orderId, '')
 }
 
@@ -188,12 +210,26 @@ async function restoreOrderFromUrl() {
     return
   }
   const params = new URLSearchParams(window.location.search)
-  const orderId = Number(params.get('orderId'))
+  const rawOrderId = params.get('orderId')
+  if (!rawOrderId) {
+    deepLinkOrderId.value = null
+    deepLinkFailureMessage.value = ''
+    return
+  }
+
+  deepLinkOrderId.value = rawOrderId
+  deepLinkFailureMessage.value = ''
+  const orderId = Number(rawOrderId)
   const paymentNo = params.get('paymentNo') ?? ''
   if (Number.isFinite(orderId) && orderId > 0) {
     isRestoringOrderFromUrl.value = true
     try {
-      await orderStatus.loadOrder(orderId, paymentNo)
+      const restored = await orderStatus.loadOrder(orderId, paymentNo)
+      if (restored) {
+        deepLinkOrderId.value = null
+      } else {
+        deepLinkFailureMessage.value = orderStatus.errorMessage.value
+      }
     } finally {
       isRestoringOrderFromUrl.value = false
     }
@@ -214,6 +250,46 @@ function replaceOrderUrl(orderId: number, paymentNo: string) {
   const nextSearch = params.toString()
   const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
   window.history.replaceState(null, '', nextUrl)
+}
+
+async function clearOrderUrl() {
+  if (typeof window === 'undefined') {
+    return
+  }
+  const params = new URLSearchParams(window.location.search)
+  params.delete('orderId')
+  params.delete('paymentNo')
+  const nextSearch = params.toString()
+  const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
+  window.history.replaceState(null, '', nextUrl)
+  deepLinkOrderId.value = null
+  deepLinkFailureMessage.value = ''
+  await orderStatus.loadOrders()
+}
+
+async function searchLoadedOrder() {
+  const result = findLoadedMallOrder(orderStatus.orders.value, orderSearchQuery.value)
+  orderSearchFeedback.value = ''
+
+  if (!result.query) {
+    return
+  }
+
+  if (!result.order) {
+    orderSearchFeedback.value = t('mall.orders.searchNoCurrentPage', { query: result.query })
+    return
+  }
+
+  orderSearchFeedback.value = result.matchReason === 'orderNo'
+    ? t('mall.orders.searchMatchedOrderNo', { query: result.query })
+    : t('mall.orders.searchMatchedOrderId', { query: result.query })
+  orderListFilter.value = 'all'
+  await selectOrder(result.order.orderId)
+}
+
+function clearOrderSearch() {
+  orderSearchQuery.value = ''
+  orderSearchFeedback.value = ''
 }
 
 function describePriceRange(product: ProductSummaryResponse): string {
@@ -264,6 +340,17 @@ function getOrderStatusLabels() {
     cancelled: t('mall.orders.statusCancelled'),
     shipped: t('mall.orders.statusShipped'),
     unknown: t('common.unknown'),
+  }
+}
+
+function getOrderListFilterLabels() {
+  return {
+    all: t('mall.orders.filterAll'),
+    created: t('mall.orders.filterCreated'),
+    paidAwaitingShipment: t('mall.orders.filterPaidAwaitingShipment'),
+    shipped: t('mall.orders.filterShipped'),
+    cancelled: t('mall.orders.filterCancelled'),
+    unknown: t('mall.orders.filterUnknown'),
   }
 }
 
@@ -326,6 +413,15 @@ function getPaymentRefreshLabels() {
   }
 }
 
+function getDeepLinkRecoveryLabels() {
+  return {
+    noOrderId: t('mall.orders.noOrderLink'),
+    invalidOrderId: t('mall.orders.invalidOrderLink'),
+    restoreFailedPrefix: t('mall.orders.restoreFailedPrefix'),
+    suggestion: t('mall.orders.restoreRecentSuggestion'),
+  }
+}
+
 function resolveDefaultShopId(): number {
   const configured = Number(import.meta.env.VITE_DEFAULT_SHOP_ID ?? 1)
   return Number.isFinite(configured) && configured > 0 ? configured : 1
@@ -372,11 +468,41 @@ function resolveDefaultShopId(): number {
             </button>
           </div>
 
+          <div class="order-tools" :aria-label="t('mall.orders.filterLabel')">
+            <div class="order-segments">
+              <button
+                v-for="option in orderFilterOptions"
+                :key="option.key"
+                type="button"
+                :class="orderListFilter === option.key ? 'segment active' : 'segment'"
+                @click="orderListFilter = option.key"
+              >
+                <span>{{ option.label }}</span>
+                <strong>{{ option.count }}</strong>
+              </button>
+            </div>
+
+            <form class="order-search" @submit.prevent="searchLoadedOrder">
+              <input
+                v-model.trim="orderSearchQuery"
+                type="search"
+                :placeholder="t('mall.orders.searchPlaceholder')"
+                :aria-label="t('mall.orders.searchLabel')"
+              >
+              <button type="submit" class="text-action">{{ t('mall.orders.searchAction') }}</button>
+              <button type="button" class="text-action subtle" @click="clearOrderSearch">{{ t('common.dismiss') }}</button>
+            </form>
+            <p v-if="orderSearchFeedback" class="order-search-feedback">{{ orderSearchFeedback }}</p>
+          </div>
+
           <div v-if="orderStatus.isLoadingOrders.value" class="status-block">{{ t('mall.orders.loading') }}</div>
           <div v-else-if="orderStatus.orders.value.length === 0" class="status-block">{{ t('mall.orders.empty') }}</div>
+          <div v-else-if="visibleOrders.length === 0" class="status-block">
+            {{ t('mall.orders.filterEmpty') }}
+          </div>
           <div v-else class="order-cards">
             <button
-              v-for="order in orderStatus.orders.value"
+              v-for="order in visibleOrders"
               :key="order.orderId"
               type="button"
               :class="orderStatus.order.value?.orderId === order.orderId ? 'order-card active' : 'order-card'"
@@ -388,6 +514,9 @@ function resolveDefaultShopId(): number {
               <small class="order-stage-row">
                 <span class="order-stage-badge">{{ describeOrderStage(order) }}</span>
                 <span>{{ formatDateTime(order.createdAt) }}</span>
+              </small>
+              <small v-if="orderStatus.order.value?.orderId === order.orderId" class="order-card-updated">
+                {{ t('mall.orders.lastUpdated', { time: formatDateTime(order.updatedAt) }) }}
               </small>
             </button>
           </div>
@@ -418,9 +547,17 @@ function resolveDefaultShopId(): number {
             </div>
           </div>
 
-          <div v-if="orderStatus.errorMessage.value && !orderStatus.order.value" class="status-block danger">
-            <p>{{ orderStatus.errorMessage }}</p>
+          <div v-if="deepLinkRecovery.isLinkIssue && !orderStatus.order.value" class="status-block danger">
+            <strong>{{ deepLinkRecovery.title }}</strong>
+            <p>{{ deepLinkRecovery.message }}</p>
             <small>{{ t('mall.orders.restoreErrorSuggestion') }}</small>
+            <button type="button" @click="orderStatus.loadOrders()">{{ t('mall.orders.backToRecent') }}</button>
+            <button v-if="deepLinkRecovery.canClearLink" type="button" class="text-action" @click="clearOrderUrl">
+              {{ t('mall.orders.clearOrderLink') }}
+            </button>
+          </div>
+          <div v-else-if="orderStatus.errorMessage.value && !orderStatus.order.value" class="status-block danger">
+            <p>{{ orderStatus.errorMessage }}</p>
             <button type="button" @click="orderStatus.loadOrders()">{{ t('mall.orders.backToRecent') }}</button>
           </div>
           <div v-else-if="orderStatus.isLoadingOrder.value && isRestoringOrderFromUrl && !orderStatus.order.value" class="status-block">{{ t('mall.orders.restoringDetail') }}</div>
@@ -829,6 +966,70 @@ function resolveDefaultShopId(): number {
   text-align: right;
 }
 
+.order-tools {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.order-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.segment {
+  min-height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  font-weight: 900;
+}
+
+.segment.active {
+  border-color: var(--accent);
+  background: var(--active-bg);
+}
+
+.segment strong {
+  min-width: 1.35rem;
+  padding: 0.08rem 0.35rem;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  text-align: center;
+}
+
+.order-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.order-search input {
+  min-width: 0;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-main);
+}
+
+.order-search-feedback {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
 h2 {
   margin: 0;
   font-size: 1.55rem;
@@ -873,6 +1074,10 @@ h2 {
 .order-card-summary {
   color: var(--text-main);
   font-weight: 900;
+}
+
+.order-card-updated {
+  font-weight: 800;
 }
 
 .order-stage-row {
@@ -1332,6 +1537,7 @@ h2 {
   .logistics-heading,
   .logistics-grid,
   .order-item,
+  .order-search,
   .cart-item,
   .checkout-actions {
     display: grid;
@@ -1342,6 +1548,10 @@ h2 {
   }
 
   .logistics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-search {
     grid-template-columns: 1fr;
   }
 }

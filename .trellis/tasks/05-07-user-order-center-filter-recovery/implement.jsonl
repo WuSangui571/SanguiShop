@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "商城订单中心 UI 状态、组件边界和移动端布局"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "用户订单 list/get/pay/cancel API 能力边界"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "订单状态 unknown fallback 与 DTO 兼容"}
+并逻辑"}

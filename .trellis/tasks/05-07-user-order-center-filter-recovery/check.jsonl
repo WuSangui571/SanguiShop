@@ -1,0 +1,6 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "完成前质量检查、typecheck、build、测试要求"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "检查订单中心 UI 状态与移动端布局"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "检查状态类型和 unknown fallback"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "检查未新增或误导后端搜索能力"}

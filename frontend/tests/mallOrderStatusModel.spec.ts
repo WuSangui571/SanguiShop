@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import type { OrderResponse } from '../src/types/api/order'
 import {
+  createMallOrderDeepLinkRecoveryView,
   createMallOrderActionView,
   createMallOrderFulfillmentView,
   createMallOrderLifecycleTimeline,
+  createMallOrderListFilterOptions,
   createMallPaymentRefreshView,
   describeMallOrderListSummary,
+  filterMallOrders,
+  findLoadedMallOrder,
   getMallOrderStatusLabel,
   mergeOrderIntoList,
+  resolveMallOrderListFilter,
 } from '../src/views/mall/mallOrderStatusModel'
 
 const summaryLabels = {
@@ -68,6 +73,22 @@ const paymentRefreshLabels = {
   shipped: 'Shipped orders cannot refresh payment.',
   cancelled: 'Cancelled orders cannot refresh payment.',
   unknownPrefix: 'Unknown order status: ',
+}
+
+const listFilterLabels = {
+  all: 'All',
+  created: 'Unpaid',
+  paidAwaitingShipment: 'Awaiting shipment',
+  shipped: 'Shipped',
+  cancelled: 'Cancelled',
+  unknown: 'Unrecognized',
+}
+
+const deepLinkRecoveryLabels = {
+  noOrderId: 'No order link',
+  invalidOrderId: 'Invalid order link',
+  restoreFailedPrefix: 'Unable to restore order ',
+  suggestion: 'Recent purchases are still available.',
 }
 
 describe('mallOrderStatusModel', () => {
@@ -267,6 +288,110 @@ describe('mallOrderStatusModel', () => {
 
     expect(mergeOrderIntoList([original, otherOrder], refreshed)).toEqual([refreshed, otherOrder])
     expect(mergeOrderIntoList([otherOrder], refreshed)).toEqual([otherOrder])
+  })
+
+  it('classifies loaded orders into order center filters', () => {
+    const created = createOrder({ orderId: 501, status: 'created' })
+    const paidAwaitingShipment = createOrder({
+      orderId: 502,
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+    const shipped = createOrder({
+      orderId: 503,
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+    })
+    const cancelled = createOrder({ orderId: 504, status: 'cancelled' })
+    const unknown = createOrder({ orderId: 505, status: 'reviewing' })
+    const orders = [created, paidAwaitingShipment, shipped, cancelled, unknown]
+
+    expect(resolveMallOrderListFilter(created)).toBe('created')
+    expect(resolveMallOrderListFilter(paidAwaitingShipment)).toBe('paidAwaitingShipment')
+    expect(resolveMallOrderListFilter(shipped)).toBe('shipped')
+    expect(resolveMallOrderListFilter(cancelled)).toBe('cancelled')
+    expect(resolveMallOrderListFilter(unknown)).toBe('unknown')
+    expect(filterMallOrders(orders, 'all')).toEqual(orders)
+    expect(filterMallOrders(orders, 'unknown')).toEqual([unknown])
+
+    expect(createMallOrderListFilterOptions(orders, listFilterLabels)).toEqual([
+      { key: 'all', label: 'All', count: 5 },
+      { key: 'created', label: 'Unpaid', count: 1 },
+      { key: 'paidAwaitingShipment', label: 'Awaiting shipment', count: 1 },
+      { key: 'shipped', label: 'Shipped', count: 1 },
+      { key: 'cancelled', label: 'Cancelled', count: 1 },
+      { key: 'unknown', label: 'Unrecognized', count: 1 },
+    ])
+  })
+
+  it('moves refreshed orders between filters after status changes', () => {
+    const original = createOrder({
+      orderId: 501,
+      status: 'created',
+      updatedAt: '2026-05-07T10:00:00+08:00',
+    })
+    const paid = createOrder({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+      updatedAt: '2026-05-07T11:00:00+08:00',
+    })
+
+    const refreshedOrders = mergeOrderIntoList([original], paid)
+
+    expect(filterMallOrders(refreshedOrders, 'created')).toEqual([])
+    expect(filterMallOrders(refreshedOrders, 'paidAwaitingShipment')).toEqual([paid])
+  })
+
+  it('finds loaded orders by order number or exact order id only on the current page', () => {
+    const orders = [
+      createOrder({ orderId: 501, orderNo: 'ORD-20260507-501' }),
+      createOrder({ orderId: 502, orderNo: 'ORD-20260507-502' }),
+    ]
+
+    expect(findLoadedMallOrder(orders, '0507-501')).toEqual({
+      order: orders[0],
+      query: '0507-501',
+      matchReason: 'orderNo',
+    })
+    expect(findLoadedMallOrder(orders, '502')).toEqual({
+      order: orders[1],
+      query: '502',
+      matchReason: 'orderId',
+    })
+    expect(findLoadedMallOrder(orders, '503')).toEqual({
+      order: null,
+      query: '503',
+      matchReason: null,
+    })
+    expect(findLoadedMallOrder(orders, '   ')).toEqual({
+      order: null,
+      query: '',
+      matchReason: null,
+    })
+  })
+
+  it('describes deep-link failures without treating recent purchases as empty', () => {
+    expect(createMallOrderDeepLinkRecoveryView('abc', '', deepLinkRecoveryLabels)).toEqual({
+      isLinkIssue: true,
+      title: 'Invalid order link',
+      message: 'Invalid order link: abc. Recent purchases are still available.',
+      canClearLink: true,
+    })
+
+    expect(createMallOrderDeepLinkRecoveryView('501', 'AUTH_FORBIDDEN: denied', deepLinkRecoveryLabels)).toEqual({
+      isLinkIssue: true,
+      title: 'Unable to restore order ',
+      message: 'AUTH_FORBIDDEN: denied Recent purchases are still available.',
+      canClearLink: true,
+    })
+
+    expect(createMallOrderDeepLinkRecoveryView(null, '', deepLinkRecoveryLabels)).toEqual({
+      isLinkIssue: false,
+      title: 'No order link',
+      message: 'Recent purchases are still available.',
+      canClearLink: false,
+    })
   })
 
   it('explains payment refresh source for payment numbers and paid order snapshots', () => {
