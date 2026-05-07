@@ -29,16 +29,19 @@ const summaryLabels = {
   paidAwaitingShipment: 'Paid, awaiting shipment',
   cancelled: 'Cancelled',
   shipped: 'Shipped, view tracking number',
+  completed: 'Completed',
   unknown: 'Unknown',
 }
 
 const fulfillmentLabels = {
   awaitingShipment: 'Awaiting shipment',
   shipped: 'Shipped',
+  completed: 'Completed',
   notReady: 'Unpaid',
   cancelled: 'Cancelled',
   unknown: 'Unknown',
   shippedMessage: 'The order has shipped.',
+  completedMessage: 'Receipt has been confirmed.',
   awaitingShipmentMessage: 'The merchant is preparing shipment.',
   notReadyMessage: 'Shipment starts after payment.',
   cancelledMessage: 'This order has no logistics information.',
@@ -56,6 +59,8 @@ const lifecycleLabels = {
   paidAwaitingShipmentDescription: 'Waiting for merchant shipment.',
   shippedTitle: 'Order shipped',
   shippedDescription: 'Carrier and tracking number are shown here only.',
+  completedTitle: 'Order completed',
+  completedDescription: 'Receipt has been confirmed.',
   cancelledTitle: 'Order cancelled',
   cancelledDescription: 'Payment and shipment actions are unavailable.',
   unknownTitle: 'Unknown status',
@@ -70,9 +75,13 @@ const actionLabels = {
   actionReady: 'You can pay or cancel this unpaid order.',
   paymentComplete: 'Payment is complete and the order entered fulfillment.',
   shipped: 'The order has shipped.',
+  completed: 'The order is completed.',
   cancelled: 'The order was cancelled.',
   unknownPrefix: 'Unknown order status: ',
   refreshSuggestion: 'Refresh the order before trying again.',
+  confirmReceipt: 'Confirm receipt',
+  confirmingReceipt: 'Confirming',
+  receiptReady: 'Confirm receipt after delivery.',
 }
 
 const paymentRefreshLabels = {
@@ -80,6 +89,7 @@ const paymentRefreshLabels = {
   fromOrderSnapshot: 'Payment status comes from order snapshot.',
   missingPaymentNo: 'Missing payment number.',
   shipped: 'Shipped orders cannot refresh payment.',
+  completed: 'Completed orders cannot refresh payment.',
   cancelled: 'Cancelled orders cannot refresh payment.',
   unknownPrefix: 'Unknown order status: ',
 }
@@ -89,6 +99,7 @@ const listFilterLabels = {
   created: 'Unpaid',
   paidAwaitingShipment: 'Awaiting shipment',
   shipped: 'Shipped',
+  completed: 'Completed',
   cancelled: 'Cancelled',
   unknown: 'Unrecognized',
 }
@@ -264,6 +275,9 @@ describe('mallOrderStatusModel', () => {
       cancelLabel: 'Cancel order',
       canCancel: true,
       cancelDisabledReason: null,
+      receiptLabel: 'Confirm receipt',
+      canConfirmReceipt: false,
+      receiptDisabledReason: 'You can pay or cancel this unpaid order.',
       actionHint: 'You can pay or cancel this unpaid order.',
     })
 
@@ -282,6 +296,15 @@ describe('mallOrderStatusModel', () => {
     }), actionLabels)
     expect(shipped.payDisabledReason).toBe('The order has shipped.')
     expect(shipped.cancelDisabledReason).toBe('The order has shipped.')
+    expect(shipped.canConfirmReceipt).toBe(true)
+    expect(shipped.actionHint).toBe('Confirm receipt after delivery.')
+
+    const completed = createMallOrderActionView(createOrder({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    }), actionLabels)
+    expect(completed.canConfirmReceipt).toBe(false)
+    expect(completed.receiptDisabledReason).toBe('The order is completed.')
 
     const cancelled = createMallOrderActionView(createOrder({ status: 'cancelled' }), actionLabels)
     expect(cancelled.payDisabledReason).toBe('The order was cancelled.')
@@ -340,23 +363,30 @@ describe('mallOrderStatusModel', () => {
       status: 'paid',
       fulfillmentStatus: 'shipped',
     })
-    const cancelled = createOrder({ orderId: 504, status: 'cancelled' })
-    const unknown = createOrder({ orderId: 505, status: 'reviewing' })
-    const orders = [created, paidAwaitingShipment, shipped, cancelled, unknown]
+    const completed = createOrder({
+      orderId: 504,
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    })
+    const cancelled = createOrder({ orderId: 505, status: 'cancelled' })
+    const unknown = createOrder({ orderId: 506, status: 'reviewing' })
+    const orders = [created, paidAwaitingShipment, shipped, completed, cancelled, unknown]
 
     expect(resolveMallOrderListFilter(created)).toBe('created')
     expect(resolveMallOrderListFilter(paidAwaitingShipment)).toBe('paidAwaitingShipment')
     expect(resolveMallOrderListFilter(shipped)).toBe('shipped')
+    expect(resolveMallOrderListFilter(completed)).toBe('completed')
     expect(resolveMallOrderListFilter(cancelled)).toBe('cancelled')
     expect(resolveMallOrderListFilter(unknown)).toBe('unknown')
     expect(filterMallOrders(orders, 'all')).toEqual(orders)
     expect(filterMallOrders(orders, 'unknown')).toEqual([unknown])
 
     expect(createMallOrderListFilterOptions(orders, listFilterLabels)).toEqual([
-      { key: 'all', label: 'All', count: 5 },
+      { key: 'all', label: 'All', count: 6 },
       { key: 'created', label: 'Unpaid', count: 1 },
       { key: 'paidAwaitingShipment', label: 'Awaiting shipment', count: 1 },
       { key: 'shipped', label: 'Shipped', count: 1 },
+      { key: 'completed', label: 'Completed', count: 1 },
       { key: 'cancelled', label: 'Cancelled', count: 1 },
       { key: 'unknown', label: 'Unrecognized', count: 1 },
     ])
@@ -414,6 +444,40 @@ describe('mallOrderStatusModel', () => {
       kind: 'filteredCurrentPage',
       message: 'The current order status changed and moved out of this filter.',
     })
+  })
+
+  it('moves confirmed shipped orders to completed filters', () => {
+    const shipped = createOrder({
+      orderId: 501,
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+    })
+    const completed = createOrder({
+      orderId: 501,
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      completedAt: '2026-05-07T13:00:00+08:00',
+    })
+
+    const refreshedOrders = mergeOrderIntoList([shipped], completed)
+
+    expect(describeMallOrderListSummary(completed, summaryLabels)).toBe('Completed')
+    expect(filterMallOrders(refreshedOrders, 'shipped')).toEqual([])
+    expect(filterMallOrders(refreshedOrders, 'completed')).toEqual([completed])
+    expect(createMallOrderEmptyStateView(
+      refreshedOrders,
+      filterMallOrders(refreshedOrders, 'shipped'),
+      { order: null, query: '', matchReason: null },
+      emptyStateLabels,
+      {
+        currentOrder: completed,
+        filter: 'shipped',
+      },
+    ).message).toBe('The current order status changed and moved out of this filter.')
   })
 
   it('applies paid payment responses to detail and list as awaiting shipment', () => {
@@ -589,6 +653,27 @@ describe('mallOrderStatusModel', () => {
     })
   })
 
+  it('explains restored completed deep-link orders as order snapshots', () => {
+    const linkedOrder = createOrder({
+      orderId: 501,
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      completedAt: '2026-05-07T13:00:00+08:00',
+    })
+
+    expect(createMallOrderFulfillmentView(linkedOrder, fulfillmentLabels)).toMatchObject({
+      statusLabel: 'Completed',
+      message: 'Receipt has been confirmed.',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      showShipmentFields: true,
+      sourceDescription: 'Logistics status comes from the order snapshot.',
+    })
+    expect(createMallOrderActionView(linkedOrder, actionLabels).canConfirmReceipt).toBe(false)
+  })
+
   it('describes deep-link failures without treating recent purchases as empty', () => {
     expect(createMallOrderDeepLinkRecoveryView('abc', '', deepLinkRecoveryLabels)).toEqual({
       isLinkIssue: true,
@@ -643,6 +728,10 @@ describe('mallOrderStatusModel', () => {
       status: 'paid',
       fulfillmentStatus: 'shipped',
     }), 'PAY-501', paymentRefreshLabels).disabledReason).toBe('Shipped orders cannot refresh payment.')
+    expect(createMallPaymentRefreshView(createOrder({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    }), 'PAY-501', paymentRefreshLabels).disabledReason).toBe('Completed orders cannot refresh payment.')
     expect(createMallPaymentRefreshView(createOrder({ status: 'reviewing' }), '', paymentRefreshLabels).disabledReason)
       .toBe('Unknown order status: reviewing. Missing payment number.')
   })

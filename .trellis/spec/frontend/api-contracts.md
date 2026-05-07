@@ -138,6 +138,7 @@ Frontend customer order status flows must use these gateway routes through `serv
 | `getOrder(orderId)` | `GET /api/orders/{orderId}` | `mall` | Load detail after refresh from `orderId` URL state. |
 | `listOrders({page,size})` | `GET /api/orders?page=&size=` | `mall` | Show empty/loading/error states and never send `shopId` / `userId` query fields. |
 | `cancelOrder(orderId)` | `POST /api/orders/{orderId}/cancel` | `mall` | Enable only for `created` orders and guard duplicate clicks. |
+| `confirmOrderReceipt(orderId,{requestId})` | `POST /api/orders/{orderId}/receipt-confirmations` | `mall` | Enable only for shipped orders, generate `requestId`, guard duplicate clicks, and preserve shipped detail on failure. |
 | `getPayment(paymentNo)` | `GET /api/payments/{paymentNo}` | `mall` | Manual refresh only unless bounded polling with cleanup is explicitly implemented. |
 
 Order status display rules:
@@ -152,10 +153,15 @@ Order status display rules:
 - Fulfillment display uses order detail fields: `fulfillmentStatus`, `carrier`, `trackingNo`, and `shippedAt`.
 - `paid` with `fulfillmentStatus=unshipped` displays "待发货" / "Awaiting shipment".
 - `shipped` displays carrier and tracking number without calling a tracking API.
+- `completed` means the user confirmed receipt; payment, cancel, and confirm receipt actions are disabled.
+- Successful receipt confirmation merges `status=completed`, `fulfillmentStatus=completed`, and `completedAt` into current detail and loaded list item.
+- Failed receipt confirmation must keep the shipped detail/logistics snapshot and display backend `code`, `message`, and `traceId`.
+- While receipt confirmation is pending, repeat clicks must be ignored without sending another request.
 - Manual order refresh uses `GET /api/orders/{orderId}` as the source of truth for `fulfillmentStatus`, `carrier`, `trackingNo`, and `shippedAt`; it must not call or fabricate a logistics tracking API.
 - While order detail refresh is pending, repeat refresh clicks must be ignored without sending another request. Failed refresh keeps the current detail/list snapshot and allows a later retry.
 - If a refreshed order moves out of the active order-status filter, the empty state must explain that the current order status changed rather than implying the order disappeared.
 - Deep-linked customer orders loaded from `/mall?orderId=...` must explain shipped logistics as an order snapshot and must not require a payment number or tracking API.
+- Deep-linked completed customer orders must render completion from the order snapshot and must not show an enabled confirm-receipt action.
 
 Required tests:
 
@@ -168,6 +174,10 @@ Required tests:
 - Order refresh failure keeps the current paid detail/list snapshot.
 - Duplicate pending order refresh sends no second request, and failure permits retry.
 - Shipped logistics placeholders cover missing `carrier`, `trackingNo`, and `shippedAt`.
+- Shipped receipt confirmation succeeds and moves detail/list/filter to completed.
+- Receipt confirmation failure preserves shipped detail and backend trace.
+- Duplicate pending receipt confirmation sends no second request.
+- Deep-linked completed order displays completed snapshot and disables receipt action.
 - Unknown fulfillment status falls back to the raw backend value.
 - Active filter empty state distinguishes status movement after refresh.
 - Duplicate cancel click guard.

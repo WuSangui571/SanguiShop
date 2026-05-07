@@ -7,16 +7,19 @@ export interface MallOrderSummaryLabels {
   paidAwaitingShipment: string
   cancelled: string
   shipped: string
+  completed: string
   unknown: string
 }
 
 export interface MallOrderFulfillmentLabels {
   awaitingShipment: string
   shipped: string
+  completed: string
   notReady: string
   cancelled: string
   unknown: string
   shippedMessage: string
+  completedMessage: string
   awaitingShipmentMessage: string
   notReadyMessage: string
   cancelledMessage: string
@@ -44,6 +47,8 @@ export interface MallOrderLifecycleLabels {
   paidAwaitingShipmentDescription: string
   shippedTitle: string
   shippedDescription: string
+  completedTitle: string
+  completedDescription: string
   cancelledTitle: string
   cancelledDescription: string
   unknownTitle: string
@@ -51,7 +56,7 @@ export interface MallOrderLifecycleLabels {
   refreshSuggestion: string
 }
 
-export type MallOrderLifecycleNodeKey = 'created' | 'paid' | 'shipped' | 'cancelled' | 'unknown'
+export type MallOrderLifecycleNodeKey = 'created' | 'paid' | 'shipped' | 'completed' | 'cancelled' | 'unknown'
 export type MallOrderLifecycleNodeState = 'complete' | 'current' | 'pending'
 
 export interface MallOrderLifecycleNode {
@@ -74,15 +79,20 @@ export interface MallOrderActionLabels {
   actionReady: string
   paymentComplete: string
   shipped: string
+  completed: string
   cancelled: string
   unknownPrefix: string
   refreshSuggestion: string
+  confirmReceipt: string
+  confirmingReceipt: string
+  receiptReady: string
 }
 
 export interface MallOrderActionOptions {
   hasPayment?: boolean
   isSubmittingPayment?: boolean
   isCancelling?: boolean
+  isConfirmingReceipt?: boolean
 }
 
 export interface MallOrderActionView {
@@ -92,6 +102,9 @@ export interface MallOrderActionView {
   cancelLabel: string
   canCancel: boolean
   cancelDisabledReason: string | null
+  receiptLabel: string
+  canConfirmReceipt: boolean
+  receiptDisabledReason: string | null
   actionHint: string
 }
 
@@ -100,6 +113,7 @@ export interface MallPaymentRefreshLabels {
   fromOrderSnapshot: string
   missingPaymentNo: string
   shipped: string
+  completed: string
   cancelled: string
   unknownPrefix: string
 }
@@ -110,7 +124,7 @@ export interface MallPaymentRefreshView {
   sourceDescription: string
 }
 
-export type MallOrderListFilter = 'all' | 'created' | 'paidAwaitingShipment' | 'shipped' | 'cancelled' | 'unknown'
+export type MallOrderListFilter = 'all' | 'created' | 'paidAwaitingShipment' | 'shipped' | 'completed' | 'cancelled' | 'unknown'
 
 export interface MallOrderListFilterOption {
   key: MallOrderListFilter
@@ -123,6 +137,7 @@ export interface MallOrderListFilterLabels {
   created: string
   paidAwaitingShipment: string
   shipped: string
+  completed: string
   cancelled: string
   unknown: string
 }
@@ -191,7 +206,7 @@ export interface MallOrderDeepLinkRecoveryView {
   canClearLink: boolean
 }
 
-type MallOrderLifecyclePhase = 'created' | 'paidAwaitingShipment' | 'shipped' | 'cancelled' | 'unknown'
+type MallOrderLifecyclePhase = 'created' | 'paidAwaitingShipment' | 'shipped' | 'completed' | 'cancelled' | 'unknown'
 
 export function describeMallOrderListSummary(order: OrderResponse, labels: MallOrderSummaryLabels): string {
   const orderStatus = normalizeText(order.status)
@@ -202,6 +217,9 @@ export function describeMallOrderListSummary(order: OrderResponse, labels: MallO
   }
   if (orderStatus === 'created') {
     return labels.created
+  }
+  if (isCompleted(order)) {
+    return labels.completed
   }
   if (isShipped(order)) {
     return labels.shipped
@@ -227,6 +245,17 @@ export function createMallOrderFulfillmentView(
   const orderStatus = normalizeText(order.status)
   const fulfillmentStatus = normalizeText(order.fulfillmentStatus)
 
+  if (isCompleted(order)) {
+    return {
+      statusLabel: labels.completed,
+      message: labels.completedMessage,
+      carrier: normalizeText(order.carrier) ?? labels.carrierPending,
+      trackingNo: normalizeText(order.trackingNo) ?? labels.trackingNoPending,
+      shippedAt: normalizeText(order.shippedAt),
+      showShipmentFields: true,
+      sourceDescription: labels.orderSnapshotSource,
+    }
+  }
   if (isShipped(order)) {
     return {
       statusLabel: labels.shipped,
@@ -272,6 +301,9 @@ export function getMallOrderStatusLabel(status: string, labels: MallOrderSummary
   if (normalizedStatus === 'shipped') {
     return labels.shipped
   }
+  if (normalizedStatus === 'completed') {
+    return labels.completed
+  }
   return normalizedStatus ?? labels.unknown
 }
 
@@ -289,6 +321,7 @@ export function createMallOrderLifecycleTimeline(
         createLifecycleNode('created', labels.createdTitle, labels.createdDescription, 'current'),
         createLifecycleNode('paid', labels.paidAwaitingShipmentTitle, labels.paidAwaitingShipmentDescription, 'pending'),
         createLifecycleNode('shipped', labels.shippedTitle, labels.shippedDescription, 'pending'),
+        createLifecycleNode('completed', labels.completedTitle, labels.completedDescription, 'pending'),
       ],
     }
   }
@@ -301,6 +334,7 @@ export function createMallOrderLifecycleTimeline(
         createLifecycleNode('created', labels.createdTitle, labels.createdDescription, 'complete'),
         createLifecycleNode('paid', labels.paidAwaitingShipmentTitle, labels.paidAwaitingShipmentDescription, 'current'),
         createLifecycleNode('shipped', labels.shippedTitle, labels.shippedDescription, 'pending'),
+        createLifecycleNode('completed', labels.completedTitle, labels.completedDescription, 'pending'),
       ],
     }
   }
@@ -313,6 +347,20 @@ export function createMallOrderLifecycleTimeline(
         createLifecycleNode('created', labels.createdTitle, labels.createdDescription, 'complete'),
         createLifecycleNode('paid', labels.paidAwaitingShipmentTitle, labels.paidAwaitingShipmentDescription, 'complete'),
         createLifecycleNode('shipped', labels.shippedTitle, labels.shippedDescription, 'current'),
+        createLifecycleNode('completed', labels.completedTitle, labels.completedDescription, 'pending'),
+      ],
+    }
+  }
+
+  if (phase === 'completed') {
+    return {
+      stageLabel: labels.completedTitle,
+      currentDescription: labels.completedDescription,
+      nodes: [
+        createLifecycleNode('created', labels.createdTitle, labels.createdDescription, 'complete'),
+        createLifecycleNode('paid', labels.paidAwaitingShipmentTitle, labels.paidAwaitingShipmentDescription, 'complete'),
+        createLifecycleNode('shipped', labels.shippedTitle, labels.shippedDescription, 'complete'),
+        createLifecycleNode('completed', labels.completedTitle, labels.completedDescription, 'current'),
       ],
     }
   }
@@ -355,18 +403,39 @@ export function createMallOrderActionView(
       cancelLabel: labels.cancel,
       canCancel: !options.isCancelling,
       cancelDisabledReason: null,
+      receiptLabel: labels.confirmReceipt,
+      canConfirmReceipt: false,
+      receiptDisabledReason: labels.actionReady,
       actionHint: labels.actionReady,
+    }
+  }
+
+  if (phase === 'shipped') {
+    return {
+      payLabel: labels.paid,
+      canPay: false,
+      payDisabledReason: labels.shipped,
+      cancelLabel: labels.cancel,
+      canCancel: false,
+      cancelDisabledReason: labels.shipped,
+      receiptLabel: options.isConfirmingReceipt ? labels.confirmingReceipt : labels.confirmReceipt,
+      canConfirmReceipt: !options.isConfirmingReceipt,
+      receiptDisabledReason: null,
+      actionHint: labels.receiptReady,
     }
   }
 
   const reason = resolveActionDisabledReason(order, labels, phase)
   return {
-    payLabel: phase === 'paidAwaitingShipment' || phase === 'shipped' ? labels.paid : labels.pay,
+    payLabel: phase === 'paidAwaitingShipment' || phase === 'completed' ? labels.paid : labels.pay,
     canPay: false,
     payDisabledReason: reason,
     cancelLabel: labels.cancel,
     canCancel: false,
     cancelDisabledReason: reason,
+    receiptLabel: labels.confirmReceipt,
+    canConfirmReceipt: false,
+    receiptDisabledReason: reason,
     actionHint: reason,
   }
 }
@@ -392,6 +461,13 @@ export function createMallPaymentRefreshView(
       canRefresh: false,
       disabledReason: labels.shipped,
       sourceDescription: labels.shipped,
+    }
+  }
+  if (phase === 'completed') {
+    return {
+      canRefresh: false,
+      disabledReason: labels.completed,
+      sourceDescription: labels.completed,
     }
   }
   if (normalizedPaymentNo) {
@@ -502,6 +578,7 @@ export function createMallOrderListFilterOptions(
     created: 0,
     paidAwaitingShipment: 0,
     shipped: 0,
+    completed: 0,
     cancelled: 0,
     unknown: 0,
   }
@@ -515,6 +592,7 @@ export function createMallOrderListFilterOptions(
     { key: 'created', label: labels.created, count: counts.created },
     { key: 'paidAwaitingShipment', label: labels.paidAwaitingShipment, count: counts.paidAwaitingShipment },
     { key: 'shipped', label: labels.shipped, count: counts.shipped },
+    { key: 'completed', label: labels.completed, count: counts.completed },
     { key: 'cancelled', label: labels.cancelled, count: counts.cancelled },
     { key: 'unknown', label: labels.unknown, count: counts.unknown },
   ]
@@ -699,6 +777,10 @@ function isShipped(order: OrderResponse): boolean {
   return normalizeText(order.status) === 'shipped' || normalizeText(order.fulfillmentStatus) === 'shipped'
 }
 
+function isCompleted(order: OrderResponse): boolean {
+  return normalizeText(order.status) === 'completed' || normalizeText(order.fulfillmentStatus) === 'completed'
+}
+
 function resolveLifecyclePhase(order: OrderResponse | null): MallOrderLifecyclePhase {
   if (!order) {
     return 'unknown'
@@ -707,6 +789,9 @@ function resolveLifecyclePhase(order: OrderResponse | null): MallOrderLifecycleP
   const orderStatus = normalizeText(order.status)
   const fulfillmentStatus = normalizeText(order.fulfillmentStatus)
 
+  if (isCompleted(order)) {
+    return 'completed'
+  }
   if (isShipped(order)) {
     return 'shipped'
   }
@@ -764,6 +849,9 @@ function resolveActionDisabledReason(
   if (phase === 'shipped') {
     return labels.shipped
   }
+  if (phase === 'completed') {
+    return labels.completed
+  }
   if (phase === 'cancelled') {
     return labels.cancelled
   }
@@ -788,6 +876,7 @@ function resolveRawUnknownStatus(order: OrderResponse | null): string | null {
     && fulfillmentStatus
     && fulfillmentStatus !== 'unshipped'
     && fulfillmentStatus !== 'shipped'
+    && fulfillmentStatus !== 'completed'
     && fulfillmentStatus !== 'all'
   ) {
     return fulfillmentStatus

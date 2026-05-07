@@ -52,7 +52,10 @@ public class JdbcOrderRepository implements OrderRepository {
             rs.getString("tracking_no"),
             rs.getTimestamp("shipped_at") == null ? null : rs.getTimestamp("shipped_at").toLocalDateTime(),
             rs.getString("shipment_request_id"),
-            rs.getString("shipment_trace_id")
+            rs.getString("shipment_trace_id"),
+            rs.getString("receipt_request_id"),
+            rs.getString("receipt_trace_id"),
+            rs.getTimestamp("completed_at") == null ? null : rs.getTimestamp("completed_at").toLocalDateTime()
     );
 
     private static final RowMapper<OrderItemRecord> ORDER_ITEM_ROW_MAPPER = (rs, rowNum) -> new OrderItemRecord(
@@ -102,7 +105,7 @@ public class JdbcOrderRepository implements OrderRepository {
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
                                last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
                                last_compensation_operator, last_compensated_at, fulfillment_status, carrier, tracking_no,
-                               shipped_at, shipment_request_id, shipment_trace_id
+                               shipped_at, shipment_request_id, shipment_trace_id, receipt_request_id, receipt_trace_id, completed_at
                         FROM oms_order
                         WHERE shop_id = ? AND id = ? AND deleted = 0
                         LIMIT 1
@@ -126,7 +129,7 @@ public class JdbcOrderRepository implements OrderRepository {
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
                                last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
                                last_compensation_operator, last_compensated_at, fulfillment_status, carrier, tracking_no,
-                               shipped_at, shipment_request_id, shipment_trace_id
+                               shipped_at, shipment_request_id, shipment_trace_id, receipt_request_id, receipt_trace_id, completed_at
                         FROM oms_order
                         WHERE shop_id = ? AND user_id = ? AND request_id = ? AND deleted = 0
                         LIMIT 1
@@ -146,7 +149,7 @@ public class JdbcOrderRepository implements OrderRepository {
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
                                last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
                                last_compensation_operator, last_compensated_at, fulfillment_status, carrier, tracking_no,
-                               shipped_at, shipment_request_id, shipment_trace_id
+                               shipped_at, shipment_request_id, shipment_trace_id, receipt_request_id, receipt_trace_id, completed_at
                         FROM oms_order
                         WHERE shop_id = ? AND user_id = ? AND deleted = 0
                         ORDER BY created_at DESC, id DESC
@@ -187,7 +190,7 @@ public class JdbcOrderRepository implements OrderRepository {
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
                                last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
                                last_compensation_operator, last_compensated_at, fulfillment_status, carrier, tracking_no,
-                               shipped_at, shipment_request_id, shipment_trace_id
+                               shipped_at, shipment_request_id, shipment_trace_id, receipt_request_id, receipt_trace_id, completed_at
                         FROM oms_order
                         """
                         + queryParts.sql()
@@ -223,7 +226,7 @@ public class JdbcOrderRepository implements OrderRepository {
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
                                last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
                                last_compensation_operator, last_compensated_at, fulfillment_status, carrier, tracking_no,
-                               shipped_at, shipment_request_id, shipment_trace_id
+                               shipped_at, shipment_request_id, shipment_trace_id, receipt_request_id, receipt_trace_id, completed_at
                         FROM oms_order
                         """
                         + queryParts.sql()
@@ -255,7 +258,7 @@ public class JdbcOrderRepository implements OrderRepository {
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
                                last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
                                last_compensation_operator, last_compensated_at, fulfillment_status, carrier, tracking_no,
-                               shipped_at, shipment_request_id, shipment_trace_id
+                               shipped_at, shipment_request_id, shipment_trace_id, receipt_request_id, receipt_trace_id, completed_at
                         FROM oms_order
                         WHERE shop_id = ? AND status = ? AND created_at <= ? AND deleted = 0
                         ORDER BY id ASC
@@ -277,7 +280,7 @@ public class JdbcOrderRepository implements OrderRepository {
                                created_at, updated_at, last_compensation_result, last_compensation_error_code,
                                last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
                                last_compensation_operator, last_compensated_at, fulfillment_status, carrier, tracking_no,
-                               shipped_at, shipment_request_id, shipment_trace_id
+                               shipped_at, shipment_request_id, shipment_trace_id, receipt_request_id, receipt_trace_id, completed_at
                         FROM oms_order
                         WHERE shop_id = ? AND status = ? AND deleted = 0
                         ORDER BY updated_at DESC, id DESC
@@ -432,6 +435,35 @@ public class JdbcOrderRepository implements OrderRepository {
                 shopId,
                 orderId,
                 OrderStatus.PAID.value()
+        );
+    }
+
+    @Override
+    public int markCompleted(
+            Long shopId,
+            Long orderId,
+            String requestId,
+            String traceId,
+            LocalDateTime completedAt
+    ) {
+        return jdbcTemplate.update(
+                """
+                        UPDATE oms_order
+                        SET status = ?,
+                            fulfillment_status = ?,
+                            receipt_request_id = ?,
+                            receipt_trace_id = ?,
+                            completed_at = ?
+                        WHERE shop_id = ? AND id = ? AND status = ? AND deleted = 0
+                        """,
+                OrderStatus.COMPLETED.value(),
+                OrderStatus.COMPLETED.value(),
+                requestId,
+                traceId,
+                completedAt,
+                shopId,
+                orderId,
+                OrderStatus.SHIPPED.value()
         );
     }
 

@@ -26,7 +26,10 @@ public record OrderRecord(
         String trackingNo,
         LocalDateTime shippedAt,
         String shipmentRequestId,
-        String shipmentTraceId
+        String shipmentTraceId,
+        String receiptRequestId,
+        String receiptTraceId,
+        LocalDateTime completedAt
 ) {
     public OrderRecord(
             Long id,
@@ -70,6 +73,66 @@ public record OrderRecord(
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    public OrderRecord(
+            Long id,
+            Long shopId,
+            String userId,
+            String orderNo,
+            String requestId,
+            String reservationNo,
+            OrderStatus status,
+            Long totalAmountCent,
+            String traceId,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            String lastCompensationResult,
+            String lastCompensationErrorCode,
+            String lastCompensationReason,
+            String lastCompensationTraceId,
+            String lastCompensationTrigger,
+            String lastCompensationOperator,
+            LocalDateTime lastCompensatedAt,
+            String fulfillmentStatus,
+            String carrier,
+            String trackingNo,
+            LocalDateTime shippedAt,
+            String shipmentRequestId,
+            String shipmentTraceId
+    ) {
+        this(
+                id,
+                shopId,
+                userId,
+                orderNo,
+                requestId,
+                reservationNo,
+                status,
+                totalAmountCent,
+                traceId,
+                createdAt,
+                updatedAt,
+                lastCompensationResult,
+                lastCompensationErrorCode,
+                lastCompensationReason,
+                lastCompensationTraceId,
+                lastCompensationTrigger,
+                lastCompensationOperator,
+                lastCompensatedAt,
+                fulfillmentStatus,
+                carrier,
+                trackingNo,
+                shippedAt,
+                shipmentRequestId,
+                shipmentTraceId,
                 null,
                 null,
                 null

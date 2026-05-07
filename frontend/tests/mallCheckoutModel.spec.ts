@@ -424,6 +424,98 @@ describe('mall checkout model', () => {
     expect(orderStatus.canCancel.value).toBe(false)
   })
 
+  it('confirms shipped order receipt and merges completed detail into the list', async () => {
+    const confirmOrderReceipt = vi.fn(async () => createOrderResponse({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      completedAt: '2026-05-07T13:00:00+08:00',
+    }))
+    const orderStatus = useMallOrderStatus({
+      confirmOrderReceipt,
+      createReceiptConfirmationRequestId: () => 'receipt-001',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+    }))
+
+    await orderStatus.confirmCurrentOrderReceipt()
+
+    expect(confirmOrderReceipt).toHaveBeenCalledWith(501, { requestId: 'receipt-001' })
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      completedAt: '2026-05-07T13:00:00+08:00',
+    })
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      orderId: 501,
+      status: 'completed',
+    })
+    expect(orderStatus.canConfirmReceipt.value).toBe(false)
+  })
+
+  it('guards duplicate pending receipt confirmations', async () => {
+    const deferredReceipt = createDeferred<OrderResponse>()
+    const confirmOrderReceipt = vi.fn(() => deferredReceipt.promise)
+    const orderStatus = useMallOrderStatus({
+      confirmOrderReceipt,
+      createReceiptConfirmationRequestId: () => 'receipt-pending',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+    }))
+
+    const firstConfirm = orderStatus.confirmCurrentOrderReceipt()
+    const duplicateConfirm = orderStatus.confirmCurrentOrderReceipt()
+
+    expect(confirmOrderReceipt).toHaveBeenCalledOnce()
+    await expect(duplicateConfirm).resolves.toBeNull()
+
+    deferredReceipt.resolve(createOrderResponse({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    }))
+    await firstConfirm
+
+    expect(orderStatus.order.value?.status).toBe('completed')
+  })
+
+  it('keeps shipped detail when receipt confirmation fails', async () => {
+    const confirmOrderReceipt = vi.fn(async () => {
+      throw new HttpClientError('Order status invalid.', {
+        code: 'ORDER_STATUS_INVALID',
+        status: 409,
+        traceId: 'trace-receipt-invalid',
+      })
+    })
+    const orderStatus = useMallOrderStatus({
+      confirmOrderReceipt,
+      createReceiptConfirmationRequestId: () => 'receipt-failed',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+    }))
+
+    await orderStatus.confirmCurrentOrderReceipt()
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      trackingNo: 'SF999',
+    })
+    expect(orderStatus.errorMessage.value).toBe(
+      'ORDER_STATUS_INVALID: Order status invalid. Trace ID trace-receipt-invalid.',
+    )
+  })
+
   it('shows traceId when order detail loading fails', async () => {
     const getOrder = vi.fn(async () => {
       throw new HttpClientError('Order missing.', {

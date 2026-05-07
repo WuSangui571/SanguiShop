@@ -4,7 +4,8 @@ public enum OrderStatus {
     CREATED("created"),
     CANCELLED("cancelled"),
     PAID("paid"),
-    SHIPPED("shipped");
+    SHIPPED("shipped"),
+    COMPLETED("completed");
 
     private final String value;
 

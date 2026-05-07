@@ -32,11 +32,15 @@ final class OrderResponseMapper {
                 fulfillmentStatus(snapshot.order().status().value(), snapshot.order().fulfillmentStatus()),
                 snapshot.order().carrier(),
                 snapshot.order().trackingNo(),
-                toOffsetDateTime(snapshot.order().shippedAt())
+                toOffsetDateTime(snapshot.order().shippedAt()),
+                toOffsetDateTime(snapshot.order().completedAt())
         );
     }
 
     private static String fulfillmentStatus(String orderStatus, String persistedStatus) {
+        if ("completed".equals(orderStatus)) {
+            return "completed";
+        }
         if ("shipped".equals(orderStatus)) {
             return "shipped";
         }

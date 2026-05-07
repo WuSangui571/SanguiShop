@@ -87,6 +87,17 @@ class OrderQueryServiceTest {
         });
     }
 
+    @Test
+    void getOrderReturnsCompletedFulfillmentSnapshot() {
+        Long orderId = orderRepository.seedCompletedOrder(1L, "10001", "ORD-303");
+
+        var response = orderQueryService.getOrder(USER_PRINCIPAL, orderId);
+
+        assertThat(response.status()).isEqualTo("completed");
+        assertThat(response.fulfillmentStatus()).isEqualTo("completed");
+        assertThat(response.completedAt()).isNotNull();
+    }
+
     private static final class InMemoryOrderRepository implements OrderRepository {
 
         private final Map<Long, OrderSnapshot> snapshotsById = new LinkedHashMap<>();
@@ -200,6 +211,43 @@ class OrderQueryServiceTest {
                             null,
                             null,
                             null
+                    ),
+                    List.of(new OrderItemRecord(1L, orderId, 301L, 401L, "Sneaker 42", 59900L, 1, 59900L))
+            ));
+            return orderId;
+        }
+
+        private Long seedCompletedOrder(Long shopId, String userId, String orderNo) {
+            Long orderId = ++nextOrderId;
+            snapshotsById.put(orderId, new OrderSnapshot(
+                    new OrderRecord(
+                            orderId,
+                            shopId,
+                            userId,
+                            orderNo,
+                            "req-" + orderId,
+                            "ord:" + userId + ":req-" + orderId,
+                            OrderStatus.COMPLETED,
+                            59900L,
+                            "trace-seed",
+                            LocalDateTime.now().minusDays(1),
+                            LocalDateTime.now(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            "completed",
+                            "SF Express",
+                            "SF123",
+                            LocalDateTime.now().minusHours(2),
+                            "ship-001",
+                            "trace-ship",
+                            "receipt-001",
+                            "trace-receipt",
+                            LocalDateTime.now().minusHours(1)
                     ),
                     List.of(new OrderItemRecord(1L, orderId, 301L, 401L, "Sneaker 42", 59900L, 1, 59900L))
             ));

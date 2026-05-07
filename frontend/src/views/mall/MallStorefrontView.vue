@@ -90,6 +90,7 @@ const currentAction = computed(() => createMallOrderActionView(
     hasPayment: Boolean(orderStatus.payment.value),
     isSubmittingPayment: orderStatus.isSubmittingPayment.value,
     isCancelling: orderStatus.isCancelling.value,
+    isConfirmingReceipt: orderStatus.isConfirmingReceipt.value,
   },
 ))
 const currentPaymentRefresh = computed(() => createMallPaymentRefreshView(
@@ -215,6 +216,14 @@ async function cancelCurrentOrder() {
   const cancelled = await orderStatus.cancelCurrentOrder()
   if (cancelled) {
     replaceOrderUrl(cancelled.orderId, '')
+    await loadOrderPage()
+  }
+}
+
+async function confirmCurrentOrderReceipt() {
+  const completed = await orderStatus.confirmCurrentOrderReceipt()
+  if (completed) {
+    replaceOrderUrl(completed.orderId, '')
     await loadOrderPage()
   }
 }
@@ -482,6 +491,7 @@ function getOrderSummaryLabels() {
     paidAwaitingShipment: t('mall.orders.statusPaidAwaitingShipment'),
     cancelled: t('mall.orders.statusCancelled'),
     shipped: t('mall.orders.statusShippedSummary'),
+    completed: t('mall.orders.statusCompleted'),
     unknown: t('common.unknown'),
   }
 }
@@ -493,6 +503,7 @@ function getOrderStatusLabels() {
     paidAwaitingShipment: t('mall.orders.statusPaidAwaitingShipment'),
     cancelled: t('mall.orders.statusCancelled'),
     shipped: t('mall.orders.statusShipped'),
+    completed: t('mall.orders.statusCompleted'),
     unknown: t('common.unknown'),
   }
 }
@@ -503,6 +514,7 @@ function getOrderListFilterLabels() {
     created: t('mall.orders.filterCreated'),
     paidAwaitingShipment: t('mall.orders.filterPaidAwaitingShipment'),
     shipped: t('mall.orders.filterShipped'),
+    completed: t('mall.orders.filterCompleted'),
     cancelled: t('mall.orders.filterCancelled'),
     unknown: t('mall.orders.filterUnknown'),
   }
@@ -532,10 +544,12 @@ function getFulfillmentLabels() {
   return {
     awaitingShipment: t('mall.orders.awaitingShipment'),
     shipped: t('mall.orders.statusShipped'),
+    completed: t('mall.orders.statusCompleted'),
     notReady: t('mall.orders.statusCreated'),
     cancelled: t('mall.orders.statusCancelled'),
     unknown: t('common.unknown'),
     shippedMessage: t('mall.orders.logisticsShippedMessage'),
+    completedMessage: t('mall.orders.logisticsCompletedMessage'),
     awaitingShipmentMessage: t('mall.orders.logisticsAwaitingShipmentMessage'),
     notReadyMessage: t('mall.orders.logisticsNotReadyMessage'),
     cancelledMessage: t('mall.orders.logisticsCancelledMessage'),
@@ -555,6 +569,8 @@ function getLifecycleLabels() {
     paidAwaitingShipmentDescription: t('mall.orders.lifecyclePaidDescription'),
     shippedTitle: t('mall.orders.lifecycleShippedTitle'),
     shippedDescription: t('mall.orders.lifecycleShippedDescription'),
+    completedTitle: t('mall.orders.lifecycleCompletedTitle'),
+    completedDescription: t('mall.orders.lifecycleCompletedDescription'),
     cancelledTitle: t('mall.orders.lifecycleCancelledTitle'),
     cancelledDescription: t('mall.orders.lifecycleCancelledDescription'),
     unknownTitle: t('mall.orders.lifecycleUnknownTitle'),
@@ -571,9 +587,13 @@ function getActionLabels() {
     actionReady: t('mall.orders.actionReady'),
     paymentComplete: t('mall.orders.actionPaymentComplete'),
     shipped: t('mall.orders.actionShipped'),
+    completed: t('mall.orders.actionCompleted'),
     cancelled: t('mall.orders.actionCancelled'),
     unknownPrefix: t('mall.orders.actionUnknownPrefix'),
     refreshSuggestion: t('mall.orders.actionRefreshSuggestion'),
+    confirmReceipt: t('mall.orders.confirmReceipt'),
+    confirmingReceipt: t('mall.orders.confirmingReceipt'),
+    receiptReady: t('mall.orders.receiptReady'),
   }
 }
 
@@ -583,6 +603,7 @@ function getPaymentRefreshLabels() {
     fromOrderSnapshot: t('mall.orders.paymentFromOrderSnapshot'),
     missingPaymentNo: t('mall.orders.paymentNoMissing'),
     shipped: t('mall.orders.paymentRefreshDisabledShipped'),
+    completed: t('mall.orders.paymentRefreshDisabledCompleted'),
     cancelled: t('mall.orders.paymentRefreshDisabledCancelled'),
     unknownPrefix: t('mall.orders.paymentRefreshUnknownPrefix'),
   }
@@ -869,6 +890,15 @@ function resolveDefaultShopId(): number {
                 @click="cancelCurrentOrder()"
               >
                 {{ orderStatus.isCancelling.value ? t('mall.orders.cancelling') : currentAction.cancelLabel }}
+              </button>
+              <button
+                type="button"
+                class="secondary-action"
+                :disabled="!currentAction.canConfirmReceipt || !orderStatus.canConfirmReceipt.value"
+                :title="currentAction.receiptDisabledReason ?? currentAction.actionHint"
+                @click="confirmCurrentOrderReceipt()"
+              >
+                {{ currentAction.receiptLabel }}
               </button>
             </div>
             <p class="payment-source">{{ currentPaymentRefresh.sourceDescription }}</p>

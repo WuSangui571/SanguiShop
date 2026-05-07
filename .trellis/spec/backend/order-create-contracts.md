@@ -165,6 +165,7 @@ Persisted order statuses:
 - `created`
 - `cancelled`
 - `paid`
+- `completed`
 
 Valid transitions:
 
@@ -174,6 +175,67 @@ Valid transitions:
 | `created` | cancel + release reserve | `cancelled` |
 | `created` | payment confirm | `paid` |
 | `paid` | cancel | invalid |
+
+## Customer Receipt Confirmation Addendum
+
+### `POST /api/orders/{orderId}/receipt-confirmations`
+
+Request:
+
+```json
+{
+  "requestId": "receipt-20260507-0001"
+}
+```
+
+Response code: `ORDER_RECEIPT_CONFIRMED`.
+
+Rules:
+
+- Controller must use trusted `SanguiPrincipal`; request body must not carry `shopId` or `userId`.
+- `requestId` is required and trimmed before persistence.
+- Only the owning principal within `(shopId, userId)` can confirm receipt.
+- Only `shipped -> completed` is valid for a new confirmation.
+- A `completed` order returns the current completed snapshot as an idempotent terminal result.
+- `created`, `paid`, `cancelled`, and unsupported statuses return `ORDER_STATUS_INVALID`.
+- Logs must include `traceId`, `shopId`, `userId`, `orderId`, `orderNo`, and `requestId`.
+
+Additional response fields:
+
+- `completedAt`
+
+Fulfillment mapping:
+
+- `completed` exposes `fulfillmentStatus=completed` and keeps carrier/tracking/shipped snapshot fields.
+
+Database addendum:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V7__add_order_receipt_confirmation_snapshot.sql`
+- Required columns on `oms_order`: `receipt_request_id`, `receipt_trace_id`, `completed_at`.
+- Required index: `idx_oms_order_shop_completed_created (shop_id, status, completed_at)`.
+
+Validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Missing trusted principal | 401 | `AUTH_TOKEN_MISSING` |
+| Invalid path id or blank `requestId` | 400 | `VALIDATION_FAILED` |
+| Missing order or wrong owner | 404 | `ORDER_NOT_FOUND` |
+| Confirm `created`, `paid`, `cancelled`, or unsupported status | 409 | `ORDER_STATUS_INVALID` |
+
+Required tests:
+
+```powershell
+mvn -q "-Dtest=OrderReceiptConfirmationServiceTest,OrderControllerTest,OrderQueryServiceTest,OrderReceiptConfirmationMigrationContractTest" test
+```
+
+Good/Base/Bad cases:
+
+- Good: shipped order becomes completed and persists receipt request id, trace id, and completed time.
+- Good: completed order replay returns the completed snapshot without mutating logistics fields.
+- Good: wrong user receives `ORDER_NOT_FOUND`.
+- Base: no inventory, payment, MQ, or logistics-service side effect is required for receipt confirmation in this MVP.
+- Bad: frontend marks an order completed without a backend state transition.
 
 ## Database Contract
 

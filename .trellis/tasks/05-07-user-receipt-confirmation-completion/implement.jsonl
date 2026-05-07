@@ -1,0 +1,19 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\spec\\backend\\directory-structure.md", "reason": "Order-service layer boundaries and controller/application placement"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "New customer write API contract, requestId idempotency, response envelope"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Protected /api/orders route and trusted principal scope"}
+{"file": ".trellis\\spec\\backend\\database-guidelines.md", "reason": "Potential receipt confirmation migration and status index rules"}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "Validation, business error, and traceId mapping"}
+{"file": ".trellis\\spec\\backend\\logging-guidelines.md", "reason": "Required receipt confirmation business log context"}
+{"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Existing order state machine and shipped fulfillment addendum to extend"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Mall order status API/client contract and completion extension"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Async UI states and action button boundaries"}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "Composable/service HTTP boundaries and pending guards"}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Mall order server state vs client state and typed copy rules"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Order status DTO compatibility and unknown fallback"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Cross-layer API/status/DB/frontend data-flow checklist"}
+{"file": "services\\sangui-order-service\\src\\main\\java\\com\\sangui\\shop\\order\\application\\OrderShipmentService.java", "reason": "Existing paid to shipped state machine and idempotency pattern"}
+{"file": "frontend\\src\\composables\\useMallOrderStatus.ts", "reason": "Existing mall order refresh/cancel/payment state merge pattern"}
+{"file": "frontend\\src\\views\\mall\\mallOrderStatusModel.ts", "reason": "Existing lifecycle, filter, action, and unknown fallback model"}

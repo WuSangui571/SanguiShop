@@ -4,6 +4,7 @@ import type {
   AdminOrderDetailResponse,
   AdminOrderPageResponse,
   AdminOrderQueryParams,
+  ConfirmOrderReceiptRequest,
   CreateOrderRequest,
   OrderPageResponse,
   OrderResponse,
@@ -35,6 +36,17 @@ export function cancelOrder(orderId: number) {
     authContext: 'mall',
     suppressAuthStateChange: true,
   })
+}
+
+export function confirmOrderReceipt(orderId: number, payload: ConfirmOrderReceiptRequest) {
+  return postJson<OrderResponse>(
+    `/api/orders/${encodeURIComponent(String(orderId))}/receipt-confirmations`,
+    payload,
+    {
+      authContext: 'mall',
+      suppressAuthStateChange: true,
+    },
+  )
 }
 
 export function listAdminOrders(params: AdminOrderQueryParams) {

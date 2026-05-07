@@ -1,17 +1,19 @@
 import { computed, ref } from 'vue'
 import {
   cancelOrder as cancelOrderApi,
+  confirmOrderReceipt as confirmOrderReceiptApi,
   getOrder as getOrderApi,
   listOrders as listOrdersApi,
 } from '../services/orderApi'
 import { createPayment as createPaymentApi, getPayment as getPaymentApi } from '../services/paymentApi'
 import type { MallSession } from '../types/api/auth'
-import type { OrderPageResponse, OrderResponse } from '../types/api/order'
+import type { ConfirmOrderReceiptRequest, OrderPageResponse, OrderResponse } from '../types/api/order'
 import type { CreatePaymentRequest, PaymentResponse } from '../types/api/payment'
 import {
   buildCreatePaymentRequest,
   canCancelOrder,
   classifyMallPaymentFailure,
+  createReceiptConfirmationRequestId,
   createPaymentNo,
   describeMallApiError,
   describePaymentStatus,
@@ -28,9 +30,11 @@ interface UseMallOrderStatusOptions {
   getOrder?: (orderId: number) => Promise<OrderResponse>
   listOrders?: (params: { page?: number, size?: number }) => Promise<OrderPageResponse>
   cancelOrder?: (orderId: number) => Promise<OrderResponse>
+  confirmOrderReceipt?: (orderId: number, payload: ConfirmOrderReceiptRequest) => Promise<OrderResponse>
   createPayment?: (payload: CreatePaymentRequest) => Promise<PaymentResponse>
   getPayment?: (paymentNo: string) => Promise<PaymentResponse>
   createPaymentNo?: () => string
+  createReceiptConfirmationRequestId?: () => string
 }
 
 type OrderRefreshResult = 'idle' | 'success' | 'error'
@@ -49,11 +53,13 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
   const isLoadingOrders = ref(false)
   const isRefreshingPayment = ref(false)
   const isCancelling = ref(false)
+  const isConfirmingReceipt = ref(false)
   const isSubmittingPayment = ref(false)
   const orderRefreshResult = ref<OrderRefreshResult>('idle')
 
   const canCancel = computed(() => canCancelOrder(order.value) && !isCancelling.value)
   const canPay = computed(() => order.value?.status === 'created' && !payment.value && !isSubmittingPayment.value)
+  const canConfirmReceipt = computed(() => isShippedOrder(order.value) && !isConfirmingReceipt.value)
   const paymentStatus = computed(() => describePaymentStatus(order.value, payment.value))
 
   async function loadOrder(
@@ -179,6 +185,33 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     }
   }
 
+  async function confirmCurrentOrderReceipt(): Promise<OrderResponse | null> {
+    if (!order.value || !canConfirmReceipt.value) {
+      return null
+    }
+
+    isConfirmingReceipt.value = true
+    errorMessage.value = ''
+
+    try {
+      const response = await (options.confirmOrderReceipt ?? defaultConfirmOrderReceipt)(
+        order.value.orderId,
+        {
+          requestId: (options.createReceiptConfirmationRequestId ?? createReceiptConfirmationRequestId)(),
+        },
+      )
+      order.value = response
+      orders.value = mergeOrderIntoList(orders.value, response)
+      paymentFailure.value = null
+      return response
+    } catch (caught) {
+      errorMessage.value = describeMallApiError(caught)
+      return null
+    } finally {
+      isConfirmingReceipt.value = false
+    }
+  }
+
   function acceptCreatedOrder(createdOrder: OrderResponse) {
     order.value = createdOrder
     orders.value = upsertOrderIntoList(orders.value, createdOrder)
@@ -242,16 +275,19 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     isLoadingOrders,
     isRefreshingPayment,
     isCancelling,
+    isConfirmingReceipt,
     isSubmittingPayment,
     orderRefreshResult,
     canCancel,
     canPay,
+    canConfirmReceipt,
     paymentStatus,
     loadOrder,
     refreshCurrentOrder,
     loadOrders,
     refreshPayment,
     cancelCurrentOrder,
+    confirmCurrentOrderReceipt,
     submitPayment,
     acceptCreatedOrder,
     acceptPayment,
@@ -273,6 +309,14 @@ async function defaultCancelOrder(orderId: number): Promise<OrderResponse> {
   return result.data
 }
 
+async function defaultConfirmOrderReceipt(
+  orderId: number,
+  payload: ConfirmOrderReceiptRequest,
+): Promise<OrderResponse> {
+  const result = await confirmOrderReceiptApi(orderId, payload)
+  return result.data
+}
+
 async function defaultGetPayment(paymentNo: string): Promise<PaymentResponse> {
   const result = await getPaymentApi(paymentNo)
   return result.data
@@ -281,4 +325,8 @@ async function defaultGetPayment(paymentNo: string): Promise<PaymentResponse> {
 async function defaultCreatePayment(payload: CreatePaymentRequest): Promise<PaymentResponse> {
   const result = await createPaymentApi(payload)
   return result.data
+}
+
+function isShippedOrder(order: OrderResponse | null): boolean {
+  return order?.status === 'shipped' || order?.fulfillmentStatus === 'shipped'
 }

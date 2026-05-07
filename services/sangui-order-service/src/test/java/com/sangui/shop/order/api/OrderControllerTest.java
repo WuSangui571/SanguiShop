@@ -16,6 +16,7 @@ import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
+import com.sangui.shop.order.api.dto.ConfirmOrderReceiptRequest;
 import com.sangui.shop.order.api.dto.CreateOrderRequest;
 import com.sangui.shop.order.api.dto.OrderItemResponse;
 import com.sangui.shop.order.api.dto.OrderResponse;
@@ -23,6 +24,7 @@ import com.sangui.shop.order.api.dto.OrderPageResponse;
 import com.sangui.shop.order.application.OrderCancelService;
 import com.sangui.shop.order.application.OrderCreateService;
 import com.sangui.shop.order.application.OrderQueryService;
+import com.sangui.shop.order.application.OrderReceiptConfirmationService;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -56,6 +58,9 @@ class OrderControllerTest {
 
     @MockBean
     private OrderQueryService orderQueryService;
+
+    @MockBean
+    private OrderReceiptConfirmationService orderReceiptConfirmationService;
 
     @Test
     void createOrderUsesPrincipalParameterInsteadOfBodyIdentity() throws Exception {
@@ -213,6 +218,61 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.code").value("ORDER_LIST"))
                 .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.items[0].orderNo").value("ORD-101"));
+    }
+
+    @Test
+    void confirmReceiptUsesPrincipalScopeRequestIdAndTraceId() throws Exception {
+        when(orderReceiptConfirmationService.confirmReceipt(any(), eq(101L), any(), eq("trace-receipt")))
+                .thenReturn(new OrderResponse(
+                        101L,
+                        "ORD-101",
+                        1L,
+                        "10001",
+                        "req-101",
+                        "completed",
+                        59900L,
+                        List.of(new OrderItemResponse(301L, 401L, "Sneaker 42", 59900L, 1, 59900L))
+                ));
+
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt-1");
+        mockMvc.perform(post("/api/orders/101/receipt-confirmations")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-receipt")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "requestId", "receipt-001"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ORDER_RECEIPT_CONFIRMED"))
+                .andExpect(jsonPath("$.traceId").value("trace-receipt"))
+                .andExpect(jsonPath("$.data.status").value("completed"));
+
+        ArgumentCaptor<SanguiPrincipal> principalCaptor = ArgumentCaptor.forClass(SanguiPrincipal.class);
+        ArgumentCaptor<ConfirmOrderReceiptRequest> requestCaptor = ArgumentCaptor.forClass(ConfirmOrderReceiptRequest.class);
+        verify(orderReceiptConfirmationService).confirmReceipt(
+                principalCaptor.capture(),
+                eq(101L),
+                requestCaptor.capture(),
+                eq("trace-receipt")
+        );
+        org.assertj.core.api.Assertions.assertThat(principalCaptor.getValue().shopId()).isEqualTo(1L);
+        org.assertj.core.api.Assertions.assertThat(principalCaptor.getValue().userId()).isEqualTo("10001");
+        org.assertj.core.api.Assertions.assertThat(requestCaptor.getValue().requestId()).isEqualTo("receipt-001");
+    }
+
+    @Test
+    void confirmReceiptValidationFailureUsesStableErrorEnvelope() throws Exception {
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt-1");
+        mockMvc.perform(post("/api/orders/101/receipt-confirmations")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-receipt-validation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "requestId", ""
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.traceId").value("trace-receipt-validation"));
     }
 
     @TestConfiguration

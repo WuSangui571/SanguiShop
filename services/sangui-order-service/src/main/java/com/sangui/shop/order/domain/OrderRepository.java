@@ -72,6 +72,16 @@ public interface OrderRepository {
         throw new UnsupportedOperationException("Shipment confirmation is not implemented");
     }
 
+    default int markCompleted(
+            Long shopId,
+            Long orderId,
+            String requestId,
+            String traceId,
+            LocalDateTime completedAt
+    ) {
+        throw new UnsupportedOperationException("Receipt confirmation is not implemented");
+    }
+
     void updateCompensationMetadata(
             Long shopId,
             Long orderId,
