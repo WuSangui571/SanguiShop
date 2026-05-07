@@ -7,8 +7,8 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-- **Active File**: `journal-1.md`
-- **Total Sessions**: 41
+- **Active File**: `journal-2.md`
+- **Total Sessions**: 42
 - **Last Active**: 2026-05-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,8 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1960 | Active |
+| `journal-2.md` | ~100 | Active |
+| `journal-1.md` | ~1960 | Archived |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 42 | 2026-05-07 | 管理端订单管理 MVP | `2ff097b` | `main` |
 | 41 | 2026-05-07 | 管理端商品管理 MVP | `aa2326c` | `main` |
 | 40 | 2026-05-06 | 前端国际化与主题切换基础 | `53924fb`, `8447448` | `main` |
 | 39 | 2026-05-06 | 商城商品初始化与商品公开读取修复 | `9f3a066`, `c12d4e0` | `main` |
