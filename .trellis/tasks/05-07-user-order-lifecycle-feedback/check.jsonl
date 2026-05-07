@@ -1,0 +1,4 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "确认本任务不扩大跨层契约"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "完成前质量检查"}

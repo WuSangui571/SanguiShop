@@ -11,7 +11,9 @@ import type { ProductDetailResponse, ProductSummaryResponse } from '../../types/
 import { formatDateTime, formatMoney } from '../../utils/format'
 import type { CartItemInput } from './mallCartModel'
 import {
+  createMallOrderActionView,
   createMallOrderFulfillmentView,
+  createMallOrderLifecycleTimeline,
   describeMallOrderListSummary,
   getMallOrderStatusLabel,
 } from './mallOrderStatusModel'
@@ -49,6 +51,19 @@ const canGoNextOrderPage = computed(() => orderStatus.page.value < orderTotalPag
 const currentFulfillment = computed(() => createMallOrderFulfillmentView(
   orderStatus.order.value,
   getFulfillmentLabels(),
+))
+const currentLifecycle = computed(() => createMallOrderLifecycleTimeline(
+  orderStatus.order.value,
+  getLifecycleLabels(),
+))
+const currentAction = computed(() => createMallOrderActionView(
+  orderStatus.order.value,
+  getActionLabels(),
+  {
+    hasPayment: Boolean(orderStatus.payment.value),
+    isSubmittingPayment: orderStatus.isSubmittingPayment.value,
+    isCancelling: orderStatus.isCancelling.value,
+  },
 ))
 
 onMounted(() => {
@@ -203,6 +218,10 @@ function describeOrderSummary(order: OrderResponse): string {
   return describeMallOrderListSummary(order, getOrderSummaryLabels())
 }
 
+function describeOrderStage(order: OrderResponse): string {
+  return createMallOrderLifecycleTimeline(order, getLifecycleLabels()).stageLabel
+}
+
 function describeOrderStatus(status: string): string {
   return getMallOrderStatusLabel(status, getOrderStatusLabels())
 }
@@ -244,6 +263,36 @@ function getFulfillmentLabels() {
     unknownStatusPrefix: t('mall.orders.logisticsUnknownStatusPrefix'),
     carrierPending: t('mall.orders.carrierPending'),
     trackingNoPending: t('mall.orders.trackingNoPending'),
+  }
+}
+
+function getLifecycleLabels() {
+  return {
+    createdTitle: t('mall.orders.lifecycleCreatedTitle'),
+    createdDescription: t('mall.orders.lifecycleCreatedDescription'),
+    paidAwaitingShipmentTitle: t('mall.orders.lifecyclePaidTitle'),
+    paidAwaitingShipmentDescription: t('mall.orders.lifecyclePaidDescription'),
+    shippedTitle: t('mall.orders.lifecycleShippedTitle'),
+    shippedDescription: t('mall.orders.lifecycleShippedDescription'),
+    cancelledTitle: t('mall.orders.lifecycleCancelledTitle'),
+    cancelledDescription: t('mall.orders.lifecycleCancelledDescription'),
+    unknownTitle: t('mall.orders.lifecycleUnknownTitle'),
+    unknownDescriptionPrefix: t('mall.orders.lifecycleUnknownPrefix'),
+    refreshSuggestion: t('mall.orders.lifecycleRefreshSuggestion'),
+  }
+}
+
+function getActionLabels() {
+  return {
+    pay: t('mall.orders.pay'),
+    paid: t('mall.orders.paid'),
+    cancel: t('mall.orders.cancel'),
+    actionReady: t('mall.orders.actionReady'),
+    paymentComplete: t('mall.orders.actionPaymentComplete'),
+    shipped: t('mall.orders.actionShipped'),
+    cancelled: t('mall.orders.actionCancelled'),
+    unknownPrefix: t('mall.orders.actionUnknownPrefix'),
+    refreshSuggestion: t('mall.orders.actionRefreshSuggestion'),
   }
 }
 
@@ -306,7 +355,10 @@ function resolveDefaultShopId(): number {
               <span>{{ order.orderNo }}</span>
               <strong>{{ formatMoney(order.totalAmountCent) }}</strong>
               <small class="order-card-summary">{{ describeOrderSummary(order) }}</small>
-              <small>{{ formatDateTime(order.createdAt) }}</small>
+              <small class="order-stage-row">
+                <span class="order-stage-badge">{{ describeOrderStage(order) }}</span>
+                <span>{{ formatDateTime(order.createdAt) }}</span>
+              </small>
             </button>
           </div>
 
@@ -354,6 +406,29 @@ function resolveDefaultShopId(): number {
               <strong>{{ formatMoney(orderStatus.order.value.totalAmountCent) }}</strong>
             </div>
 
+            <section class="lifecycle-panel" :aria-label="t('mall.orders.lifecycleTitle')">
+              <div class="lifecycle-heading">
+                <div>
+                  <p class="eyebrow">{{ t('mall.orders.lifecycleKicker') }}</p>
+                  <h4>{{ currentLifecycle.stageLabel }}</h4>
+                </div>
+                <p>{{ currentLifecycle.currentDescription }}</p>
+              </div>
+              <ol class="lifecycle-list">
+                <li
+                  v-for="node in currentLifecycle.nodes"
+                  :key="node.key"
+                  :class="`lifecycle-node ${node.state}`"
+                >
+                  <span class="lifecycle-marker" aria-hidden="true"></span>
+                  <div>
+                    <strong>{{ node.title }}</strong>
+                    <p>{{ node.description }}</p>
+                  </div>
+                </li>
+              </ol>
+            </section>
+
             <section class="logistics-panel" :aria-label="t('mall.orders.logisticsTitle')">
               <div class="logistics-heading">
                 <div>
@@ -391,10 +466,10 @@ function resolveDefaultShopId(): number {
               <button
                 type="button"
                 class="primary-action"
-                :disabled="!orderStatus.canPay.value"
+                :disabled="!currentAction.canPay || !orderStatus.canPay.value"
                 @click="submitPaymentForCurrentOrder()"
               >
-                {{ orderStatus.isSubmittingPayment.value ? t('mall.orders.paying') : orderStatus.payment.value ? t('mall.orders.paid') : t('mall.orders.pay') }}
+                {{ orderStatus.isSubmittingPayment.value ? t('mall.orders.paying') : currentAction.payLabel }}
               </button>
               <button
                 type="button"
@@ -407,12 +482,13 @@ function resolveDefaultShopId(): number {
               <button
                 type="button"
                 class="danger-action"
-                :disabled="!orderStatus.canCancel.value"
+                :disabled="!currentAction.canCancel || !orderStatus.canCancel.value"
                 @click="cancelCurrentOrder()"
               >
-                {{ orderStatus.isCancelling.value ? t('mall.orders.cancelling') : t('mall.orders.cancel') }}
+                {{ orderStatus.isCancelling.value ? t('mall.orders.cancelling') : currentAction.cancelLabel }}
               </button>
             </div>
+            <p class="action-boundary">{{ currentAction.actionHint }}</p>
           </div>
         </section>
       </div>
@@ -738,6 +814,28 @@ h2 {
   font-weight: 900;
 }
 
+.order-stage-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.order-stage-badge {
+  max-width: 100%;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.order-card > span:first-child {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .order-cards {
   display: grid;
   gap: 0.65rem;
@@ -823,6 +921,79 @@ h2 {
   gap: 1rem;
 }
 
+.lifecycle-panel {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.lifecycle-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(12rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.lifecycle-heading h4 {
+  margin: 0;
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.lifecycle-heading p,
+.lifecycle-node p,
+.action-boundary {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.lifecycle-list {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lifecycle-node {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.lifecycle-marker {
+  width: 0.72rem;
+  height: 0.72rem;
+  margin-top: 0.28rem;
+  border: 2px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--bg-panel);
+}
+
+.lifecycle-node.complete .lifecycle-marker,
+.lifecycle-node.current .lifecycle-marker {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.lifecycle-node.current strong {
+  color: var(--accent);
+}
+
+.lifecycle-node.pending {
+  opacity: 0.72;
+}
+
+.lifecycle-node strong,
+.lifecycle-node p {
+  overflow-wrap: anywhere;
+}
+
 .logistics-panel {
   display: grid;
   gap: 0.85rem;
@@ -894,6 +1065,7 @@ h2 {
   margin: 0;
   font-size: clamp(1.6rem, 4vw, 2.75rem);
   line-height: 0.95;
+  overflow-wrap: anywhere;
 }
 
 .order-headline strong {
@@ -928,6 +1100,11 @@ h2 {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.action-boundary {
+  padding: 0 0.15rem;
+  overflow-wrap: anywhere;
 }
 
 .primary-action,
@@ -1050,6 +1227,7 @@ h2 {
   }
 
   .order-headline,
+  .lifecycle-heading,
   .logistics-heading,
   .logistics-grid,
   .order-item,

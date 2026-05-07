@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { OrderResponse } from '../src/types/api/order'
 import {
+  createMallOrderActionView,
   createMallOrderFulfillmentView,
+  createMallOrderLifecycleTimeline,
   describeMallOrderListSummary,
   getMallOrderStatusLabel,
 } from '../src/views/mall/mallOrderStatusModel'
@@ -29,6 +31,32 @@ const fulfillmentLabels = {
   unknownStatusPrefix: 'Unknown fulfillment status: ',
   carrierPending: 'Carrier pending',
   trackingNoPending: 'Tracking number pending',
+}
+
+const lifecycleLabels = {
+  createdTitle: 'Order created',
+  createdDescription: 'Waiting for payment.',
+  paidAwaitingShipmentTitle: 'Payment complete',
+  paidAwaitingShipmentDescription: 'Waiting for merchant shipment.',
+  shippedTitle: 'Order shipped',
+  shippedDescription: 'Carrier and tracking number are shown here only.',
+  cancelledTitle: 'Order cancelled',
+  cancelledDescription: 'Payment and shipment actions are unavailable.',
+  unknownTitle: 'Unknown status',
+  unknownDescriptionPrefix: 'Backend status ',
+  refreshSuggestion: 'Refresh order for the latest result.',
+}
+
+const actionLabels = {
+  pay: 'Pay',
+  paid: 'Paid',
+  cancel: 'Cancel order',
+  actionReady: 'You can pay or cancel this unpaid order.',
+  paymentComplete: 'Payment is complete and the order entered fulfillment.',
+  shipped: 'The order has shipped.',
+  cancelled: 'The order was cancelled.',
+  unknownPrefix: 'Unknown order status: ',
+  refreshSuggestion: 'Refresh the order before trying again.',
 }
 
 describe('mallOrderStatusModel', () => {
@@ -110,6 +138,103 @@ describe('mallOrderStatusModel', () => {
     expect(unknownFulfillment.statusLabel).toBe('packing')
     expect(unknownFulfillment.message).toBe('Unknown fulfillment status: packing')
     expect(unknownFulfillment.showShipmentFields).toBe(false)
+  })
+
+  it('derives lifecycle timeline nodes for created, paid unshipped, shipped, and cancelled orders', () => {
+    expect(createMallOrderLifecycleTimeline(createOrder({ status: 'created' }), lifecycleLabels)).toMatchObject({
+      stageLabel: 'Order created',
+      currentDescription: 'Waiting for payment.',
+      nodes: [
+        { key: 'created', title: 'Order created', state: 'current' },
+        { key: 'paid', title: 'Payment complete', state: 'pending' },
+        { key: 'shipped', title: 'Order shipped', state: 'pending' },
+      ],
+    })
+
+    expect(createMallOrderLifecycleTimeline(createOrder({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    }), lifecycleLabels)).toMatchObject({
+      stageLabel: 'Payment complete',
+      currentDescription: 'Waiting for merchant shipment.',
+      nodes: [
+        { key: 'created', state: 'complete' },
+        { key: 'paid', state: 'current' },
+        { key: 'shipped', state: 'pending' },
+      ],
+    })
+
+    expect(createMallOrderLifecycleTimeline(createOrder({
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+    }), lifecycleLabels)).toMatchObject({
+      stageLabel: 'Order shipped',
+      currentDescription: 'Carrier and tracking number are shown here only.',
+      nodes: [
+        { key: 'created', state: 'complete' },
+        { key: 'paid', state: 'complete' },
+        { key: 'shipped', state: 'current' },
+      ],
+    })
+
+    expect(createMallOrderLifecycleTimeline(createOrder({ status: 'cancelled' }), lifecycleLabels)).toMatchObject({
+      stageLabel: 'Order cancelled',
+      currentDescription: 'Payment and shipment actions are unavailable.',
+      nodes: [
+        { key: 'cancelled', title: 'Order cancelled', state: 'current' },
+      ],
+    })
+  })
+
+  it('keeps lifecycle timeline usable for unknown backend statuses', () => {
+    const timeline = createMallOrderLifecycleTimeline(createOrder({ status: 'reviewing' }), lifecycleLabels)
+
+    expect(timeline.stageLabel).toBe('reviewing')
+    expect(timeline.currentDescription).toBe('Backend status reviewing. Refresh order for the latest result.')
+    expect(timeline.nodes).toEqual([
+      {
+        key: 'unknown',
+        title: 'reviewing',
+        description: 'Backend status reviewing. Refresh order for the latest result.',
+        state: 'current',
+      },
+    ])
+  })
+
+  it('derives action button copy and disabled reasons by lifecycle phase', () => {
+    expect(createMallOrderActionView(createOrder({ status: 'created' }), actionLabels)).toEqual({
+      payLabel: 'Pay',
+      canPay: true,
+      payDisabledReason: null,
+      cancelLabel: 'Cancel order',
+      canCancel: true,
+      cancelDisabledReason: null,
+      actionHint: 'You can pay or cancel this unpaid order.',
+    })
+
+    const paid = createMallOrderActionView(createOrder({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    }), actionLabels)
+    expect(paid.canPay).toBe(false)
+    expect(paid.canCancel).toBe(false)
+    expect(paid.payDisabledReason).toBe('Payment is complete and the order entered fulfillment.')
+    expect(paid.cancelDisabledReason).toBe('Payment is complete and the order entered fulfillment.')
+
+    const shipped = createMallOrderActionView(createOrder({
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+    }), actionLabels)
+    expect(shipped.payDisabledReason).toBe('The order has shipped.')
+    expect(shipped.cancelDisabledReason).toBe('The order has shipped.')
+
+    const cancelled = createMallOrderActionView(createOrder({ status: 'cancelled' }), actionLabels)
+    expect(cancelled.payDisabledReason).toBe('The order was cancelled.')
+    expect(cancelled.cancelDisabledReason).toBe('The order was cancelled.')
+
+    const unknown = createMallOrderActionView(createOrder({ status: 'reviewing' }), actionLabels)
+    expect(unknown.payDisabledReason).toBe('Unknown order status: reviewing. Refresh the order before trying again.')
+    expect(unknown.cancelDisabledReason).toBe('Unknown order status: reviewing. Refresh the order before trying again.')
   })
 })
 
