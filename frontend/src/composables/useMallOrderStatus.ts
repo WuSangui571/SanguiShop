@@ -166,6 +166,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
 
   function acceptCreatedOrder(createdOrder: OrderResponse) {
     order.value = createdOrder
+    orders.value = upsertOrderIntoList(orders.value, createdOrder)
     payment.value = null
     paymentNo.value = ''
   }

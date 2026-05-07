@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useAppPreferences } from '../../composables/useAppPreferences'
 import { useMallCheckout } from '../../composables/useMallCheckout'
 import type { MallSession } from '../../types/api/auth'
+import type { OrderResponse } from '../../types/api/order'
 import type { ProductDetailResponse, ProductSkuResponse } from '../../types/api/product'
 import { formatMoney } from '../../utils/format'
 import type { CartItemInput } from './mallCartModel'
@@ -14,7 +15,7 @@ const props = defineProps<{
 const { t } = useAppPreferences()
 
 const emit = defineEmits<{
-  orderCreated: [orderId: number]
+  orderCreated: [order: OrderResponse]
   addToCart: [item: CartItemInput]
 }>()
 
@@ -43,7 +44,7 @@ function skuTone(sku: ProductSkuResponse): string {
 async function submitOrder() {
   const order = await checkout.submitOrder()
   if (order) {
-    emit('orderCreated', order.orderId)
+    emit('orderCreated', order)
   }
 }
 

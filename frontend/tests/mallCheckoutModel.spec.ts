@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { nextTick, ref } from 'vue'
 import { HttpClientError } from '../src/services/httpClient'
 import {
   buildCreateOrderRequest,
@@ -7,12 +8,15 @@ import {
   describeMallApiError,
   selectInitialSku,
 } from '../src/views/mall/mallCheckoutModel'
+import {
+  createMallCartStorageKey,
+} from '../src/views/mall/mallCartModel'
 import { useMallCheckout } from '../src/composables/useMallCheckout'
 import { useMallCart } from '../src/composables/useMallCart'
 import { useMallOrderStatus } from '../src/composables/useMallOrderStatus'
 import type { ProductDetailResponse } from '../src/types/api/product'
 import type { MallSession } from '../src/types/api/auth'
-import type { OrderResponse } from '../src/types/api/order'
+import type { CreateOrderRequest, OrderResponse } from '../src/types/api/order'
 import type { PaymentResponse } from '../src/types/api/payment'
 
 const product: ProductDetailResponse = {
@@ -367,6 +371,98 @@ describe('mall checkout model', () => {
     expect(otherUserCart.items.value).toEqual([])
   })
 
+  it('restores cart drafts only for the active shop and user after login switches', async () => {
+    const storage = createMemoryStorage()
+    const activeSession = ref<MallSession | null>(session)
+    const cart = useMallCart({
+      session: activeSession,
+      storage,
+      createRequestId: () => 'req-cart-switch',
+    })
+
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 401,
+      skuName: '42',
+      priceCent: 59900,
+      availableStock: 5,
+      quantity: 1,
+    })
+    expect(cart.items.value.map((item) => [item.userId, item.skuId])).toEqual([['10001', 401]])
+
+    activeSession.value = { ...session, userId: 10002 }
+    await nextTick()
+    expect(cart.items.value).toEqual([])
+    expect(cart.restoreResult.value.status).toBe('empty')
+
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 402,
+      skuName: '43',
+      priceCent: 64500,
+      availableStock: 4,
+      quantity: 2,
+    })
+    expect(cart.items.value.map((item) => [item.userId, item.skuId])).toEqual([['10002', 402]])
+
+    activeSession.value = session
+    await nextTick()
+    expect(cart.restoreResult.value.status).toBe('restored')
+    expect(cart.items.value.map((item) => [item.userId, item.skuId])).toEqual([['10001', 401]])
+  })
+
+  it('degrades unreadable cart drafts without blocking later in-memory cart use', () => {
+    const storage = createMemoryStorage()
+    storage.setItem(createMallCartStorageKey(session), '{broken json')
+
+    const cart = useMallCart({
+      session,
+      storage,
+      createRequestId: () => 'req-cart-invalid',
+    })
+
+    expect(cart.restoreResult.value.status).toBe('invalid')
+    expect(cart.items.value).toEqual([])
+
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 401,
+      skuName: '42',
+      priceCent: 59900,
+      availableStock: 2,
+      quantity: 1,
+    })
+
+    expect(cart.items.value).toHaveLength(1)
+    expect(cart.errorMessage.value).toBe('')
+  })
+
+  it('reports unavailable cart storage as a downgrade and keeps browsing usable', () => {
+    const cart = useMallCart({
+      session,
+      storage: createThrowingStorage(),
+      createRequestId: () => 'req-cart-storage-down',
+    })
+
+    expect(cart.restoreResult.value.status).toBe('unavailable')
+    expect(cart.items.value).toEqual([])
+
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 401,
+      skuName: '42',
+      priceCent: 59900,
+      availableStock: 2,
+      quantity: 1,
+    })
+
+    expect(cart.items.value).toHaveLength(1)
+  })
+
   it('guards duplicate cart checkout and keeps traceId errors visible', async () => {
     const storage = createMemoryStorage()
     const deferredOrder = createDeferred<OrderResponse>()
@@ -420,7 +516,100 @@ describe('mall checkout model', () => {
     await failedCart.submitCheckout()
 
     expect(failedCart.errorMessage.value).toBe('ORDER_STOCK_NOT_ENOUGH: Stock is not enough. Trace ID trace-cart-stock.')
+    expect(failedCart.checkoutFailure.value).toMatchObject({
+      kind: 'stock',
+      code: 'ORDER_STOCK_NOT_ENOUGH',
+      traceId: 'trace-cart-stock',
+    })
     expect(failedCart.items.value).toHaveLength(1)
+  })
+
+  it('keeps the same cart requestId after checkout failure and regenerates after cart changes', async () => {
+    const requestIds = ['req-initial', 'req-restored', 'req-cart-1', 'req-cart-2']
+    const createRequestId = vi.fn(() => requestIds.shift() ?? 'req-extra')
+    const createOrder = vi.fn(async (_payload: CreateOrderRequest) => {
+      throw new HttpClientError('Validation failed.', {
+        code: 'VALIDATION_FAILED',
+        status: 400,
+        traceId: 'trace-validation',
+      })
+    })
+    const cart = useMallCart({
+      session,
+      storage: createMemoryStorage(),
+      createOrder,
+      createRequestId,
+    })
+
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 401,
+      skuName: '42',
+      priceCent: 59900,
+      availableStock: 2,
+      quantity: 1,
+    })
+    expect(cart.orderRequestId.value).toBe('req-cart-1')
+
+    await cart.submitCheckout()
+    await cart.submitCheckout()
+
+    expect(createOrder).toHaveBeenCalledTimes(2)
+    expect(createOrder.mock.calls.map(([payload]) => payload.requestId)).toEqual(['req-cart-1', 'req-cart-1'])
+    expect(cart.orderRequestId.value).toBe('req-cart-1')
+    expect(cart.checkoutFailure.value?.kind).toBe('validation')
+
+    cart.setQuantity(401, 2)
+    expect(cart.orderRequestId.value).toBe('req-cart-2')
+  })
+
+  it('clears only submitted SKUs after cart checkout succeeds', async () => {
+    const storage = createMemoryStorage()
+    const cart = useMallCart({
+      session,
+      storage,
+      createOrder: vi.fn(async () => createOrderResponse()),
+      createRequestId: () => 'req-cart-partial-success',
+    })
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 401,
+      skuName: '42',
+      priceCent: 59900,
+      availableStock: 5,
+      quantity: 1,
+    })
+    cart.addItem({
+      productId: 301,
+      productName: 'Daily trainer',
+      skuId: 402,
+      skuName: '43',
+      priceCent: 64500,
+      availableStock: 4,
+      quantity: 2,
+    })
+
+    await cart.submitCheckout()
+
+    expect(cart.items.value.map((item) => item.skuId)).toEqual([402])
+    expect(JSON.parse(storage.getItem(createMallCartStorageKey(session)) ?? '{}').items).toHaveLength(1)
+  })
+
+  it('accepts a created multi-item order into detail and the visible order list', () => {
+    const orderStatus = useMallOrderStatus()
+    const created = createMultiItemOrderResponse()
+
+    orderStatus.acceptCreatedOrder(created)
+
+    expect(orderStatus.order.value?.items).toHaveLength(2)
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      orderId: created.orderId,
+      orderNo: created.orderNo,
+      totalAmountCent: 308700,
+    })
+    expect(orderStatus.orders.value[0].items).toHaveLength(2)
   })
 
   it('creates mock payment from the shared order status panel', async () => {
@@ -527,6 +716,20 @@ function createMemoryStorage() {
     },
     removeItem: (key: string) => {
       data.delete(key)
+    },
+  }
+}
+
+function createThrowingStorage() {
+  return {
+    getItem: () => {
+      throw new Error('storage unavailable')
+    },
+    setItem: () => {
+      throw new Error('storage unavailable')
+    },
+    removeItem: () => {
+      throw new Error('storage unavailable')
     },
   }
 }

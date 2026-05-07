@@ -1,3 +1,4 @@
+import { HttpClientError } from '../../services/httpClient'
 import type { MallSession } from '../../types/api/auth'
 import type { CreateOrderRequest, OrderResponse } from '../../types/api/order'
 
@@ -27,6 +28,29 @@ interface SerializedMallCart {
   shopId: number
   userId: string
   items: MallCartItemDraft[]
+}
+
+export type MallCartRestoreStatus = 'signedOut' | 'empty' | 'restored' | 'invalid' | 'unavailable'
+
+export interface MallCartRestoreResult {
+  status: MallCartRestoreStatus
+  items: MallCartItemDraft[]
+}
+
+export type MallCartCheckoutFailureKind =
+  | 'stock'
+  | 'skuUnavailable'
+  | 'auth'
+  | 'validation'
+  | 'system'
+  | 'unknown'
+
+export interface MallCartCheckoutFailure {
+  kind: MallCartCheckoutFailureKind
+  code: string
+  message: string
+  traceId: string | null
+  detail: string
 }
 
 export function createMallCartStorageKey(session: MallSession): string {
@@ -149,8 +173,15 @@ export function serializeMallCart(session: MallSession, items: MallCartItemDraft
 }
 
 export function deserializeMallCart(serialized: string | null, session: MallSession): MallCartItemDraft[] {
+  return restoreMallCartDraft(serialized, session).items
+}
+
+export function restoreMallCartDraft(serialized: string | null, session: MallSession): MallCartRestoreResult {
   if (!serialized) {
-    return []
+    return {
+      status: 'empty',
+      items: [],
+    }
   }
 
   try {
@@ -161,16 +192,101 @@ export function deserializeMallCart(serialized: string | null, session: MallSess
       || parsed.userId !== String(session.userId)
       || !Array.isArray(parsed.items)
     ) {
-      return []
+      return {
+        status: 'invalid',
+        items: [],
+      }
     }
 
-    return parsed.items.filter(isValidCartItem).map((item) => ({
+    if (!parsed.items.every(isValidCartItem)) {
+      return {
+        status: 'invalid',
+        items: [],
+      }
+    }
+
+    const items = parsed.items.map((item) => ({
       ...item,
       quantity: normalizeQuantity(item.quantity, item.availableStock),
     }))
+
+    return {
+      status: items.length > 0 ? 'restored' : 'empty',
+      items,
+    }
   } catch {
-    return []
+    return {
+      status: 'invalid',
+      items: [],
+    }
   }
+}
+
+export function createUnavailableMallCartRestoreResult(): MallCartRestoreResult {
+  return {
+    status: 'unavailable',
+    items: [],
+  }
+}
+
+export function createSignedOutMallCartRestoreResult(): MallCartRestoreResult {
+  return {
+    status: 'signedOut',
+    items: [],
+  }
+}
+
+export function classifyMallCartCheckoutFailure(caught: unknown): MallCartCheckoutFailure {
+  if (caught instanceof HttpClientError) {
+    const code = caught.code
+    const kind = classifyMallCartCheckoutFailureCode(code)
+    const trace = caught.traceId ? ` Trace ID ${caught.traceId}.` : ''
+    return {
+      kind,
+      code,
+      message: caught.message,
+      traceId: caught.traceId,
+      detail: `${code}: ${caught.message}${trace}`,
+    }
+  }
+
+  return {
+    kind: 'unknown',
+    code: 'UNEXPECTED_ERROR',
+    message: 'Unexpected request failure.',
+    traceId: null,
+    detail: 'UNEXPECTED_ERROR: Unexpected request failure.',
+  }
+}
+
+export function classifyMallCartCheckoutFailureCode(code: string): MallCartCheckoutFailureKind {
+  const normalized = code.toUpperCase()
+  if (normalized.includes('STOCK_NOT_ENOUGH') || normalized.includes('INSUFFICIENT_STOCK')) {
+    return 'stock'
+  }
+  if (normalized.includes('SKU') && (
+    normalized.includes('UNAVAILABLE')
+    || normalized.includes('INACTIVE')
+    || normalized.includes('OFFLINE')
+    || normalized.includes('NOT_FOUND')
+  )) {
+    return 'skuUnavailable'
+  }
+  if (normalized.includes('AUTH') || normalized.includes('TOKEN') || normalized.includes('UNAUTHORIZED')) {
+    return 'auth'
+  }
+  if (normalized.includes('VALIDATION') || normalized.includes('INVALID') || normalized.includes('BAD_REQUEST')) {
+    return 'validation'
+  }
+  if (
+    normalized.includes('SYSTEM')
+    || normalized.includes('INTERNAL')
+    || normalized.includes('TIMEOUT')
+    || normalized.includes('UNAVAILABLE')
+  ) {
+    return 'system'
+  }
+  return 'unknown'
 }
 
 export function normalizeQuantity(quantity: number, availableStock: number): number {

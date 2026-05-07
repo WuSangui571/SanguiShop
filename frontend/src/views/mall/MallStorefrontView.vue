@@ -125,6 +125,8 @@ const deepLinkRecovery = computed(() => createMallOrderDeepLinkRecoveryView(
   deepLinkFailureMessage.value,
   getDeepLinkRecoveryLabels(),
 ))
+const cartRestoreMessage = computed(() => describeCartRestore())
+const cartCheckoutGuidance = computed(() => describeCartCheckoutFailure())
 
 onMounted(() => {
   mallSession.bootstrap()
@@ -185,11 +187,11 @@ async function submitLogin() {
   }
 }
 
-async function handleOrderCreated(orderId: number) {
-  replaceOrderUrl(orderId, '')
+async function handleOrderCreated(order: OrderResponse) {
+  orderStatus.acceptCreatedOrder(order)
+  replaceOrderUrl(order.orderId, '')
   linkedDetailOrderId.value = null
-  await orderStatus.loadOrder(orderId, '')
-  await loadOrderPage()
+  await loadOrderPage(1)
 }
 
 async function selectOrder(orderId: number) {
@@ -219,7 +221,7 @@ function handleAddToCart(item: CartItemInput) {
 async function checkoutCart() {
   const order = await cart.submitCheckout()
   if (order) {
-    await handleOrderCreated(order.orderId)
+    await handleOrderCreated(order)
   }
 }
 
@@ -391,6 +393,58 @@ function describeOrderStage(order: OrderResponse): string {
 
 function describeOrderStatus(status: string): string {
   return getMallOrderStatusLabel(status, getOrderStatusLabels())
+}
+
+function describeCartRestore(): string {
+  const scope = cart.sessionScope.value
+  if (!scope) {
+    return t('mall.cart.restoreSignedOut')
+  }
+
+  const params = {
+    shopId: scope.shopId,
+    userId: scope.userId,
+  }
+
+  switch (cart.restoreResult.value.status) {
+    case 'restored':
+      return t('mall.cart.restoreRestored', {
+        ...params,
+        count: cart.items.value.length,
+      })
+    case 'invalid':
+      return t('mall.cart.restoreInvalid', params)
+    case 'unavailable':
+      return t('mall.cart.restoreUnavailable', params)
+    case 'empty':
+      return t('mall.cart.restoreEmpty', params)
+    case 'signedOut':
+    default:
+      return t('mall.cart.restoreSignedOut')
+  }
+}
+
+function describeCartCheckoutFailure(): string {
+  const failure = cart.checkoutFailure.value
+  if (!failure) {
+    return ''
+  }
+
+  switch (failure.kind) {
+    case 'stock':
+      return t('mall.cart.failureStock')
+    case 'skuUnavailable':
+      return t('mall.cart.failureSkuUnavailable')
+    case 'auth':
+      return t('mall.cart.failureAuth')
+    case 'validation':
+      return t('mall.cart.failureValidation')
+    case 'system':
+      return t('mall.cart.failureSystem')
+    case 'unknown':
+    default:
+      return t('mall.cart.failureUnknown')
+  }
 }
 
 function getOrderSummaryLabels() {
@@ -800,9 +854,12 @@ function resolveDefaultShopId(): number {
             <strong>{{ formatMoney(cart.totalPreviewCent.value) }}</strong>
           </div>
         </div>
+        <p class="cart-note">{{ cartRestoreMessage }}</p>
+        <p class="cart-note">{{ t('mall.cart.stockSnapshotBoundary') }}</p>
 
         <div v-if="cart.errorMessage.value" class="status-block danger">
-          {{ cart.errorMessage }}
+          <p>{{ cartCheckoutGuidance }}</p>
+          <small>{{ cart.errorMessage }}</small>
         </div>
         <div v-else-if="cart.items.value.length === 0" class="status-block">{{ t('mall.cart.empty') }}</div>
         <div v-else class="cart-content">
@@ -814,17 +871,23 @@ function resolveDefaultShopId(): number {
               </div>
               <span>{{ formatMoney(item.priceCent) }}</span>
               <div class="cart-stepper">
-                <button type="button" :disabled="item.quantity <= 1" @click="cart.setQuantity(item.skuId, item.quantity - 1)">-</button>
+                <button type="button" :disabled="cart.isCheckingOut.value || item.quantity <= 1" @click="cart.setQuantity(item.skuId, item.quantity - 1)">-</button>
                 <output>{{ item.quantity }}</output>
-                <button type="button" @click="cart.setQuantity(item.skuId, item.quantity + 1)">+</button>
+                <button
+                  type="button"
+                  :disabled="cart.isCheckingOut.value || item.quantity >= item.availableStock"
+                  @click="cart.setQuantity(item.skuId, item.quantity + 1)"
+                >
+                  +
+                </button>
               </div>
               <strong>{{ formatMoney(item.priceCent * item.quantity) }}</strong>
-              <button type="button" class="text-action subtle" @click="cart.removeItem(item.skuId)">{{ t('mall.cart.remove') }}</button>
+              <button type="button" class="text-action subtle" :disabled="cart.isCheckingOut.value" @click="cart.removeItem(item.skuId)">{{ t('mall.cart.remove') }}</button>
             </article>
           </div>
 
           <div class="cart-actions">
-            <button type="button" class="secondary-action" @click="cart.clearCart()">{{ t('mall.cart.clear') }}</button>
+            <button type="button" class="secondary-action" :disabled="cart.isCheckingOut.value" @click="cart.clearCart()">{{ t('mall.cart.clear') }}</button>
             <button
               type="button"
               class="primary-action"
@@ -834,6 +897,7 @@ function resolveDefaultShopId(): number {
               {{ cart.isCheckingOut.value ? t('mall.cart.checkingOut') : t('mall.cart.checkout') }}
             </button>
           </div>
+          <p class="cart-note">{{ t('mall.cart.requestIdHint', { requestId: cart.orderRequestId.value }) }}</p>
         </div>
       </div>
     </section>
@@ -1240,6 +1304,14 @@ h2 {
 .cart-summary span {
   color: var(--text-muted);
   font-weight: 800;
+}
+
+.cart-note {
+  margin: 0.5rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .cart-content,

@@ -1,0 +1,7 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend completion checks, duplicate submit, traceId, layout"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify Mall Cart Draft MVP and Mall Order Status API rules"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify session-scoped cart state and server/client fact boundaries"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify typed DTO use and unknown/error fallback"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check idempotency retry stock and order-flow assumptions"}

@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall cart draft MVP, order create route, requestId, backend error preservation"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Cart client draft boundaries, server facts for price stock and order state"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Async UI states and ecommerce display rules"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable state/action/error boundaries for useMallCart and checkout"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "DTO compatibility, money fields, unknown fallback"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Order stock idempotency and retry thinking without backend API changes"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse existing mall cart checkout and order status model patterns"}
