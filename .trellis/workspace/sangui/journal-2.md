@@ -267,3 +267,51 @@ The buyer-facing order flow now visibly reflects admin fulfillment: paid orders 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 46: 用户侧订单生命周期时间线与操作反馈补强
+
+**Date**: 2026-05-07
+**Task**: 用户侧订单生命周期时间线与操作反馈补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Mall order lifecycle | Added a buyer-facing lifecycle timeline for created, paid awaiting shipment, shipped, cancelled, and unknown order states. |
+| Action boundaries | Centralized pay/cancel button labels, disabled states, and user-readable disabled reasons in `mallOrderStatusModel`. |
+| Recent purchases | Added compact stage badges to order list cards using the same lifecycle copy as detail. |
+| Mobile readability | Added wrapping constraints for timeline text, long order numbers, long tracking numbers, and stacked action buttons. |
+| Tests | Expanded `mallOrderStatusModel` coverage for lifecycle timeline derivation and action disabled reasons across created, paid/unshipped, shipped, cancelled, and unknown states. |
+| Verification | Human manual testing passed; AI typecheck, lint, build, and diff checks passed. Vitest remains blocked in this sandbox by Vite/esbuild `spawn EPERM`, consistent with prior sessions. |
+
+**Updated Files**:
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-07-user-order-lifecycle-feedback/prd.md`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d338036` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
