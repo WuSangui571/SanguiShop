@@ -263,6 +263,83 @@ describe('mall checkout model', () => {
     )
   })
 
+  it('refreshes paid awaiting-shipment detail into shipped logistics snapshot', async () => {
+    const getOrder = vi.fn(async () => createOrderResponse({
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      shippedAt: '2026-05-07T12:00:00+08:00',
+    }))
+    const orderStatus = useMallOrderStatus({ getOrder })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    }))
+
+    await orderStatus.refreshCurrentOrder()
+
+    expect(getOrder).toHaveBeenCalledWith(501)
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      shippedAt: '2026-05-07T12:00:00+08:00',
+    })
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      orderId: 501,
+      fulfillmentStatus: 'shipped',
+    })
+    expect(orderStatus.orderRefreshResult.value).toBe('success')
+  })
+
+  it('guards duplicate pending order refreshes and allows retry after failure', async () => {
+    const failedRefresh = createDeferred<OrderResponse>()
+    const getOrder = vi.fn()
+      .mockReturnValueOnce(failedRefresh.promise)
+      .mockResolvedValueOnce(createOrderResponse({
+        status: 'paid',
+        fulfillmentStatus: 'shipped',
+        carrier: 'SF Express',
+        trackingNo: 'SF999',
+      }))
+    const orderStatus = useMallOrderStatus({ getOrder })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    }))
+
+    const firstRefresh = orderStatus.refreshCurrentOrder()
+    const duplicateRefresh = orderStatus.refreshCurrentOrder()
+
+    expect(getOrder).toHaveBeenCalledOnce()
+    await expect(duplicateRefresh).resolves.toBeNull()
+
+    failedRefresh.reject(new HttpClientError('Order refresh failed.', {
+      code: 'ORDER_REFRESH_FAILED',
+      status: 503,
+      traceId: 'trace-refresh-503',
+    }))
+    await firstRefresh
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+    expect(orderStatus.orderRefreshResult.value).toBe('error')
+
+    await orderStatus.refreshCurrentOrder()
+
+    expect(getOrder).toHaveBeenCalledTimes(2)
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+      trackingNo: 'SF999',
+    })
+    expect(orderStatus.orderRefreshResult.value).toBe('success')
+  })
+
   it('keeps order status when payment refresh fails', async () => {
     const getPayment = vi.fn(async () => {
       throw new HttpClientError('Payment service unavailable.', {
@@ -814,10 +891,14 @@ function createDeferred<T>() {
   let resolve: (value: T) => void = () => {
     throw new Error('Deferred promise was resolved before initialization.')
   }
-  const promise = new Promise<T>((nextResolve) => {
+  let reject: (reason: unknown) => void = () => {
+    throw new Error('Deferred promise was rejected before initialization.')
+  }
+  const promise = new Promise<T>((nextResolve, nextReject) => {
     resolve = nextResolve
+    reject = nextReject
   })
-  return { promise, resolve }
+  return { promise, resolve, reject }
 }
 
 function createPaymentResponse(patch: Partial<PaymentResponse> = {}): PaymentResponse {

@@ -24,6 +24,7 @@ export interface MallOrderFulfillmentLabels {
   unknownStatusPrefix: string
   carrierPending: string
   trackingNoPending: string
+  orderSnapshotSource: string
 }
 
 export interface MallOrderFulfillmentView {
@@ -33,6 +34,7 @@ export interface MallOrderFulfillmentView {
   trackingNo: string
   shippedAt: string | null
   showShipmentFields: boolean
+  sourceDescription: string
 }
 
 export interface MallOrderLifecycleLabels {
@@ -161,6 +163,7 @@ export interface MallOrderPaginationView {
 export interface MallOrderEmptyStateLabels {
   noOrders: string
   filteredCurrentPage: string
+  filteredStatusChanged: string
   searchNoCurrentPage: string
 }
 
@@ -232,25 +235,27 @@ export function createMallOrderFulfillmentView(
       trackingNo: normalizeText(order.trackingNo) ?? labels.trackingNoPending,
       shippedAt: normalizeText(order.shippedAt),
       showShipmentFields: true,
+      sourceDescription: labels.orderSnapshotSource,
     }
   }
   if (orderStatus === 'cancelled') {
-    return createPlaceholderFulfillment(labels.cancelled, labels.cancelledMessage)
+    return createPlaceholderFulfillment(labels.cancelled, labels.cancelledMessage, labels.orderSnapshotSource)
   }
   if (orderStatus === 'created') {
-    return createPlaceholderFulfillment(labels.notReady, labels.notReadyMessage)
+    return createPlaceholderFulfillment(labels.notReady, labels.notReadyMessage, labels.orderSnapshotSource)
   }
   if (orderStatus === 'paid' && (!fulfillmentStatus || fulfillmentStatus === 'unshipped')) {
-    return createPlaceholderFulfillment(labels.awaitingShipment, labels.awaitingShipmentMessage)
+    return createPlaceholderFulfillment(labels.awaitingShipment, labels.awaitingShipmentMessage, labels.orderSnapshotSource)
   }
   if (fulfillmentStatus && fulfillmentStatus !== 'all') {
     return createPlaceholderFulfillment(
       fulfillmentStatus,
       `${labels.unknownStatusPrefix}${fulfillmentStatus}`,
+      labels.orderSnapshotSource,
     )
   }
 
-  return createPlaceholderFulfillment(orderStatus ?? labels.unknown, labels.unknownMessage)
+  return createPlaceholderFulfillment(orderStatus ?? labels.unknown, labels.unknownMessage, labels.orderSnapshotSource)
 }
 
 export function getMallOrderStatusLabel(status: string, labels: MallOrderSummaryLabels): string {
@@ -601,6 +606,7 @@ export function createMallOrderEmptyStateView(
   visibleOrders: OrderResponse[],
   searchResult: MallOrderSearchResult,
   labels: MallOrderEmptyStateLabels,
+  options: { currentOrder?: OrderResponse | null, filter?: MallOrderListFilter } = {},
 ): MallOrderEmptyStateView {
   if (orders.length === 0) {
     return {
@@ -617,9 +623,16 @@ export function createMallOrderEmptyStateView(
   }
 
   if (visibleOrders.length === 0) {
+    const currentOrder = options.currentOrder ?? null
+    const filter = options.filter ?? 'all'
+    const currentOrderMovedOutOfFilter = currentOrder
+      && filter !== 'all'
+      && orders.some((order) => order.orderId === currentOrder.orderId)
+      && resolveMallOrderListFilter(currentOrder) !== filter
+
     return {
       kind: 'filteredCurrentPage',
-      message: labels.filteredCurrentPage,
+      message: currentOrderMovedOutOfFilter ? labels.filteredStatusChanged : labels.filteredCurrentPage,
     }
   }
 
@@ -724,7 +737,11 @@ function createLifecycleNode(
   }
 }
 
-function createPlaceholderFulfillment(statusLabel: string, message: string): MallOrderFulfillmentView {
+function createPlaceholderFulfillment(
+  statusLabel: string,
+  message: string,
+  sourceDescription = '',
+): MallOrderFulfillmentView {
   return {
     statusLabel,
     message,
@@ -732,6 +749,7 @@ function createPlaceholderFulfillment(statusLabel: string, message: string): Mal
     trackingNo: '',
     shippedAt: null,
     showShipmentFields: false,
+    sourceDescription,
   }
 }
 

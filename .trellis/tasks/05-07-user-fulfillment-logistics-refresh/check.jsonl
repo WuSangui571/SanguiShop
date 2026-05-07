@@ -1,0 +1,6 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify Mall order fulfillment snapshot contract"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend DoD and duplicate submit guards"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify optional fields and unknown fulfillment fallback"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify no fake logistics API and state consistency across detail/list/filter"}

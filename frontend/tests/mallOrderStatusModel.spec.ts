@@ -46,6 +46,7 @@ const fulfillmentLabels = {
   unknownStatusPrefix: 'Unknown fulfillment status: ',
   carrierPending: 'Carrier pending',
   trackingNoPending: 'Tracking number pending',
+  orderSnapshotSource: 'Logistics status comes from the order snapshot.',
 }
 
 const lifecycleLabels = {
@@ -106,6 +107,7 @@ const paginationLabels = {
 const emptyStateLabels = {
   noOrders: 'No orders yet.',
   filteredCurrentPage: 'No current-page orders match this filter.',
+  filteredStatusChanged: 'The current order status changed and moved out of this filter.',
   searchNoCurrentPage: '{query} was not found on this page.',
 }
 
@@ -153,6 +155,7 @@ describe('mallOrderStatusModel', () => {
       trackingNo: 'SF123456789CN',
       shippedAt: '2026-05-07T11:30:00+08:00',
       showShipmentFields: true,
+      sourceDescription: 'Logistics status comes from the order snapshot.',
     })
   })
 
@@ -169,6 +172,7 @@ describe('mallOrderStatusModel', () => {
     expect(fulfillment.trackingNo).toBe('Tracking number pending')
     expect(fulfillment.shippedAt).toBeNull()
     expect(fulfillment.showShipmentFields).toBe(true)
+    expect(fulfillment.sourceDescription).toBe('Logistics status comes from the order snapshot.')
   })
 
   it('falls back to raw unknown order and fulfillment statuses', () => {
@@ -188,6 +192,7 @@ describe('mallOrderStatusModel', () => {
     expect(unknownFulfillment.statusLabel).toBe('packing')
     expect(unknownFulfillment.message).toBe('Unknown fulfillment status: packing')
     expect(unknownFulfillment.showShipmentFields).toBe(false)
+    expect(unknownFulfillment.sourceDescription).toBe('Logistics status comes from the order snapshot.')
   })
 
   it('derives lifecycle timeline nodes for created, paid unshipped, shipped, and cancelled orders', () => {
@@ -376,6 +381,41 @@ describe('mallOrderStatusModel', () => {
     expect(filterMallOrders(refreshedOrders, 'paidAwaitingShipment')).toEqual([paid])
   })
 
+  it('moves refreshed paid orders from awaiting shipment to shipped filters', () => {
+    const awaitingShipment = createOrder({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+      updatedAt: '2026-05-07T10:00:00+08:00',
+    })
+    const shipped = createOrder({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      updatedAt: '2026-05-07T11:00:00+08:00',
+    })
+
+    const refreshedOrders = mergeOrderIntoList([awaitingShipment], shipped)
+
+    expect(filterMallOrders(refreshedOrders, 'paidAwaitingShipment')).toEqual([])
+    expect(filterMallOrders(refreshedOrders, 'shipped')).toEqual([shipped])
+    expect(createMallOrderEmptyStateView(
+      refreshedOrders,
+      filterMallOrders(refreshedOrders, 'paidAwaitingShipment'),
+      { order: null, query: '', matchReason: null },
+      emptyStateLabels,
+      {
+        currentOrder: shipped,
+        filter: 'paidAwaitingShipment',
+      },
+    )).toEqual({
+      kind: 'filteredCurrentPage',
+      message: 'The current order status changed and moved out of this filter.',
+    })
+  })
+
   it('applies paid payment responses to detail and list as awaiting shipment', () => {
     const unpaid = createOrder({
       orderId: 501,
@@ -524,6 +564,28 @@ describe('mallOrderStatusModel', () => {
     expect(createMallOrderLinkedDetailView(null, currentPage, 'From order link')).toEqual({
       isLinkedOnly: false,
       label: '',
+    })
+  })
+
+  it('explains restored shipped deep-link logistics as an order snapshot', () => {
+    const linkedOrder = createOrder({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+    })
+
+    expect(createMallOrderLinkedDetailView(linkedOrder, [], 'From order link')).toEqual({
+      isLinkedOnly: true,
+      label: 'From order link',
+    })
+    expect(createMallOrderFulfillmentView(linkedOrder, fulfillmentLabels)).toMatchObject({
+      statusLabel: 'Shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      showShipmentFields: true,
+      sourceDescription: 'Logistics status comes from the order snapshot.',
     })
   })
 

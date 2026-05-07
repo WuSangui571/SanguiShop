@@ -114,6 +114,10 @@ const orderEmptyState = computed(() => createMallOrderEmptyStateView(
   visibleOrders.value,
   orderSearchResult.value,
   getOrderEmptyStateLabels(),
+  {
+    currentOrder: orderStatus.order.value,
+    filter: orderListFilter.value,
+  },
 ))
 const linkedDetail = computed(() => createMallOrderLinkedDetailView(
   orderStatus.order.value,
@@ -519,6 +523,7 @@ function getOrderEmptyStateLabels() {
   return {
     noOrders: t('mall.orders.empty'),
     filteredCurrentPage: t('mall.orders.filterEmptyCurrentPage'),
+    filteredStatusChanged: t('mall.orders.filterStatusChanged'),
     searchNoCurrentPage: t('mall.orders.searchNoCurrentPage', { query: '{query}' }),
   }
 }
@@ -538,6 +543,7 @@ function getFulfillmentLabels() {
     unknownStatusPrefix: t('mall.orders.logisticsUnknownStatusPrefix'),
     carrierPending: t('mall.orders.carrierPending'),
     trackingNoPending: t('mall.orders.trackingNoPending'),
+    orderSnapshotSource: t('mall.orders.logisticsOrderSnapshotSource'),
   }
 }
 
@@ -813,6 +819,7 @@ function resolveDefaultShopId(): number {
                 <span>{{ currentFulfillment.statusLabel }}</span>
               </div>
               <p>{{ currentFulfillment.message }}</p>
+              <small class="logistics-source">{{ currentFulfillment.sourceDescription }}</small>
               <dl v-if="currentFulfillment.showShipmentFields" class="logistics-grid">
                 <div>
                   <dt>{{ t('mall.orders.carrier') }}</dt>
@@ -1537,6 +1544,11 @@ h2 {
   margin: 0;
   color: var(--text-muted);
   font-weight: 700;
+}
+
+.logistics-source {
+  color: var(--text-muted);
+  font-weight: 800;
 }
 
 .logistics-grid {
