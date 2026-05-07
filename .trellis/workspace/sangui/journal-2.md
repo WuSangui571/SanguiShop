@@ -315,3 +315,68 @@ The buyer-facing order flow now visibly reflects admin fulfillment: paid orders 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 47: 用户侧订单状态刷新与一致性反馈补强
+
+**Date**: 2026-05-07
+**Task**: 用户侧订单状态刷新与一致性反馈补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Mall order detail refresh | Added last-updated display, refresh hint copy, success feedback, and failure feedback that preserves the current detail with backend `code/message/traceId`. |
+| Recent purchases sync | Merged refreshed order details, successful payment status, cancellation, and shipped fulfillment snapshots back into the recent purchases list. |
+| Payment source clarity | Added model-driven payment refresh source and disabled-reason messaging for real `paymentNo`, paid order snapshots, missing payment numbers, cancelled orders, shipped orders, and unknown states. |
+| Deep-link recovery | Added dedicated `/mall?orderId=...` recovery loading/error states and avoided fabricating payment responses when `paymentNo` is absent. |
+| Mobile resilience | Added wrapping and layout constraints for refresh help text, last-updated chips, traceId errors, and payment source copy. |
+| Tests | Expanded mall order status and checkout model coverage for list merge, paid-without-paymentNo source explanation, refresh failure preservation, payment refresh failure preservation, unknown fallback, and disabled payment refresh reasons. |
+| Follow-up fix | Fixed the paid/created payment refresh reason boundary so known `created` orders without `paymentNo` show the plain missing-payment-number reason instead of unknown status copy. |
+
+### Verification
+
+- Human manual testing: passed.
+- Human test command passed: `cd frontend; npm run typecheck; npm run lint; npm run build; npm run test -- mallOrderStatusModel mallCheckoutModel;`
+- AI: `cmd /c npm run typecheck` passed.
+- AI: `cmd /c npm run lint` passed.
+- AI: `cmd /c npm run build` passed.
+- AI: `git diff --check` passed.
+- AI: targeted Vitest was blocked in sandbox by Vite/esbuild `spawn EPERM`; human local run passed after the final fix.
+
+**Updated Files**:
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/composables/useMallOrderStatus.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-07-user-order-refresh-consistency/prd.md`
+
+### Result
+
+The buyer order experience now tells users whether details are freshly refreshed, keeps the list and detail snapshots aligned after payment/fulfillment changes, explains payment status source boundaries, and degrades cleanly for missing payment numbers, inaccessible deep links, and unknown backend statuses.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0153b25` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
