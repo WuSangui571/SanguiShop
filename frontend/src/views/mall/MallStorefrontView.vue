@@ -13,16 +13,20 @@ import type { CartItemInput } from './mallCartModel'
 import {
   createMallOrderActionView,
   createMallOrderDeepLinkRecoveryView,
+  createMallOrderEmptyStateView,
   createMallOrderFulfillmentView,
   createMallOrderLifecycleTimeline,
+  createMallOrderLinkedDetailView,
   createMallPaymentRefreshView,
+  createMallOrderPaginationView,
+  createMallOrderSearchContinuation,
   describeMallOrderListSummary,
   filterMallOrders,
   findLoadedMallOrder,
   createMallOrderListFilterOptions,
   getMallOrderStatusLabel,
 } from './mallOrderStatusModel'
-import type { MallOrderListFilter } from './mallOrderStatusModel'
+import type { MallOrderListFilter, MallOrderSearchResult } from './mallOrderStatusModel'
 import ProductCheckoutPanel from './ProductCheckoutPanel.vue'
 
 const DEFAULT_PAGE_SIZE = 12
@@ -46,8 +50,14 @@ const isRestoringOrderFromUrl = ref(false)
 const orderListFilter = ref<MallOrderListFilter>('all')
 const orderSearchQuery = ref('')
 const orderSearchFeedback = ref('')
+const orderSearchResult = ref<MallOrderSearchResult>({
+  order: null,
+  query: '',
+  matchReason: null,
+})
 const deepLinkOrderId = ref<string | null>(null)
 const deepLinkFailureMessage = ref('')
+const linkedDetailOrderId = ref<number | null>(null)
 const loginForm = reactive({
   shopId: resolveDefaultShopId(),
   usernameOrMobile: '',
@@ -57,9 +67,14 @@ const loginForm = reactive({
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 const canGoPrev = computed(() => page.value > 1)
 const canGoNext = computed(() => page.value < totalPages.value)
-const orderTotalPages = computed(() => Math.max(1, Math.ceil(orderStatus.total.value / orderStatus.size.value)))
-const canGoPrevOrderPage = computed(() => orderStatus.page.value > 1)
-const canGoNextOrderPage = computed(() => orderStatus.page.value < orderTotalPages.value)
+const orderPagination = computed(() => createMallOrderPaginationView(
+  {
+    page: orderStatus.page.value,
+    size: orderStatus.size.value,
+    total: orderStatus.total.value,
+  },
+  getOrderPaginationLabels(),
+))
 const currentFulfillment = computed(() => createMallOrderFulfillmentView(
   orderStatus.order.value,
   getFulfillmentLabels(),
@@ -90,6 +105,21 @@ const orderFilterOptions = computed(() => createMallOrderListFilterOptions(
   getOrderListFilterLabels(),
 ))
 const visibleOrders = computed(() => filterMallOrders(orderStatus.orders.value, orderListFilter.value))
+const orderSearchContinuation = computed(() => createMallOrderSearchContinuation(
+  orderSearchResult.value,
+  orderPagination.value,
+))
+const orderEmptyState = computed(() => createMallOrderEmptyStateView(
+  orderStatus.orders.value,
+  visibleOrders.value,
+  orderSearchResult.value,
+  getOrderEmptyStateLabels(),
+))
+const linkedDetail = computed(() => createMallOrderLinkedDetailView(
+  orderStatus.order.value,
+  linkedDetailOrderId.value === orderStatus.order.value?.orderId ? [] : orderStatus.orders.value,
+  t('mall.orders.fromOrderLink'),
+))
 const deepLinkRecovery = computed(() => createMallOrderDeepLinkRecoveryView(
   deepLinkOrderId.value,
   deepLinkFailureMessage.value,
@@ -100,7 +130,7 @@ onMounted(() => {
   mallSession.bootstrap()
   void fetchProducts()
   if (mallSession.isAuthenticated.value) {
-    void orderStatus.loadOrders()
+    void loadOrderPage()
     void restoreOrderFromUrl()
   }
 })
@@ -150,21 +180,23 @@ async function submitLogin() {
   })
   loginForm.password = ''
   if (mallSession.isAuthenticated.value) {
-    await orderStatus.loadOrders()
+    await loadOrderPage()
     await restoreOrderFromUrl()
   }
 }
 
 async function handleOrderCreated(orderId: number) {
   replaceOrderUrl(orderId, '')
+  linkedDetailOrderId.value = null
   await orderStatus.loadOrder(orderId, '')
-  await orderStatus.loadOrders()
+  await loadOrderPage()
 }
 
 async function selectOrder(orderId: number) {
   replaceOrderUrl(orderId, '')
   deepLinkOrderId.value = null
   deepLinkFailureMessage.value = ''
+  linkedDetailOrderId.value = null
   await orderStatus.loadOrder(orderId, '')
 }
 
@@ -176,7 +208,7 @@ async function cancelCurrentOrder() {
   const cancelled = await orderStatus.cancelCurrentOrder()
   if (cancelled) {
     replaceOrderUrl(cancelled.orderId, '')
-    await orderStatus.loadOrders()
+    await loadOrderPage()
   }
 }
 
@@ -201,7 +233,28 @@ async function submitPaymentForCurrentOrder() {
   if (payment) {
     replaceOrderUrl(payment.orderId, payment.paymentNo)
     await orderStatus.loadOrder(payment.orderId, payment.paymentNo)
-    await orderStatus.loadOrders()
+    await loadOrderPage()
+  }
+}
+
+async function loadOrderPage(nextPage = orderStatus.page.value) {
+  const response = await orderStatus.loadOrders(nextPage)
+  if (response && orderSearchResult.value.query) {
+    const nextResult = findLoadedMallOrder(orderStatus.orders.value, orderSearchResult.value.query)
+    orderSearchResult.value = nextResult
+    orderSearchFeedback.value = describeOrderSearchResult(nextResult)
+  }
+  return response
+}
+
+async function continueOrderSearch(nextPage: number) {
+  const response = await loadOrderPage(nextPage)
+  if (!response || !orderSearchResult.value.query) {
+    return
+  }
+  if (orderSearchResult.value.order) {
+    orderListFilter.value = 'all'
+    await selectOrder(orderSearchResult.value.order.orderId)
   }
 }
 
@@ -224,9 +277,11 @@ async function restoreOrderFromUrl() {
   if (Number.isFinite(orderId) && orderId > 0) {
     isRestoringOrderFromUrl.value = true
     try {
+      const wasLoadedOnCurrentPage = orderStatus.orders.value.some((item) => item.orderId === orderId)
       const restored = await orderStatus.loadOrder(orderId, paymentNo)
       if (restored) {
         deepLinkOrderId.value = null
+        linkedDetailOrderId.value = wasLoadedOnCurrentPage ? null : restored.orderId
       } else {
         deepLinkFailureMessage.value = orderStatus.errorMessage.value
       }
@@ -264,11 +319,13 @@ async function clearOrderUrl() {
   window.history.replaceState(null, '', nextUrl)
   deepLinkOrderId.value = null
   deepLinkFailureMessage.value = ''
-  await orderStatus.loadOrders()
+  linkedDetailOrderId.value = null
+  await loadOrderPage()
 }
 
 async function searchLoadedOrder() {
   const result = findLoadedMallOrder(orderStatus.orders.value, orderSearchQuery.value)
+  orderSearchResult.value = result
   orderSearchFeedback.value = ''
 
   if (!result.query) {
@@ -276,13 +333,11 @@ async function searchLoadedOrder() {
   }
 
   if (!result.order) {
-    orderSearchFeedback.value = t('mall.orders.searchNoCurrentPage', { query: result.query })
+    orderSearchFeedback.value = describeOrderSearchResult(result)
     return
   }
 
-  orderSearchFeedback.value = result.matchReason === 'orderNo'
-    ? t('mall.orders.searchMatchedOrderNo', { query: result.query })
-    : t('mall.orders.searchMatchedOrderId', { query: result.query })
+  orderSearchFeedback.value = describeOrderSearchResult(result)
   orderListFilter.value = 'all'
   await selectOrder(result.order.orderId)
 }
@@ -290,6 +345,23 @@ async function searchLoadedOrder() {
 function clearOrderSearch() {
   orderSearchQuery.value = ''
   orderSearchFeedback.value = ''
+  orderSearchResult.value = {
+    order: null,
+    query: '',
+    matchReason: null,
+  }
+}
+
+function describeOrderSearchResult(result: MallOrderSearchResult): string {
+  if (!result.query) {
+    return ''
+  }
+  if (!result.order) {
+    return t('mall.orders.searchNoCurrentPage', { query: result.query })
+  }
+  return result.matchReason === 'orderNo'
+    ? t('mall.orders.searchMatchedOrderNo', { query: result.query })
+    : t('mall.orders.searchMatchedOrderId', { query: result.query })
 }
 
 function describePriceRange(product: ProductSummaryResponse): string {
@@ -351,6 +423,25 @@ function getOrderListFilterLabels() {
     shipped: t('mall.orders.filterShipped'),
     cancelled: t('mall.orders.filterCancelled'),
     unknown: t('mall.orders.filterUnknown'),
+  }
+}
+
+function getOrderPaginationLabels() {
+  return {
+    summary: t('mall.orders.pageSummary', {
+      page: '{page}',
+      totalPages: '{totalPages}',
+      total: '{total}',
+      size: '{size}',
+    }),
+  }
+}
+
+function getOrderEmptyStateLabels() {
+  return {
+    noOrders: t('mall.orders.empty'),
+    filteredCurrentPage: t('mall.orders.filterEmptyCurrentPage'),
+    searchNoCurrentPage: t('mall.orders.searchNoCurrentPage', { query: '{query}' }),
   }
 }
 
@@ -463,7 +554,7 @@ function resolveDefaultShopId(): number {
               <p class="eyebrow">{{ t('mall.orders.kicker') }}</p>
               <h2>{{ t('mall.orders.title') }}</h2>
             </div>
-            <button type="button" class="text-action" :disabled="orderStatus.isLoadingOrders.value" @click="orderStatus.loadOrders()">
+            <button type="button" class="text-action" :disabled="orderStatus.isLoadingOrders.value" @click="loadOrderPage()">
               {{ orderStatus.isLoadingOrders.value ? t('common.refreshing') : t('common.refresh') }}
             </button>
           </div>
@@ -492,13 +583,32 @@ function resolveDefaultShopId(): number {
               <button type="submit" class="text-action">{{ t('mall.orders.searchAction') }}</button>
               <button type="button" class="text-action subtle" @click="clearOrderSearch">{{ t('common.dismiss') }}</button>
             </form>
-            <p v-if="orderSearchFeedback" class="order-search-feedback">{{ orderSearchFeedback }}</p>
+            <div v-if="orderSearchFeedback" class="order-search-feedback">
+              <p>{{ orderSearchFeedback }}</p>
+              <div v-if="orderSearchContinuation.canSearchPreviousPage || orderSearchContinuation.canSearchNextPage" class="order-search-actions">
+                <button
+                  type="button"
+                  class="text-action subtle"
+                  :disabled="!orderSearchContinuation.canSearchPreviousPage || orderStatus.isLoadingOrders.value"
+                  @click="continueOrderSearch(orderPagination.page - 1)"
+                >
+                  {{ t('mall.orders.searchPrevPage') }}
+                </button>
+                <button
+                  type="button"
+                  class="text-action subtle"
+                  :disabled="!orderSearchContinuation.canSearchNextPage || orderStatus.isLoadingOrders.value"
+                  @click="continueOrderSearch(orderPagination.page + 1)"
+                >
+                  {{ t('mall.orders.searchNextPage') }}
+                </button>
+              </div>
+            </div>
           </div>
 
           <div v-if="orderStatus.isLoadingOrders.value" class="status-block">{{ t('mall.orders.loading') }}</div>
-          <div v-else-if="orderStatus.orders.value.length === 0" class="status-block">{{ t('mall.orders.empty') }}</div>
-          <div v-else-if="visibleOrders.length === 0" class="status-block">
-            {{ t('mall.orders.filterEmpty') }}
+          <div v-else-if="orderEmptyState.kind !== 'none'" class="status-block">
+            {{ orderEmptyState.message }}
           </div>
           <div v-else class="order-cards">
             <button
@@ -522,9 +632,9 @@ function resolveDefaultShopId(): number {
           </div>
 
           <div class="pager">
-            <button type="button" :disabled="!canGoPrevOrderPage" @click="orderStatus.loadOrders(orderStatus.page.value - 1)">{{ t('common.prev') }}</button>
-            <span>{{ orderStatus.page }} / {{ orderTotalPages }}</span>
-            <button type="button" :disabled="!canGoNextOrderPage" @click="orderStatus.loadOrders(orderStatus.page.value + 1)">{{ t('common.next') }}</button>
+            <button type="button" :disabled="!orderPagination.canGoPrev" @click="loadOrderPage(orderPagination.page - 1)">{{ t('common.prev') }}</button>
+            <span>{{ orderPagination.summary }}</span>
+            <button type="button" :disabled="!orderPagination.canGoNext" @click="loadOrderPage(orderPagination.page + 1)">{{ t('common.next') }}</button>
           </div>
         </aside>
 
@@ -551,14 +661,14 @@ function resolveDefaultShopId(): number {
             <strong>{{ deepLinkRecovery.title }}</strong>
             <p>{{ deepLinkRecovery.message }}</p>
             <small>{{ t('mall.orders.restoreErrorSuggestion') }}</small>
-            <button type="button" @click="orderStatus.loadOrders()">{{ t('mall.orders.backToRecent') }}</button>
+            <button type="button" @click="loadOrderPage()">{{ t('mall.orders.backToRecent') }}</button>
             <button v-if="deepLinkRecovery.canClearLink" type="button" class="text-action" @click="clearOrderUrl">
               {{ t('mall.orders.clearOrderLink') }}
             </button>
           </div>
           <div v-else-if="orderStatus.errorMessage.value && !orderStatus.order.value" class="status-block danger">
             <p>{{ orderStatus.errorMessage }}</p>
-            <button type="button" @click="orderStatus.loadOrders()">{{ t('mall.orders.backToRecent') }}</button>
+            <button type="button" @click="loadOrderPage()">{{ t('mall.orders.backToRecent') }}</button>
           </div>
           <div v-else-if="orderStatus.isLoadingOrder.value && isRestoringOrderFromUrl && !orderStatus.order.value" class="status-block">{{ t('mall.orders.restoringDetail') }}</div>
           <div v-else-if="orderStatus.isLoadingOrder.value && !orderStatus.order.value" class="status-block">{{ t('mall.orders.loadingDetail') }}</div>
@@ -573,6 +683,7 @@ function resolveDefaultShopId(): number {
             </div>
 
             <div class="detail-facts">
+              <span v-if="linkedDetail.isLinkedOnly">{{ linkedDetail.label }}</span>
               <span>{{ describeOrderStatus(orderStatus.order.value.status) }}</span>
               <span>{{ t('mall.orders.paymentStatus', { status: orderStatus.paymentStatus.value }) }}</span>
               <span>{{ t('mall.orders.fulfillmentStatus', { status: currentFulfillment.statusLabel }) }}</span>
@@ -1023,11 +1134,23 @@ function resolveDefaultShopId(): number {
 }
 
 .order-search-feedback {
+  display: grid;
+  gap: 0.45rem;
   margin: 0;
   color: var(--text-muted);
   font-size: 0.88rem;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.order-search-feedback p {
+  margin: 0;
+}
+
+.order-search-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 h2 {

@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Mall order center UI states and component boundaries"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Order status unknown fallback and typed model helpers"}
+py"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Customer order list/detail API contract boundaries"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Confirm no cross-layer/API contract expansion"}

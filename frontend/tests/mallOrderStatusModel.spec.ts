@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { OrderResponse } from '../src/types/api/order'
 import {
+  createMallOrderEmptyStateView,
+  createMallOrderLinkedDetailView,
   createMallOrderDeepLinkRecoveryView,
   createMallOrderActionView,
   createMallOrderFulfillmentView,
   createMallOrderLifecycleTimeline,
   createMallOrderListFilterOptions,
+  createMallOrderPaginationView,
+  createMallOrderSearchContinuation,
   createMallPaymentRefreshView,
   describeMallOrderListSummary,
   filterMallOrders,
@@ -13,6 +17,7 @@ import {
   getMallOrderStatusLabel,
   mergeOrderIntoList,
   resolveMallOrderListFilter,
+  upsertOrderIntoList,
 } from '../src/views/mall/mallOrderStatusModel'
 
 const summaryLabels = {
@@ -89,6 +94,16 @@ const deepLinkRecoveryLabels = {
   invalidOrderId: 'Invalid order link',
   restoreFailedPrefix: 'Unable to restore order ',
   suggestion: 'Recent purchases are still available.',
+}
+
+const paginationLabels = {
+  summary: 'Page {page} of {totalPages}, {total} total, {size} per page',
+}
+
+const emptyStateLabels = {
+  noOrders: 'No orders yet.',
+  filteredCurrentPage: 'No current-page orders match this filter.',
+  searchNoCurrentPage: '{query} was not found on this page.',
 }
 
 describe('mallOrderStatusModel', () => {
@@ -290,6 +305,21 @@ describe('mallOrderStatusModel', () => {
     expect(mergeOrderIntoList([otherOrder], refreshed)).toEqual([otherOrder])
   })
 
+  it('can upsert linked order detail ahead of the current order page', () => {
+    const currentPageOrder = createOrder({ orderId: 502, orderNo: 'ORD-502' })
+    const linkedDetail = createOrder({ orderId: 501, orderNo: 'ORD-501' })
+    const refreshedLinkedDetail = createOrder({
+      orderId: 501,
+      orderNo: 'ORD-501',
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+
+    expect(upsertOrderIntoList([currentPageOrder], linkedDetail)).toEqual([linkedDetail, currentPageOrder])
+    expect(upsertOrderIntoList([linkedDetail, currentPageOrder], refreshedLinkedDetail))
+      .toEqual([refreshedLinkedDetail, currentPageOrder])
+  })
+
   it('classifies loaded orders into order center filters', () => {
     const created = createOrder({ orderId: 501, status: 'created' })
     const paidAwaitingShipment = createOrder({
@@ -368,6 +398,101 @@ describe('mallOrderStatusModel', () => {
       order: null,
       query: '',
       matchReason: null,
+    })
+  })
+
+  it('builds pagination summary and current-page search continuation hints', () => {
+    const pagination = createMallOrderPaginationView({
+      page: 2,
+      size: 5,
+      total: 12,
+    }, paginationLabels)
+
+    expect(pagination).toEqual({
+      page: 2,
+      totalPages: 3,
+      size: 5,
+      total: 12,
+      summary: 'Page 2 of 3, 12 total, 5 per page',
+      canGoPrev: true,
+      canGoNext: true,
+    })
+
+    const miss = findLoadedMallOrder([
+      createOrder({ orderId: 501, orderNo: 'ORD-501' }),
+    ], 'ORD-999')
+    expect(createMallOrderSearchContinuation(miss, pagination)).toEqual({
+      canSearchPreviousPage: true,
+      canSearchNextPage: true,
+    })
+
+    const hit = findLoadedMallOrder([
+      createOrder({ orderId: 501, orderNo: 'ORD-501' }),
+    ], '501')
+    expect(createMallOrderSearchContinuation(hit, pagination)).toEqual({
+      canSearchPreviousPage: false,
+      canSearchNextPage: false,
+    })
+  })
+
+  it('keeps filter state meaningful while paging current order history', () => {
+    const paidPage = [
+      createOrder({ orderId: 601, status: 'paid', fulfillmentStatus: 'unshipped' }),
+    ]
+    const shippedPage = [
+      createOrder({ orderId: 701, status: 'paid', fulfillmentStatus: 'shipped' }),
+    ]
+
+    expect(filterMallOrders(paidPage, 'paidAwaitingShipment')).toEqual(paidPage)
+    expect(filterMallOrders(shippedPage, 'paidAwaitingShipment')).toEqual([])
+    expect(createMallOrderEmptyStateView(
+      shippedPage,
+      filterMallOrders(shippedPage, 'paidAwaitingShipment'),
+      { order: null, query: '', matchReason: null },
+      emptyStateLabels,
+    )).toEqual({
+      kind: 'filteredCurrentPage',
+      message: 'No current-page orders match this filter.',
+    })
+  })
+
+  it('distinguishes no orders, filter empty, and current-page search misses', () => {
+    const orders = [createOrder({ orderId: 501, orderNo: 'ORD-501' })]
+    const searchMiss = findLoadedMallOrder(orders, 'ORD-999')
+
+    expect(createMallOrderEmptyStateView([], [], searchMiss, emptyStateLabels)).toEqual({
+      kind: 'noOrders',
+      message: 'No orders yet.',
+    })
+    expect(createMallOrderEmptyStateView(orders, [], {
+      order: null,
+      query: '',
+      matchReason: null,
+    }, emptyStateLabels)).toEqual({
+      kind: 'filteredCurrentPage',
+      message: 'No current-page orders match this filter.',
+    })
+    expect(createMallOrderEmptyStateView(orders, orders, searchMiss, emptyStateLabels)).toEqual({
+      kind: 'searchNoCurrentPage',
+      message: 'ORD-999 was not found on this page.',
+    })
+  })
+
+  it('labels deep-link detail that is not part of the current backend page', () => {
+    const linkedOrder = createOrder({ orderId: 501 })
+    const currentPage = [createOrder({ orderId: 502 })]
+
+    expect(createMallOrderLinkedDetailView(linkedOrder, currentPage, 'From order link')).toEqual({
+      isLinkedOnly: true,
+      label: 'From order link',
+    })
+    expect(createMallOrderLinkedDetailView(linkedOrder, [linkedOrder], 'From order link')).toEqual({
+      isLinkedOnly: false,
+      label: 'From order link',
+    })
+    expect(createMallOrderLinkedDetailView(null, currentPage, 'From order link')).toEqual({
+      isLinkedOnly: false,
+      label: '',
     })
   })
 

@@ -132,6 +132,47 @@ export interface MallOrderSearchResult {
   matchReason: MallOrderSearchMatchReason | null
 }
 
+export interface MallOrderSearchContinuation {
+  canSearchPreviousPage: boolean
+  canSearchNextPage: boolean
+}
+
+export interface MallOrderPaginationState {
+  page: number
+  size: number
+  total: number
+}
+
+export interface MallOrderPaginationLabels {
+  summary: string
+}
+
+export interface MallOrderPaginationView {
+  page: number
+  totalPages: number
+  size: number
+  total: number
+  summary: string
+  canGoPrev: boolean
+  canGoNext: boolean
+}
+
+export interface MallOrderEmptyStateLabels {
+  noOrders: string
+  filteredCurrentPage: string
+  searchNoCurrentPage: string
+}
+
+export interface MallOrderEmptyStateView {
+  kind: 'none' | 'noOrders' | 'filteredCurrentPage' | 'searchNoCurrentPage'
+  message: string
+}
+
+export interface MallOrderLinkedDetailView {
+  isLinkedOnly: boolean
+  label: string
+}
+
 export interface MallOrderDeepLinkRecoveryLabels {
   noOrderId: string
   invalidOrderId: string
@@ -398,6 +439,11 @@ export function mergeOrderIntoList(orders: OrderResponse[], updatedOrder: OrderR
   return didMerge ? nextOrders : orders
 }
 
+export function upsertOrderIntoList(orders: OrderResponse[], updatedOrder: OrderResponse): OrderResponse[] {
+  const merged = mergeOrderIntoList(orders, updatedOrder)
+  return merged === orders ? [updatedOrder, ...orders] : merged
+}
+
 export function resolveMallOrderListFilter(order: OrderResponse): MallOrderListFilter {
   return resolveLifecyclePhase(order)
 }
@@ -440,6 +486,31 @@ export function createMallOrderListFilterOptions(
   ]
 }
 
+export function createMallOrderPaginationView(
+  state: MallOrderPaginationState,
+  labels: MallOrderPaginationLabels,
+): MallOrderPaginationView {
+  const size = normalizePositiveInteger(state.size, 1)
+  const total = Math.max(0, Math.floor(state.total))
+  const totalPages = Math.max(1, Math.ceil(total / size))
+  const page = Math.min(Math.max(1, Math.floor(state.page)), totalPages)
+
+  return {
+    page,
+    totalPages,
+    size,
+    total,
+    summary: interpolate(labels.summary, {
+      page,
+      totalPages,
+      size,
+      total,
+    }),
+    canGoPrev: page > 1,
+    canGoNext: page < totalPages,
+  }
+}
+
 export function findLoadedMallOrder(
   orders: OrderResponse[],
   rawQuery: string,
@@ -476,6 +547,74 @@ export function findLoadedMallOrder(
     order: null,
     query,
     matchReason: null,
+  }
+}
+
+export function createMallOrderSearchContinuation(
+  result: MallOrderSearchResult,
+  pagination: MallOrderPaginationView,
+): MallOrderSearchContinuation {
+  if (!result.query || result.order) {
+    return {
+      canSearchPreviousPage: false,
+      canSearchNextPage: false,
+    }
+  }
+
+  return {
+    canSearchPreviousPage: pagination.canGoPrev,
+    canSearchNextPage: pagination.canGoNext,
+  }
+}
+
+export function createMallOrderEmptyStateView(
+  orders: OrderResponse[],
+  visibleOrders: OrderResponse[],
+  searchResult: MallOrderSearchResult,
+  labels: MallOrderEmptyStateLabels,
+): MallOrderEmptyStateView {
+  if (orders.length === 0) {
+    return {
+      kind: 'noOrders',
+      message: labels.noOrders,
+    }
+  }
+
+  if (searchResult.query && !searchResult.order) {
+    return {
+      kind: 'searchNoCurrentPage',
+      message: interpolate(labels.searchNoCurrentPage, { query: searchResult.query }),
+    }
+  }
+
+  if (visibleOrders.length === 0) {
+    return {
+      kind: 'filteredCurrentPage',
+      message: labels.filteredCurrentPage,
+    }
+  }
+
+  return {
+    kind: 'none',
+    message: '',
+  }
+}
+
+export function createMallOrderLinkedDetailView(
+  order: OrderResponse | null,
+  currentPageOrders: OrderResponse[],
+  label: string,
+): MallOrderLinkedDetailView {
+  if (!order) {
+    return {
+      isLinkedOnly: false,
+      label: '',
+    }
+  }
+
+  return {
+    isLinkedOnly: !currentPageOrders.some((item) => item.orderId === order.orderId),
+    label,
   }
 }
 
@@ -613,4 +752,12 @@ function resolveRawUnknownStatus(order: OrderResponse | null): string | null {
 function normalizeText(value: string | null | undefined): string | null {
   const trimmed = value?.trim()
   return trimmed ? trimmed : null
+}
+
+function normalizePositiveInteger(value: number, fallback: number): number {
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback
+}
+
+function interpolate(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_match, key: string) => String(params[key] ?? ''))
 }

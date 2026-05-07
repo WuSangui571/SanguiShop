@@ -169,6 +169,36 @@ describe('mall checkout model', () => {
     })
   })
 
+  it('adds restored linked order detail when it is missing from the current order page', async () => {
+    const pageOrder = createOrderResponse({
+      orderId: 502,
+      orderNo: 'ORD-502',
+    })
+    const linkedOrder = createOrderResponse({
+      orderId: 501,
+      orderNo: 'ORD-501',
+    })
+    const listOrders = vi.fn(async () => ({
+      page: 2,
+      size: 5,
+      total: 12,
+      items: [pageOrder],
+    }))
+    const getOrder = vi.fn(async () => linkedOrder)
+    const orderStatus = useMallOrderStatus({
+      getOrder,
+      listOrders,
+    })
+
+    await orderStatus.loadOrders(2)
+    await orderStatus.loadOrder(501, '')
+
+    expect(orderStatus.order.value?.orderId).toBe(501)
+    expect(orderStatus.orders.value.map((order) => order.orderId)).toEqual([501, 502])
+    expect(orderStatus.page.value).toBe(2)
+    expect(orderStatus.total.value).toBe(12)
+  })
+
   it('keeps current order detail visible when refresh fails', async () => {
     const getOrder = vi.fn(async () => {
       throw new HttpClientError('Order refresh failed.', {

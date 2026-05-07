@@ -15,7 +15,7 @@ import {
   describeMallApiError,
   describePaymentStatus,
 } from '../views/mall/mallCheckoutModel'
-import { mergeOrderIntoList } from '../views/mall/mallOrderStatusModel'
+import { mergeOrderIntoList, upsertOrderIntoList } from '../views/mall/mallOrderStatusModel'
 
 interface UseMallOrderStatusOptions {
   getOrder?: (orderId: number) => Promise<OrderResponse>
@@ -62,7 +62,9 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     try {
       const response = await (options.getOrder ?? defaultGetOrder)(orderId)
       order.value = response
-      orders.value = mergeOrderIntoList(orders.value, response)
+      orders.value = loadOptions.refreshPayment === false
+        ? mergeOrderIntoList(orders.value, response)
+        : upsertOrderIntoList(orders.value, response)
       if (nextPaymentNo) {
         paymentNo.value = nextPaymentNo
         if (shouldRefreshPayment) {
