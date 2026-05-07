@@ -380,3 +380,67 @@ The buyer order experience now tells users whether details are freshly refreshed
 ### Next Steps
 
 - None - task complete
+
+
+## Session 48: 用户侧订单中心筛选与历史订单可找回性补强
+
+**Date**: 2026-05-07
+**Task**: 用户侧订单中心筛选与历史订单可找回性补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| User order center | Added buyer-side order status filters for all, unpaid, awaiting shipment, shipped, cancelled, and unrecognized loaded orders. |
+| State model | Centralized list filter classification, filter counts, current-page search, deep-link recovery copy, and unknown fallback in `mallOrderStatusModel`. |
+| Search and recovery | Added current-page lookup by `orderNo` or exact `orderId`, no-result guidance for pagination/link recovery, and clear-link recovery for invalid `/mall?orderId=...` URLs. |
+| List/detail sync | Kept selected order cards highlighted, showed last-updated copy, and reused existing list merge behavior so payment/cancel/refresh/fulfillment changes move between filters immediately. |
+| Localization | Added typed Simplified Chinese, Traditional Chinese, and English copy for filters, search, and recovery actions. |
+| Tests | Expanded `mallOrderStatusModel` coverage for filter classification, unknown raw statuses, refreshed status migration, current-page search hit/miss, and deep-link failure recovery. |
+| Follow-up fix | Fixed numeric lookup precedence so exact `orderId` search wins before fuzzy `orderNo` search. |
+
+**Updated Files**:
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-07-user-order-center-filter-recovery/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human command passed: `cd frontend; npm run typecheck; npm run lint; npm run build; npm run test -- mallOrderStatusModel;`
+- AI: `cmd /c npm run typecheck` passed.
+- AI: `cmd /c npm run lint` passed.
+- AI: `cmd /c npm run build` passed.
+- AI: `git diff --check` passed.
+- AI targeted Vitest remained blocked in sandbox by Vite/esbuild `spawn EPERM`; human local run passed after `10c8098`.
+
+### Result
+
+The user order entry now behaves like an order center rather than only a recent-purchase feed. Buyers can filter by lifecycle stage, locate loaded historical orders, understand unknown backend statuses, recover from bad order links without losing recent purchases, and see list filters update after payment, cancellation, refresh, or shipment changes.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2d31cbf` | (see git log) |
+| `10c8098` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
