@@ -454,6 +454,15 @@ export function findLoadedMallOrder(
   }
 
   const normalizedQuery = query.toLowerCase()
+  const orderIdMatch = orders.find((order) => String(order.orderId) === query)
+  if (orderIdMatch) {
+    return {
+      order: orderIdMatch,
+      query,
+      matchReason: 'orderId',
+    }
+  }
+
   const orderNoMatch = orders.find((order) => order.orderNo.toLowerCase().includes(normalizedQuery))
   if (orderNoMatch) {
     return {
@@ -463,11 +472,10 @@ export function findLoadedMallOrder(
     }
   }
 
-  const orderIdMatch = orders.find((order) => String(order.orderId) === query)
   return {
-    order: orderIdMatch ?? null,
+    order: null,
     query,
-    matchReason: orderIdMatch ? 'orderId' : null,
+    matchReason: null,
   }
 }
 
