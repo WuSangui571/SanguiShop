@@ -574,3 +574,72 @@ The buyer cart and order creation path now has a clearer recovery contract befor
 ### Next Steps
 
 - None - task complete
+
+
+## Session 51: 用户侧支付创建失败与支付恢复体验补强
+
+**Date**: 2026-05-07
+**Task**: 用户侧支付创建失败与支付恢复体验补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Payment failure recovery | Added customer payment failure classification for auth, not payable, duplicate/idempotency conflict, validation, system/downstream, and unknown failures while preserving backend code/message/traceId. |
+| PaymentNo retry stability | Failed mock payment attempts keep the same paymentNo for retry; switching order, creating a new order, or successful payment resets the lifecycle. |
+| Duplicate payment guard | Pending payment submit rejects duplicate clicks without sending a second request; failed attempts can retry with the original payment number. |
+| Order/payment state sync | Successful payment creation and payment refresh merge paid/unshipped state into current order detail and loaded order list, keeping filters and detail display coherent. |
+| Refresh boundary | Orders with paymentNo can refresh payment-service status; historical orders without paymentNo continue to show order snapshot state without fabricating PaymentResponse. |
+| UI copy | Added typed Simplified Chinese, Traditional Chinese, and English copy for payment failure guidance and stable retry explanations. |
+| Spec sync | Updated frontend API contracts for payment retry/pending/success merge rules and documented cart requestId lifecycle after restore/content change/failure/success. |
+| Tests | Expanded mall checkout/order status model coverage for failure classification, paymentNo retry stability, traceId preservation, duplicate submit guard, paid detail/list merge, refresh failure retention, and no-paymentNo snapshot boundary. |
+
+**Updated Files**:
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/composables/useMallOrderStatus.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/mallCheckoutModel.ts`
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-07-user-payment-create-recovery/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human tests: passed.
+- Human commit: `ac0472f feat(mall): ????????????`.
+- AI: `cd frontend; npm run typecheck` passed.
+- AI: `cd frontend; npm run lint` passed.
+- AI: `cd frontend; npm run build` passed.
+- AI: `git diff --check` passed.
+- AI targeted Vitest was blocked in sandbox by Vite/esbuild `spawn EPERM`; escalation request was rejected by the automatic approval service, and human local testing passed.
+
+### Result
+
+The buyer order payment path now has a stable recovery contract after order creation. Payment failures are understandable and traceable, retries keep the original idempotency payment number, duplicate pending submits are suppressed, successful payment immediately moves order detail/list state to paid awaiting shipment, and historical orders without payment numbers remain snapshot-only instead of pretending to have payment-service data.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ac0472f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
