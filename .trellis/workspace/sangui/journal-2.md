@@ -643,3 +643,69 @@ The buyer order payment path now has a stable recovery contract after order crea
 ### Next Steps
 
 - None - task complete
+
+
+## Session 52: 用户侧支付后履约与物流刷新体验补强
+
+**Date**: 2026-05-07
+**Task**: 用户侧支付后履约与物流刷新体验补强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Fulfillment refresh | Customer order detail refresh now treats `GET /api/orders/{orderId}` as the source of truth for `fulfillmentStatus`, `carrier`, `trackingNo`, and `shippedAt`, without introducing a logistics tracking API. |
+| Logistics snapshot | Mall order detail explains that logistics state comes from the order snapshot and keeps clear shipped placeholders for missing carrier, tracking number, or shipped time. |
+| Filter movement | When a refreshed order moves from awaiting shipment to shipped and leaves the active filter, the empty state explains that the current order status changed instead of implying the order disappeared. |
+| Deep-link recovery | Restored shipped orders from `/mall?orderId=...` show logistics as order snapshot data and do not require paymentNo or live tracking lookup. |
+| Duplicate refresh guard | Pending order refresh ignores a duplicate click without sending another request; failed refresh keeps the current paid/unshipped detail and allows retry. |
+| Spec sync | Frontend API contracts now document order snapshot fulfillment refresh rules, no tracking API boundary, filter-movement empty state, and required tests. |
+| Tests | Added model/composable tests for paid awaiting-shipment refresh to shipped, refresh failure retention, duplicate refresh guard with retry, missing logistics placeholders, unknown fulfillment fallback, filter movement, and deep-link shipped snapshot explanation. |
+
+**Updated Files**:
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-07-user-fulfillment-logistics-refresh/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human tests: passed.
+- Human commit: `4b35af0 feat(mall):?????????????`.
+- AI: `cd frontend; npm run typecheck` passed.
+- AI: `cd frontend; npm run lint` passed.
+- AI: `cd frontend; npm run build` passed.
+- AI: `git diff --check` passed with Windows line-ending warnings only.
+- AI targeted Vitest was blocked in sandbox by Vite/esbuild `spawn EPERM`; escalation request was rejected by the automatic approval service, and human local testing passed.
+
+### Result
+
+The buyer order experience now continues cleanly after payment success: users can refresh paid awaiting-shipment orders into shipped snapshots, see carrier/tracking placeholders or complete shipment data, understand when an order moved out of a filter, and restore shipped order links without any fake logistics tracking dependency.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4b35af0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
