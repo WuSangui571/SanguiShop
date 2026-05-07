@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Unknown status fallback and nullable logistics fields"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall order status and fulfillment display contract"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Mall order detail/list UI states and mobile layout"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Pre-finish frontend quality expectations"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Order status is backend server state; UI only displays snapshot"}

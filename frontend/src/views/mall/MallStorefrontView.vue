@@ -6,9 +6,15 @@ import { HttpClientError } from '../../services/httpClient'
 import { useMallCart } from '../../composables/useMallCart'
 import { useMallOrderStatus } from '../../composables/useMallOrderStatus'
 import { useMallSession } from '../../composables/useMallSession'
+import type { OrderResponse } from '../../types/api/order'
 import type { ProductDetailResponse, ProductSummaryResponse } from '../../types/api/product'
 import { formatDateTime, formatMoney } from '../../utils/format'
 import type { CartItemInput } from './mallCartModel'
+import {
+  createMallOrderFulfillmentView,
+  describeMallOrderListSummary,
+  getMallOrderStatusLabel,
+} from './mallOrderStatusModel'
 import ProductCheckoutPanel from './ProductCheckoutPanel.vue'
 
 const DEFAULT_PAGE_SIZE = 12
@@ -40,6 +46,10 @@ const canGoNext = computed(() => page.value < totalPages.value)
 const orderTotalPages = computed(() => Math.max(1, Math.ceil(orderStatus.total.value / orderStatus.size.value)))
 const canGoPrevOrderPage = computed(() => orderStatus.page.value > 1)
 const canGoNextOrderPage = computed(() => orderStatus.page.value < orderTotalPages.value)
+const currentFulfillment = computed(() => createMallOrderFulfillmentView(
+  orderStatus.order.value,
+  getFulfillmentLabels(),
+))
 
 onMounted(() => {
   mallSession.bootstrap()
@@ -189,20 +199,52 @@ function describeError(caught: unknown, fallback: string): string {
   return fallback
 }
 
-function describeFulfillmentStatus(): string {
-  const currentOrder = orderStatus.order.value
-  if (!currentOrder) {
-    return t('common.unknown')
+function describeOrderSummary(order: OrderResponse): string {
+  return describeMallOrderListSummary(order, getOrderSummaryLabels())
+}
+
+function describeOrderStatus(status: string): string {
+  return getMallOrderStatusLabel(status, getOrderStatusLabels())
+}
+
+function getOrderSummaryLabels() {
+  return {
+    created: t('mall.orders.statusCreated'),
+    paid: t('mall.orders.statusPaid'),
+    paidAwaitingShipment: t('mall.orders.statusPaidAwaitingShipment'),
+    cancelled: t('mall.orders.statusCancelled'),
+    shipped: t('mall.orders.statusShippedSummary'),
+    unknown: t('common.unknown'),
   }
-  if (currentOrder.fulfillmentStatus === 'shipped' || currentOrder.status === 'shipped') {
-    const carrier = currentOrder.carrier ?? '--'
-    const trackingNo = currentOrder.trackingNo ?? '--'
-    return t('mall.orders.shippedWithTracking', { carrier, trackingNo })
+}
+
+function getOrderStatusLabels() {
+  return {
+    created: t('mall.orders.statusCreated'),
+    paid: t('mall.orders.statusPaid'),
+    paidAwaitingShipment: t('mall.orders.statusPaidAwaitingShipment'),
+    cancelled: t('mall.orders.statusCancelled'),
+    shipped: t('mall.orders.statusShipped'),
+    unknown: t('common.unknown'),
   }
-  if (currentOrder.status === 'paid' || currentOrder.fulfillmentStatus === 'unshipped') {
-    return t('mall.orders.awaitingShipment')
+}
+
+function getFulfillmentLabels() {
+  return {
+    awaitingShipment: t('mall.orders.awaitingShipment'),
+    shipped: t('mall.orders.statusShipped'),
+    notReady: t('mall.orders.statusCreated'),
+    cancelled: t('mall.orders.statusCancelled'),
+    unknown: t('common.unknown'),
+    shippedMessage: t('mall.orders.logisticsShippedMessage'),
+    awaitingShipmentMessage: t('mall.orders.logisticsAwaitingShipmentMessage'),
+    notReadyMessage: t('mall.orders.logisticsNotReadyMessage'),
+    cancelledMessage: t('mall.orders.logisticsCancelledMessage'),
+    unknownMessage: t('mall.orders.logisticsUnknownMessage'),
+    unknownStatusPrefix: t('mall.orders.logisticsUnknownStatusPrefix'),
+    carrierPending: t('mall.orders.carrierPending'),
+    trackingNoPending: t('mall.orders.trackingNoPending'),
   }
-  return currentOrder.fulfillmentStatus ?? currentOrder.status
 }
 
 function resolveDefaultShopId(): number {
@@ -263,7 +305,8 @@ function resolveDefaultShopId(): number {
             >
               <span>{{ order.orderNo }}</span>
               <strong>{{ formatMoney(order.totalAmountCent) }}</strong>
-              <small>{{ order.status }} / {{ formatDateTime(order.createdAt) }}</small>
+              <small class="order-card-summary">{{ describeOrderSummary(order) }}</small>
+              <small>{{ formatDateTime(order.createdAt) }}</small>
             </button>
           </div>
 
@@ -297,9 +340,9 @@ function resolveDefaultShopId(): number {
           <div v-else-if="!orderStatus.order.value" class="status-block">{{ t('mall.orders.emptyDetail') }}</div>
           <div v-else class="order-detail">
             <div class="detail-facts">
-              <span>{{ orderStatus.order.value.status }}</span>
+              <span>{{ describeOrderStatus(orderStatus.order.value.status) }}</span>
               <span>{{ t('mall.orders.paymentStatus', { status: orderStatus.paymentStatus.value }) }}</span>
-              <span>{{ t('mall.orders.fulfillmentStatus', { status: describeFulfillmentStatus() }) }}</span>
+              <span>{{ t('mall.orders.fulfillmentStatus', { status: currentFulfillment.statusLabel }) }}</span>
               <span>{{ formatDateTime(orderStatus.order.value.updatedAt) }}</span>
             </div>
 
@@ -310,6 +353,31 @@ function resolveDefaultShopId(): number {
               </div>
               <strong>{{ formatMoney(orderStatus.order.value.totalAmountCent) }}</strong>
             </div>
+
+            <section class="logistics-panel" :aria-label="t('mall.orders.logisticsTitle')">
+              <div class="logistics-heading">
+                <div>
+                  <p class="eyebrow">{{ t('mall.orders.logisticsKicker') }}</p>
+                  <h4>{{ t('mall.orders.logisticsTitle') }}</h4>
+                </div>
+                <span>{{ currentFulfillment.statusLabel }}</span>
+              </div>
+              <p>{{ currentFulfillment.message }}</p>
+              <dl v-if="currentFulfillment.showShipmentFields" class="logistics-grid">
+                <div>
+                  <dt>{{ t('mall.orders.carrier') }}</dt>
+                  <dd>{{ currentFulfillment.carrier }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('mall.orders.trackingNo') }}</dt>
+                  <dd>{{ currentFulfillment.trackingNo }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('mall.orders.shippedAt') }}</dt>
+                  <dd>{{ currentFulfillment.shippedAt ? formatDateTime(currentFulfillment.shippedAt) : t('mall.orders.shippedAtPending') }}</dd>
+                </div>
+              </dl>
+            </section>
 
             <div class="order-items">
               <div v-for="item in orderStatus.order.value.items" :key="`${item.productId}-${item.skuId}`" class="order-item">
@@ -665,6 +733,11 @@ h2 {
   color: var(--text-muted);
 }
 
+.order-card-summary {
+  color: var(--text-main);
+  font-weight: 900;
+}
+
 .order-cards {
   display: grid;
   gap: 0.65rem;
@@ -748,6 +821,66 @@ h2 {
 .order-detail {
   display: grid;
   gap: 1rem;
+}
+
+.logistics-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.logistics-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.logistics-heading h4 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.logistics-heading span {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  font-weight: 900;
+}
+
+.logistics-panel p {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.logistics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.logistics-grid div {
+  min-width: 0;
+}
+
+.logistics-grid dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.logistics-grid dd {
+  margin: 0.15rem 0 0;
+  color: var(--text-main);
+  font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 .order-headline {
@@ -917,6 +1050,8 @@ h2 {
   }
 
   .order-headline,
+  .logistics-heading,
+  .logistics-grid,
   .order-item,
   .cart-item,
   .checkout-actions {
@@ -925,6 +1060,10 @@ h2 {
 
   .cart-summary {
     justify-items: start;
+  }
+
+  .logistics-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

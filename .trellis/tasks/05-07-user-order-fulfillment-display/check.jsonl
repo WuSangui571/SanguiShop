@@ -1,0 +1,7 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check frontend quality gates"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check Mall Order Status API display rules"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check nullable logistics and unknown status fallback"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check order component UI states and mobile layout"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check order/payment/fulfillment display fields remain contract-safe"}
