@@ -1,5 +1,13 @@
 import { getJson, postJson } from './httpClient'
-import type { CreateOrderRequest, OrderPageResponse, OrderResponse } from '../types/api/order'
+import type {
+  AdminCancelOrderRequest,
+  AdminOrderDetailResponse,
+  AdminOrderPageResponse,
+  AdminOrderQueryParams,
+  CreateOrderRequest,
+  OrderPageResponse,
+  OrderResponse,
+} from '../types/api/order'
 
 export function createOrder(payload: CreateOrderRequest) {
   return postJson<OrderResponse>('/api/orders', payload, {
@@ -27,4 +35,22 @@ export function cancelOrder(orderId: number) {
     authContext: 'mall',
     suppressAuthStateChange: true,
   })
+}
+
+export function listAdminOrders(params: AdminOrderQueryParams) {
+  return getJson<AdminOrderPageResponse>('/api/admin/orders', { ...params }, { authContext: 'ops' })
+}
+
+export function getAdminOrder(orderId: number) {
+  return getJson<AdminOrderDetailResponse>(`/api/admin/orders/${encodeURIComponent(String(orderId))}`, {}, {
+    authContext: 'ops',
+  })
+}
+
+export function cancelAdminOrder(orderId: number, payload: AdminCancelOrderRequest) {
+  return postJson<AdminOrderDetailResponse>(
+    `/api/admin/orders/${encodeURIComponent(String(orderId))}/cancel`,
+    payload,
+    { authContext: 'ops' },
+  )
 }

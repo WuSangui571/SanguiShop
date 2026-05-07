@@ -540,3 +540,95 @@ V5 addendum:
 - `services/sangui-order-service/src/main/resources/db/migration/V5__add_order_compensation_attempt_history.sql`
 - latest-compensation columns on `oms_order` now include `last_compensation_operator`
 - history table `oms_order_compensation_attempt` is append-only and stores `order_id`, `order_no`, `reservation_no`, `result`, `error_code`, `reason`, `trace_id`, `trigger_type`, and `operator`
+
+## Admin Order Management Addendum
+
+### `GET /api/admin/orders`
+
+Response code: `ADMIN_ORDER_LIST`.
+
+Request query fields:
+
+- `page`: optional positive integer, default `1`.
+- `size`: optional positive integer, default `20`, capped at `100`.
+- `status`: optional `created`, `paid`, `cancelled`; omit or `all` means no status filter.
+- `orderNo`: optional trimmed partial match.
+- `userId`: optional exact user filter inside trusted shop scope.
+- `fromTime` / `toTime`: optional ISO-8601 timestamp filters on `created_at`.
+
+Response data fields:
+
+- `page`, `size`, `total`.
+- `items[]`: `orderId`, `orderNo`, `shopId`, `userId`, `status`, `totalAmountCent`, nullable `paymentNo`, `itemCount`, nullable `traceId`, `createdAt`, `updatedAt`.
+
+Rules:
+
+- Gateway route `/api/admin/orders/**` points to order-service and requires JWT.
+- order-service must enforce `ADMIN` role or `ORDER_MANAGEMENT_ADMIN` permission; `OPS_COMPENSATION_ADMIN` alone is not enough.
+- Effective `shopId` comes from trusted `SanguiPrincipal`; request query must not carry `shopId`.
+- `userId` is only a filter within the trusted shop scope, not the authenticated operator identity.
+- Results are ordered by `created_at DESC, id DESC`.
+- `itemCount` is the sum of order item quantities for the returned snapshot.
+- `paymentNo` is nullable in order-service responses. order-service must not query payment-service tables directly; admin UI may call payment-service admin status API by `orderId`.
+
+### `GET /api/admin/orders/{orderId}`
+
+Response code: `ADMIN_ORDER_DETAIL`.
+
+Response data fields:
+
+- Order base fields: `orderId`, `orderNo`, `shopId`, `userId`, `requestId`, `reservationNo`, nullable `paymentNo`, `status`, `totalAmountCent`, nullable `traceId`, `createdAt`, `updatedAt`.
+- `items[]`: immutable product/SKU snapshot fields from `oms_order_item`.
+- `statusTimeline[]`: `status`, `occurredAt`, `traceId`.
+
+Rules:
+
+- Missing order or order outside trusted shop scope returns `ORDER_NOT_FOUND`.
+- DTOs must be snapshots, not `oms_order` entity objects.
+- MVP timeline is derived from order row timestamps: always include `created`; include current non-`created` status at `updatedAt`. A full immutable status history table is out of scope.
+
+### `POST /api/admin/orders/{orderId}/cancel`
+
+Request:
+
+```json
+{
+  "requestId": "adm-cancel-20260507-0001"
+}
+```
+
+Response code: `ADMIN_ORDER_CANCELLED`.
+
+Rules:
+
+- Requires `ADMIN` role or `ORDER_MANAGEMENT_ADMIN`.
+- `requestId` is required for frontend duplicate-submit traceability.
+- Cancel reuses the same order-service release + status transition path as customer cancel.
+- Only `created` can transition to `cancelled`; `paid` or unsupported statuses return `ORDER_STATUS_INVALID`.
+- Repeated cancel of an already `cancelled` order returns the current cancelled snapshot, matching the existing customer cancel idempotency behavior.
+
+Validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Missing trusted principal | 401 | `AUTH_TOKEN_MISSING` |
+| Missing admin/order permission | 403 | `AUTH_FORBIDDEN` |
+| Invalid pagination, path id, request body, or time range | 400 | `VALIDATION_FAILED` |
+| Invalid `status` filter | 409 | `ORDER_STATUS_INVALID` |
+| Missing order or wrong shop scope | 404 | `ORDER_NOT_FOUND` |
+| Cancel paid or unsupported status | 409 | `ORDER_STATUS_INVALID` |
+| Inventory release downstream failure | 503 | `DOWNSTREAM_TIMEOUT` |
+
+Required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-gateway" -am "-Dtest=AdminOrderManagementServiceTest,AdminOrderControllerTest,GatewayJwtAuthenticationFilterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: admin list filters only within trusted `shopId` and exposes `itemCount`, `traceId`, and nullable `paymentNo`.
+- Good: admin detail exposes `reservationNo`, item snapshots, and a derived status timeline.
+- Good: admin cancel releases inventory through the existing order cancellation path before returning `cancelled`.
+- Base: `paymentNo` stays nullable in order responses; payment status is read via payment-service admin API.
+- Bad: order-service directly reads `pay_*` payment tables or trusts a frontend `shopId`.

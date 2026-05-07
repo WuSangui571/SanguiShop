@@ -2,6 +2,7 @@ package com.sangui.shop.payment.application;
 
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
+import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.payment.api.dto.CreatePaymentRequest;
 import com.sangui.shop.payment.api.dto.PaymentResponse;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PaymentPayService {
+
+    private static final String ADMIN_ROLE = "ADMIN";
 
     private final PaymentRepository paymentRepository;
     private final OrderPaymentClient orderPaymentClient;
@@ -75,6 +78,13 @@ public class PaymentPayService {
         if (!Objects.equals(payment.userId(), principal.userId())) {
             throw new SanguiException(com.sangui.shop.payment.domain.PaymentErrorCode.PAYMENT_NOT_FOUND, 404);
         }
+        return toResponse(payment);
+    }
+
+    public PaymentResponse getAdminPaymentByOrderId(SanguiPrincipal principal, Long orderId) {
+        requireOrderAdmin(principal);
+        PaymentOrderRecord payment = paymentRepository.findByOrderId(principal.shopId(), orderId)
+                .orElseThrow(() -> new SanguiException(com.sangui.shop.payment.domain.PaymentErrorCode.PAYMENT_NOT_FOUND, 404));
         return toResponse(payment);
     }
 
@@ -176,6 +186,15 @@ public class PaymentPayService {
                 payment.status().value(),
                 payment.amountCent()
         );
+    }
+
+    private void requireOrderAdmin(SanguiPrincipal principal) {
+        boolean hasAdminRole = principal.roles() != null && principal.roles().contains(ADMIN_ROLE);
+        boolean hasOrderAdminPermission = principal.permissions() != null
+                && principal.permissions().contains(SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN);
+        if (!hasAdminRole && !hasOrderAdminPermission) {
+            throw new SanguiException(CommonErrorCode.AUTH_FORBIDDEN, 403);
+        }
     }
 
     private String normalizeRequired(String value) {

@@ -20,6 +20,14 @@ public interface OrderRepository {
         throw new UnsupportedOperationException("Customer order count query is not implemented");
     }
 
+    default List<OrderSnapshot> findAdminSnapshots(AdminOrderQuery query, int offset, int limit) {
+        throw new UnsupportedOperationException("Admin order list query is not implemented");
+    }
+
+    default long countAdminOrders(AdminOrderQuery query) {
+        throw new UnsupportedOperationException("Admin order count query is not implemented");
+    }
+
     List<OrderRecord> findExpiredCreatedOrders(Long shopId, LocalDateTime createdBefore, int limit);
 
     List<OrderRecord> findCancelledOrders(Long shopId, int limit);

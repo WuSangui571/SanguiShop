@@ -8,6 +8,10 @@ public interface PaymentRepository {
 
     Optional<PaymentOrderRecord> findByPaymentNo(Long shopId, String paymentNo);
 
+    default Optional<PaymentOrderRecord> findByOrderId(Long shopId, Long orderId) {
+        throw new UnsupportedOperationException("Admin payment by order query is not implemented");
+    }
+
     List<PaymentOrderRecord> findCreatedPayments(Long shopId, LocalDateTime createdBefore, int limit);
 
     List<PaymentOrderRecord> findFailedPayments(Long shopId, int limit);

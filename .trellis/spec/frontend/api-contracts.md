@@ -63,6 +63,36 @@ Required tests:
 - Backend error `code/message/traceId` preservation.
 - Duplicate submit guard for save/status/stock write actions.
 
+## Admin Order Management APIs
+
+Frontend admin order management must use gateway routes through `services/orderApi.ts` and `services/paymentApi.ts` with `authContext: 'ops'`.
+
+| Function | Route | Auth Context | Required UI Handling |
+| --- | --- | --- | --- |
+| `listAdminOrders({page,size,status,orderNo,userId,fromTime,toTime})` | `GET /api/admin/orders` | `ops` | Show loading, empty, error, retry, pagination; omit `status` when filter is `all`; omit blank text filters. |
+| `getAdminOrder(orderId)` | `GET /api/admin/orders/{orderId}` | `ops` | Load order snapshot, item snapshots, `reservationNo`, nullable `paymentNo`, and `traceId`. |
+| `cancelAdminOrder(orderId,{requestId})` | `POST /api/admin/orders/{orderId}/cancel` | `ops` | Enable only for `created`; generate `requestId`; disable duplicate clicks while pending. |
+| `getAdminPaymentByOrderId(orderId)` | `GET /api/admin/payments/by-order/{orderId}` | `ops` | Refresh payment status by order id; treat `PAYMENT_NOT_FOUND` as no payment row during automatic detail load. |
+
+Admin order model rules:
+
+- Page copy must use `useAppPreferences().t()` and new colors must rely on semantic CSS variables.
+- Order status must display `created`, `paid`, and `cancelled` labels and fall back to raw unknown backend values.
+- Money is integer cents and display uses `formatMoney(cents)`.
+- Time filters from `datetime-local` inputs must be normalized to ISO-8601 values before sending.
+- API errors must preserve and display backend `code`, `message`, and `traceId`.
+- `paymentNo` in order responses is nullable because order-service must not read payment tables. Payment status is loaded from the payment-service admin route by `orderId`.
+- `OPS_COMPENSATION_ADMIN` alone must not show the order management workspace; require `ADMIN` role or `ORDER_MANAGEMENT_ADMIN`.
+
+Required tests:
+
+- Filter payload trimming, `all` omission, blank filter omission, and time normalization.
+- Pagination default/clamp behavior.
+- Status labels for `created`, `paid`, `cancelled`, and unknown raw values.
+- Backend error `code/message/traceId` preservation.
+- Duplicate cancel submit guard.
+- Cancel request `requestId` generation and trimming.
+
 ## Mall Order Status APIs
 
 Frontend customer order status flows must use these gateway routes through `services/orderApi.ts` and `services/paymentApi.ts`:

@@ -497,3 +497,33 @@ V5 addendum:
 - `services/sangui-payment-service/src/main/resources/db/migration/V5__add_payment_compensation_attempt_history.sql`
 - latest-compensation columns on `pay_payment_order` now include `last_compensation_operator`
 - history table `pay_payment_compensation_attempt` is append-only and stores `payment_id`, `order_id`, `payment_no`, `order_no`, `reservation_no`, `result`, `error_code`, `reason`, `trace_id`, `trigger_type`, and `operator`
+
+## Admin Payment Status Addendum
+
+### `GET /api/admin/payments/by-order/{orderId}`
+
+Response code: `ADMIN_PAYMENT_STATUS`.
+
+Rules:
+
+- Gateway route `/api/admin/payments/**` points to payment-service and requires JWT.
+- payment-service must enforce `ADMIN` role or `ORDER_MANAGEMENT_ADMIN` permission; `OPS_COMPENSATION_ADMIN` alone is not enough.
+- Effective `shopId` comes from trusted `SanguiPrincipal`.
+- Query uses `(shopId, orderId)` and returns the newest non-deleted payment row by `created_at DESC, id DESC`.
+- Missing payment returns `PAYMENT_NOT_FOUND`; frontend admin order detail should treat this as "no payment row yet" unless the operator explicitly refreshed payment status and needs the trace.
+- payment-service does not read `oms_*` order tables for this query.
+
+Validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Missing trusted principal | 401 | `AUTH_TOKEN_MISSING` |
+| Missing admin/order permission | 403 | `AUTH_FORBIDDEN` |
+| `orderId <= 0` | 400 | `VALIDATION_FAILED` |
+| No payment for `(shopId, orderId)` | 404 | `PAYMENT_NOT_FOUND` |
+
+Required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-payment-service,services/sangui-gateway" -am "-Dtest=AdminPaymentControllerTest,GatewayJwtAuthenticationFilterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```

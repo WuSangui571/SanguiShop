@@ -126,6 +126,40 @@ class GatewayJwtAuthenticationFilterTest {
     }
 
     @Test
+    void keepsAdminOrderRoutesProtected() throws Exception {
+        MockServerWebExchange adminExchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.GET, "/api/admin/orders")
+                .header(TraceConstants.TRACE_ID_HEADER, "trace-admin-order")
+        );
+        AtomicReference<ServerWebExchange> forwardedAdmin = new AtomicReference<>();
+
+        filter.filter(adminExchange, capture(forwardedAdmin)).block();
+
+        assertThat(forwardedAdmin.get()).isNull();
+        assertThat(adminExchange.getResponse().getStatusCode().value()).isEqualTo(401);
+        JsonNode body = objectMapper.readTree(adminExchange.getResponse().getBodyAsString().block());
+        assertThat(body.get("code").asText()).isEqualTo(CommonErrorCode.AUTH_TOKEN_MISSING.code());
+        assertThat(body.get("traceId").asText()).isEqualTo("trace-admin-order");
+    }
+
+    @Test
+    void keepsAdminPaymentRoutesProtected() throws Exception {
+        MockServerWebExchange adminExchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.GET, "/api/admin/payments/by-order/101")
+                .header(TraceConstants.TRACE_ID_HEADER, "trace-admin-payment")
+        );
+        AtomicReference<ServerWebExchange> forwardedAdmin = new AtomicReference<>();
+
+        filter.filter(adminExchange, capture(forwardedAdmin)).block();
+
+        assertThat(forwardedAdmin.get()).isNull();
+        assertThat(adminExchange.getResponse().getStatusCode().value()).isEqualTo(401);
+        JsonNode body = objectMapper.readTree(adminExchange.getResponse().getBodyAsString().block());
+        assertThat(body.get("code").asText()).isEqualTo(CommonErrorCode.AUTH_TOKEN_MISSING.code());
+        assertThat(body.get("traceId").asText()).isEqualTo("trace-admin-payment");
+    }
+
+    @Test
     void allowsCorsPreflightWithoutJwt() {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
                 .method(HttpMethod.OPTIONS, "/api/internal/payments/compensation-records/query")

@@ -44,6 +44,10 @@ spring:
           uri: lb://sangui-order
           predicates:
             - Path=/api/orders/**
+        - id: sangui-order-admin
+          uri: lb://sangui-order
+          predicates:
+            - Path=/api/admin/orders/**
         - id: sangui-order-internal
           uri: lb://sangui-order
           predicates:
@@ -54,6 +58,10 @@ spring:
           uri: lb://sangui-payment
           predicates:
             - Path=/api/payments/**
+        - id: sangui-payment-admin
+          uri: lb://sangui-payment
+          predicates:
+            - Path=/api/admin/payments/**
         - id: sangui-payment-internal
           uri: lb://sangui-payment
           predicates:

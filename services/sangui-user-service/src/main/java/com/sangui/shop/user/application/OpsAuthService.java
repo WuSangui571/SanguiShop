@@ -19,7 +19,8 @@ public class OpsAuthService {
     private static final List<String> OPS_SESSION_ROLES = List.of();
     private static final List<String> ADMIN_SESSION_PERMISSIONS = List.of(
             SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
-            SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN
+            SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN,
+            SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN
     );
 
     private final UserRepository userRepository;

@@ -12,6 +12,12 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "sangui.security.ops")
 public class OpsAccessRegistry {
 
+    private static final List<String> LEGACY_ADMIN_PERMISSIONS = List.of(
+            SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
+            SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN,
+            SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN
+    );
+
     private List<OpsAccessBinding> bindings = new ArrayList<>();
     private List<AdminIdentity> admins = new ArrayList<>();
 
@@ -34,7 +40,7 @@ public class OpsAccessRegistry {
                         .map(identity -> new ResolvedOpsAccess(
                                 identity.getShopId(),
                                 identity.getUsername().trim(),
-                                List.of(SanguiPermissionConstants.OPS_COMPENSATION_ADMIN)
+                                LEGACY_ADMIN_PERMISSIONS
                         )));
     }
 

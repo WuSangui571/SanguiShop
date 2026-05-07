@@ -1,5 +1,6 @@
 package com.sangui.shop.order.infrastructure.persistence;
 
+import com.sangui.shop.order.domain.AdminOrderQuery;
 import com.sangui.shop.order.domain.OrderCompensationAttemptQuery;
 import com.sangui.shop.order.domain.OrderCompensationAttemptRecord;
 import com.sangui.shop.order.domain.OrderCompensationAttemptSummary;
@@ -160,6 +161,41 @@ public class JdbcOrderRepository implements OrderRepository {
                 Long.class,
                 shopId,
                 userId
+        );
+        return count == null ? 0L : count;
+    }
+
+    @Override
+    public List<OrderSnapshot> findAdminSnapshots(AdminOrderQuery query, int offset, int limit) {
+        QueryParts queryParts = buildAdminOrderWhereClause(query);
+        List<Object> args = new ArrayList<>(queryParts.args());
+        args.add(limit);
+        args.add(offset);
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, user_id, order_no, request_id, reservation_no, status, total_amount_cent, trace_id,
+                               created_at, updated_at, last_compensation_result, last_compensation_error_code,
+                               last_compensation_reason, last_compensation_trace_id, last_compensation_trigger,
+                               last_compensation_operator, last_compensated_at
+                        FROM oms_order
+                        """
+                        + queryParts.sql()
+                        + """
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT ? OFFSET ?
+                        """,
+                ORDER_ROW_MAPPER,
+                args.toArray()
+        ).stream().map(this::toSnapshot).toList();
+    }
+
+    @Override
+    public long countAdminOrders(AdminOrderQuery query) {
+        QueryParts queryParts = buildAdminOrderWhereClause(query);
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM oms_order " + queryParts.sql(),
+                Long.class,
+                queryParts.args().toArray()
         );
         return count == null ? 0L : count;
     }
@@ -443,6 +479,33 @@ public class JdbcOrderRepository implements OrderRepository {
         if (query.traceId() != null) {
             sql.append(" AND trace_id = ?");
             args.add(query.traceId());
+        }
+        if (query.fromTime() != null) {
+            sql.append(" AND created_at >= ?");
+            args.add(query.fromTime());
+        }
+        if (query.toTime() != null) {
+            sql.append(" AND created_at <= ?");
+            args.add(query.toTime());
+        }
+        return new QueryParts(sql.toString(), args);
+    }
+
+    private QueryParts buildAdminOrderWhereClause(AdminOrderQuery query) {
+        StringBuilder sql = new StringBuilder("WHERE shop_id = ? AND deleted = 0");
+        List<Object> args = new ArrayList<>();
+        args.add(query.shopId());
+        if (query.status() != null) {
+            sql.append(" AND status = ?");
+            args.add(query.status().value());
+        }
+        if (query.orderNo() != null) {
+            sql.append(" AND order_no LIKE ?");
+            args.add("%" + query.orderNo() + "%");
+        }
+        if (query.userId() != null) {
+            sql.append(" AND user_id = ?");
+            args.add(query.userId());
         }
         if (query.fromTime() != null) {
             sql.append(" AND created_at >= ?");

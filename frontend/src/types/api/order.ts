@@ -40,3 +40,63 @@ export interface OrderPageResponse {
   total: number
   items: OrderResponse[]
 }
+
+export type AdminOrderStatusFilter = 'all' | 'created' | 'paid' | 'cancelled' | string
+
+export interface AdminOrderQueryParams {
+  page: number
+  size: number
+  status?: AdminOrderStatusFilter
+  orderNo?: string
+  userId?: string
+  fromTime?: string
+  toTime?: string
+}
+
+export interface AdminOrderSummaryResponse {
+  orderId: number
+  orderNo: string
+  shopId: number
+  userId: string
+  status: OrderStatus
+  totalAmountCent: number
+  paymentNo: string | null
+  itemCount: number
+  traceId: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export interface AdminOrderStatusTimelineResponse {
+  status: OrderStatus
+  occurredAt: string | null
+  traceId: string | null
+}
+
+export interface AdminOrderDetailResponse {
+  orderId: number
+  orderNo: string
+  shopId: number
+  userId: string
+  requestId: string
+  reservationNo: string | null
+  paymentNo: string | null
+  status: OrderStatus
+  totalAmountCent: number
+  traceId: string | null
+  createdAt: string | null
+  updatedAt: string | null
+  items: OrderItemResponse[]
+  statusTimeline: AdminOrderStatusTimelineResponse[]
+}
+
+export interface AdminOrderPageResponse {
+  page: number
+  size: number
+  total: number
+  items: AdminOrderSummaryResponse[]
+}
+
+export interface AdminCancelOrderRequest {
+  requestId: string
+}

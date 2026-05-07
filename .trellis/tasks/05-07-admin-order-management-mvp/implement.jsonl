@@ -1,0 +1,29 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Admin order API envelope, DTO, idempotency and error matrix"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Gateway route and admin permission boundaries"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Existing order query/cancel/reservation status contracts"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Payment status and paymentNo contract constraints"}
+{"file": ".trellis/spec/backend/inventory-reserve-contracts.md", "reason": "Cancel must release reservation through product-service owner API"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Order/payment query indexes and shop scope rules"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Unified code/message/traceId response rules"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Targeted Maven tests and review rules"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin order frontend API and error/requestId rules"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Admin async UI states and component boundaries"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable loading/error/retry and service API usage"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "i18n/theme and server/client state boundaries"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "DTO, money, time, unknown status fallback"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend typecheck/build/test expectations"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer order/admin flow checks"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse admin product and compensation patterns"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Service boundary and consistency review"}
+{"file": "frontend/src/App.vue", "reason": "Existing admin workspace routing and permission pattern"}
+{"file": "frontend/src/services/productApi.ts", "reason": "Existing admin gateway API service pattern"}
+{"file": "frontend/src/composables/useProductManagement.ts", "reason": "Existing admin composable loading/error/action guard pattern"}
+{"file": "frontend/src/views/admin/productManagementModel.ts", "reason": "Pure model, error preservation, requestId guard pattern"}
+{"file": "services/sangui-product-service/src/main/java/com/sangui/shop/product/application/ProductCatalogService.java", "reason": "Existing downstream admin permission enforcement pattern"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/api/OrderController.java", "reason": "Existing customer order controller pattern"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderCancelService.java", "reason": "Existing cancel and inventory release path"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/persistence/JdbcOrderRepository.java", "reason": "Existing order persistence and shop scoped query pattern"}
+{"file": "services/sangui-gateway/src/main/resources/application.yml", "reason": "Gateway route pattern for admin/internal services"}

@@ -14,3 +14,9 @@ export function getPayment(paymentNo: string) {
     suppressAuthStateChange: true,
   })
 }
+
+export function getAdminPaymentByOrderId(orderId: number) {
+  return getJson<PaymentResponse>(`/api/admin/payments/by-order/${encodeURIComponent(String(orderId))}`, {}, {
+    authContext: 'ops',
+  })
+}

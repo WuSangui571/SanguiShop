@@ -6,6 +6,7 @@ import { useOpsAuthSession } from './composables/useOpsAuthSession'
 import OpsForbiddenView from './views/auth/OpsForbiddenView.vue'
 import OpsLoginView from './views/auth/OpsLoginView.vue'
 import CompensationDashboardView from './views/admin/CompensationDashboardView.vue'
+import OrderManagementView from './views/admin/OrderManagementView.vue'
 import ProductManagementView from './views/admin/ProductManagementView.vue'
 import MallStorefrontView from './views/mall/MallStorefrontView.vue'
 
@@ -24,8 +25,9 @@ const {
 } = useOpsAuthSession()
 
 const PRODUCT_CATALOG_ADMIN_PERMISSION = 'PRODUCT_CATALOG_ADMIN'
+const ORDER_MANAGEMENT_ADMIN_PERMISSION = 'ORDER_MANAGEMENT_ADMIN'
 const OPS_COMPENSATION_ADMIN_PERMISSION = 'OPS_COMPENSATION_ADMIN'
-const activeAdminWorkspace = ref<'product' | 'compensation'>('product')
+const activeAdminWorkspace = ref<'product' | 'order' | 'compensation'>('product')
 
 const isAdminSurface = computed(() => {
   if (typeof window === 'undefined') {
@@ -51,10 +53,21 @@ const canAccessCompensationWorkspace = computed(() => {
   return session.roles.includes('ADMIN') || session.permissions.includes(OPS_COMPENSATION_ADMIN_PERMISSION)
 })
 
+const canAccessOrderWorkspace = computed(() => {
+  const session = state.session
+  if (!session) {
+    return false
+  }
+  return session.roles.includes('ADMIN') || session.permissions.includes(ORDER_MANAGEMENT_ADMIN_PERMISSION)
+})
+
 const availableAdminWorkspaces = computed(() => {
-  const workspaces: Array<'product' | 'compensation'> = []
+  const workspaces: Array<'product' | 'order' | 'compensation'> = []
   if (canAccessProductWorkspace.value) {
     workspaces.push('product')
+  }
+  if (canAccessOrderWorkspace.value) {
+    workspaces.push('order')
   }
   if (canAccessCompensationWorkspace.value) {
     workspaces.push('compensation')
@@ -75,7 +88,7 @@ watch(
   { immediate: true },
 )
 
-function selectWorkspace(workspace: 'product' | 'compensation') {
+function selectWorkspace(workspace: 'product' | 'order' | 'compensation') {
   activeAdminWorkspace.value = workspace
 }
 
@@ -133,6 +146,16 @@ onMounted(() => {
           {{ t('admin.productWorkspace') }}
         </button>
         <button
+          v-if="canAccessOrderWorkspace"
+          type="button"
+          class="workspace-tab"
+          :class="{ active: activeAdminWorkspace === 'order' }"
+          :aria-pressed="activeAdminWorkspace === 'order'"
+          @click="selectWorkspace('order')"
+        >
+          {{ t('admin.orderWorkspace') }}
+        </button>
+        <button
           v-if="canAccessCompensationWorkspace"
           type="button"
           class="workspace-tab"
@@ -153,6 +176,11 @@ onMounted(() => {
         v-if="activeAdminWorkspace === 'product' && canAccessProductWorkspace"
         :session="state.session"
         :can-access-product-workspace="canAccessProductWorkspace"
+      />
+      <OrderManagementView
+        v-else-if="activeAdminWorkspace === 'order' && canAccessOrderWorkspace"
+        :session="state.session"
+        :can-access-order-workspace="canAccessOrderWorkspace"
       />
       <CompensationDashboardView v-else />
     </section>

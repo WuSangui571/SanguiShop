@@ -27,6 +27,17 @@ public class OrderCancelService {
     @Transactional
     public OrderResponse cancelOrder(SanguiPrincipal principal, Long orderId, String traceId) {
         OrderSnapshot snapshot = requireOwnedOrder(principal.shopId(), principal.userId(), orderId);
+        return cancelSnapshot(principal.shopId(), orderId, snapshot, traceId);
+    }
+
+    @Transactional
+    public OrderResponse cancelOrderForShop(Long shopId, Long orderId, String traceId) {
+        OrderSnapshot snapshot = orderRepository.findSnapshotById(shopId, orderId)
+                .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
+        return cancelSnapshot(shopId, orderId, snapshot, traceId);
+    }
+
+    private OrderResponse cancelSnapshot(Long shopId, Long orderId, OrderSnapshot snapshot, String traceId) {
         if (snapshot.order().status() == OrderStatus.CANCELLED) {
             return OrderResponseMapper.toResponse(snapshot);
         }
@@ -34,16 +45,19 @@ public class OrderCancelService {
             throw new SanguiException(OrderErrorCode.ORDER_STATUS_INVALID, 409);
         }
 
-        productCatalogClient.releaseInventory(principal.shopId(), snapshot.order().reservationNo(), normalizeTraceId(traceId));
-        int updated = orderRepository.updateStatus(principal.shopId(), orderId, OrderStatus.CREATED, OrderStatus.CANCELLED);
+        productCatalogClient.releaseInventory(shopId, snapshot.order().reservationNo(), normalizeTraceId(traceId));
+        int updated = orderRepository.updateStatus(shopId, orderId, OrderStatus.CREATED, OrderStatus.CANCELLED);
         if (updated == 0) {
-            OrderSnapshot latest = requireOwnedOrder(principal.shopId(), principal.userId(), orderId);
+            OrderSnapshot latest = orderRepository.findSnapshotById(shopId, orderId)
+                    .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
             if (latest.order().status() == OrderStatus.CANCELLED) {
                 return OrderResponseMapper.toResponse(latest);
             }
             throw new SanguiException(OrderErrorCode.ORDER_STATUS_INVALID, 409);
         }
-        return OrderResponseMapper.toResponse(requireOwnedOrder(principal.shopId(), principal.userId(), orderId));
+        OrderSnapshot latest = orderRepository.findSnapshotById(shopId, orderId)
+                .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_NOT_FOUND, 404));
+        return OrderResponseMapper.toResponse(latest);
     }
 
     private OrderSnapshot requireOwnedOrder(Long shopId, String userId, Long orderId) {
