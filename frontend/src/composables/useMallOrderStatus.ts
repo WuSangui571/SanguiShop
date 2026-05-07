@@ -11,11 +11,18 @@ import type { CreatePaymentRequest, PaymentResponse } from '../types/api/payment
 import {
   buildCreatePaymentRequest,
   canCancelOrder,
+  classifyMallPaymentFailure,
   createPaymentNo,
   describeMallApiError,
   describePaymentStatus,
+  type MallPaymentFailure,
 } from '../views/mall/mallCheckoutModel'
-import { mergeOrderIntoList, upsertOrderIntoList } from '../views/mall/mallOrderStatusModel'
+import {
+  applyMallPaymentToOrder,
+  applyMallPaymentToOrderList,
+  mergeOrderIntoList,
+  upsertOrderIntoList,
+} from '../views/mall/mallOrderStatusModel'
 
 interface UseMallOrderStatusOptions {
   getOrder?: (orderId: number) => Promise<OrderResponse>
@@ -33,6 +40,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
   const orders = ref<OrderResponse[]>([])
   const payment = ref<PaymentResponse | null>(null)
   const paymentNo = ref('')
+  const paymentFailure = ref<MallPaymentFailure | null>(null)
   const total = ref(0)
   const page = ref(1)
   const size = ref(5)
@@ -55,6 +63,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
   ): Promise<OrderResponse | null> {
     isLoadingOrder.value = true
     errorMessage.value = ''
+    paymentFailure.value = null
     orderRefreshResult.value = 'idle'
     const shouldPreserveExistingOrder = order.value?.orderId === orderId
     const shouldRefreshPayment = loadOptions.refreshPayment ?? Boolean(nextPaymentNo)
@@ -73,6 +82,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
       } else {
         paymentNo.value = ''
         payment.value = null
+        paymentFailure.value = null
       }
       return response
     } catch (caught) {
@@ -127,11 +137,15 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
 
     isRefreshingPayment.value = true
     errorMessage.value = ''
+    paymentFailure.value = null
 
     try {
       const response = await (options.getPayment ?? defaultGetPayment)(nextPaymentNo)
       paymentNo.value = nextPaymentNo
       payment.value = response
+      paymentFailure.value = null
+      order.value = applyMallPaymentToOrder(order.value, response)
+      orders.value = applyMallPaymentToOrderList(orders.value, response)
       return response
     } catch (caught) {
       errorMessage.value = describeMallApiError(caught)
@@ -155,6 +169,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
       orders.value = mergeOrderIntoList(orders.value, response)
       payment.value = null
       paymentNo.value = ''
+      paymentFailure.value = null
       return response
     } catch (caught) {
       errorMessage.value = describeMallApiError(caught)
@@ -169,16 +184,16 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     orders.value = upsertOrderIntoList(orders.value, createdOrder)
     payment.value = null
     paymentNo.value = ''
+    paymentFailure.value = null
   }
 
   function acceptPayment(createdPayment: PaymentResponse) {
     payment.value = createdPayment
     paymentNo.value = createdPayment.paymentNo
-    if (order.value && order.value.orderId === createdPayment.orderId) {
-      order.value = {
-        ...order.value,
-        status: createdPayment.status === 'paid' ? 'paid' : order.value.status,
-      }
+    paymentFailure.value = null
+    const updatedOrder = applyMallPaymentToOrder(order.value, createdPayment)
+    if (updatedOrder) {
+      order.value = updatedOrder
       orders.value = mergeOrderIntoList(orders.value, order.value)
     }
   }
@@ -190,6 +205,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
 
     isSubmittingPayment.value = true
     errorMessage.value = ''
+    paymentFailure.value = null
 
     try {
       const createPayment = options.createPayment ?? defaultCreatePayment
@@ -203,7 +219,9 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
       acceptPayment(response)
       return response
     } catch (caught) {
-      errorMessage.value = describeMallApiError(caught)
+      const failure = classifyMallPaymentFailure(caught)
+      paymentFailure.value = failure
+      errorMessage.value = failure.detail
       return null
     } finally {
       isSubmittingPayment.value = false
@@ -215,6 +233,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     orders,
     payment,
     paymentNo,
+    paymentFailure,
     total,
     page,
     size,

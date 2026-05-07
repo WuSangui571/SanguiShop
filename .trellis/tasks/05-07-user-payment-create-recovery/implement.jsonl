@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall order/payment API contracts, paymentNo refresh boundary, cart requestId spec sync"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Payment/order DTO status fallback and money rules"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Order and payment state as server facts with client recovery state"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable request loading/error/retry and polling cleanup rules"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Mall UI async states and duplicate submit handling"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "PaymentNo idempotency, status query, validation/error matrix"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Envelope, idempotency, traceId, error contract"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Payment/order cross-layer risk checklist"}

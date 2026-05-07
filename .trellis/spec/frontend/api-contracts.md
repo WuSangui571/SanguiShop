@@ -146,6 +146,9 @@ Order status display rules:
 - `paid` means payment complete and cancel is disabled.
 - `cancelled` means payment actions and cancel are disabled.
 - If `paymentNo` is unavailable for a historical order, the UI may derive the payment summary from order status but must not invent a `PaymentResponse`.
+- Failed `POST /api/payments` attempts must keep the current `paymentNo`, backend `code/message/traceId`, and a classified retry reason. Retry uses the same `paymentNo` unless the selected order changes, payment succeeds, or a new order is created.
+- While `POST /api/payments` is pending, the payment action must reject duplicate clicks without sending a second request.
+- A successful payment response with `status=paid` must immediately merge the current order detail and loaded order list item to `status=paid` and `fulfillmentStatus=unshipped` when no newer fulfillment status is available.
 - Fulfillment display uses order detail fields: `fulfillmentStatus`, `carrier`, `trackingNo`, and `shippedAt`.
 - `paid` with `fulfillmentStatus=unshipped` displays "待发货" / "Awaiting shipment".
 - `shipped` displays carrier and tracking number without calling a tracking API.
@@ -154,6 +157,9 @@ Required tests:
 
 - Order detail load from `orderId`.
 - Payment refresh by `paymentNo`.
+- Failed payment preserves `paymentNo`, backend `traceId`, and retry classification.
+- Duplicate pending payment submit does not send a second request.
+- Payment success and payment refresh merge paid/awaiting-shipment state into detail and list.
 - Duplicate cancel click guard.
 - API errors preserve `code`, `message`, and `traceId`.
 
@@ -199,6 +205,7 @@ Rules:
 - `priceCent` and `availableStock` are display snapshots only. Final price and stock validity come from `POST /api/orders`.
 - Cart checkout must build the normal `CreateOrderRequest` with `shopId`, `userId`, `requestId`, and `items[]` containing only `skuId` and `quantity`.
 - Quantity controls clamp to positive integers and keep an upper UI bound from the local stock snapshot when available, but backend order creation remains the final validation point.
+- Cart restore for a signed-in `{shopId,userId}` may initialize a new checkout `requestId`; any cart content change after restore regenerates it for the next checkout attempt.
 - Checkout must disable duplicate submit while pending and preserve the same `requestId` until cart contents change or checkout succeeds.
 - Successful checkout clears only submitted SKU items from the current cart.
 - Failed checkout must keep cart items and show backend `code`, `message`, and `traceId`.

@@ -1,0 +1,9 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify frontend API contract and spec sync"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend completion quality checks"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify DTO typing and fallback behavior"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify server/client state boundaries"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Verify payment contract compatibility"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Verify error/idempotency contract compatibility"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify cross-layer payment/order risks"}

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { OrderResponse } from '../src/types/api/order'
+import type { PaymentResponse } from '../src/types/api/payment'
 import {
+  applyMallPaymentToOrder,
+  applyMallPaymentToOrderList,
   createMallOrderEmptyStateView,
   createMallOrderLinkedDetailView,
   createMallOrderDeepLinkRecoveryView,
@@ -373,6 +376,34 @@ describe('mallOrderStatusModel', () => {
     expect(filterMallOrders(refreshedOrders, 'paidAwaitingShipment')).toEqual([paid])
   })
 
+  it('applies paid payment responses to detail and list as awaiting shipment', () => {
+    const unpaid = createOrder({
+      orderId: 501,
+      status: 'created',
+      fulfillmentStatus: null,
+    })
+    const paidPayment = createPayment({ paymentNo: 'PAY-501' })
+    const otherOrder = createOrder({ orderId: 502, orderNo: 'ORD-502' })
+
+    expect(applyMallPaymentToOrder(unpaid, paidPayment)).toMatchObject({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+    expect(applyMallPaymentToOrderList([unpaid, otherOrder], paidPayment)).toEqual([
+      {
+        ...unpaid,
+        status: 'paid',
+        fulfillmentStatus: 'unshipped',
+      },
+      otherOrder,
+    ])
+    expect(filterMallOrders(applyMallPaymentToOrderList([unpaid], paidPayment), 'paidAwaitingShipment'))
+      .toHaveLength(1)
+    expect(applyMallPaymentToOrder(unpaid, createPayment({ orderId: 999 }))).toEqual(unpaid)
+    expect(applyMallPaymentToOrder(unpaid, createPayment({ status: 'failed' }))).toEqual(unpaid)
+  })
+
   it('finds loaded orders by order number or exact order id only on the current page', () => {
     const orders = [
       createOrder({ orderId: 501, orderNo: 'ORD-20260507-501' }),
@@ -565,6 +596,21 @@ function createOrder(patch: Partial<OrderResponse> = {}): OrderResponse {
     status: 'created',
     totalAmountCent: 59900,
     items: [],
+    ...patch,
+  }
+}
+
+function createPayment(patch: Partial<PaymentResponse> = {}): PaymentResponse {
+  return {
+    paymentId: 701,
+    paymentNo: 'PAY-501',
+    orderId: 501,
+    orderNo: 'ORD-501',
+    shopId: 1,
+    userId: '10001',
+    channel: 'mock',
+    status: 'paid',
+    amountCent: 59900,
     ...patch,
   }
 }

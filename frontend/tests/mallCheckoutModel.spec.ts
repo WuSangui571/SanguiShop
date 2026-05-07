@@ -5,6 +5,7 @@ import {
   buildCreateOrderRequest,
   buildCreatePaymentRequest,
   canSubmitOrder,
+  classifyMallPaymentFailure,
   describeMallApiError,
   selectInitialSku,
 } from '../src/views/mall/mallCheckoutModel'
@@ -122,6 +123,38 @@ describe('mall checkout model', () => {
     })
 
     expect(describeMallApiError(error)).toBe('ORDER_STOCK_NOT_ENOUGH: Stock is not enough. Trace ID trace-stock-001.')
+  })
+
+  it('classifies payment creation failures while preserving backend trace details', () => {
+    expect(classifyMallPaymentFailure(new HttpClientError('Token expired.', {
+      code: 'AUTH_TOKEN_EXPIRED',
+      status: 401,
+      traceId: 'trace-auth',
+    }))).toMatchObject({
+      kind: 'auth',
+      code: 'AUTH_TOKEN_EXPIRED',
+      traceId: 'trace-auth',
+    })
+    expect(classifyMallPaymentFailure(new HttpClientError('Order is not payable.', {
+      code: 'PAYMENT_ORDER_STATUS_INVALID',
+      status: 409,
+      traceId: 'trace-not-payable',
+    })).kind).toBe('notPayable')
+    expect(classifyMallPaymentFailure(new HttpClientError('Idempotency conflict.', {
+      code: 'IDEMPOTENCY_CONFLICT',
+      status: 409,
+      traceId: 'trace-conflict',
+    })).kind).toBe('duplicatePayment')
+    expect(classifyMallPaymentFailure(new HttpClientError('Validation failed.', {
+      code: 'VALIDATION_FAILED',
+      status: 400,
+      traceId: 'trace-validation',
+    })).kind).toBe('validation')
+    expect(classifyMallPaymentFailure(new HttpClientError('Payment downstream timeout.', {
+      code: 'DOWNSTREAM_TIMEOUT',
+      status: 503,
+      traceId: 'trace-downstream',
+    })).kind).toBe('system')
   })
 
   it('loads order detail and refreshes known payment status', async () => {
@@ -252,6 +285,28 @@ describe('mall checkout model', () => {
     expect(orderStatus.errorMessage.value).toBe(
       'PAYMENT_REFRESH_FAILED: Payment service unavailable. Trace ID trace-payment-503.',
     )
+  })
+
+  it('merges successful payment refresh into current detail and visible order list', async () => {
+    const getPayment = vi.fn(async () => createPaymentResponse({ paymentNo: 'PAY-refresh-501' }))
+    const orderStatus = useMallOrderStatus({ getPayment })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'created',
+      fulfillmentStatus: null,
+    }))
+    orderStatus.paymentNo.value = 'PAY-refresh-501'
+
+    await orderStatus.refreshPayment()
+
+    expect(getPayment).toHaveBeenCalledWith('PAY-refresh-501')
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
   })
 
   it('keeps no payment response for paid orders without payment numbers', async () => {
@@ -631,6 +686,78 @@ describe('mall checkout model', () => {
     })
     expect(orderStatus.paymentStatus.value).toBe('paid')
     expect(orderStatus.order.value?.status).toBe('paid')
+    expect(orderStatus.order.value?.fulfillmentStatus).toBe('unshipped')
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      orderId: 501,
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+  })
+
+  it('keeps the same paymentNo and traceId after payment failure so retry is stable', async () => {
+    const createPayment = vi
+      .fn()
+      .mockRejectedValueOnce(new HttpClientError('Order is no longer payable.', {
+        code: 'PAYMENT_ORDER_STATUS_INVALID',
+        status: 409,
+        traceId: 'trace-pay-invalid',
+      }))
+      .mockResolvedValueOnce(createPaymentResponse({ paymentNo: 'PAY-retry-stable' }))
+    const orderStatus = useMallOrderStatus({
+      createPayment,
+      createPaymentNo: () => 'PAY-retry-stable',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse())
+
+    await orderStatus.submitPayment(session)
+
+    expect(createPayment).toHaveBeenCalledTimes(1)
+    expect(orderStatus.paymentNo.value).toBe('PAY-retry-stable')
+    expect(orderStatus.paymentFailure.value).toMatchObject({
+      kind: 'notPayable',
+      code: 'PAYMENT_ORDER_STATUS_INVALID',
+      traceId: 'trace-pay-invalid',
+    })
+    expect(orderStatus.errorMessage.value).toBe(
+      'PAYMENT_ORDER_STATUS_INVALID: Order is no longer payable. Trace ID trace-pay-invalid.',
+    )
+    expect(orderStatus.order.value?.status).toBe('created')
+
+    await orderStatus.submitPayment(session)
+
+    expect(createPayment).toHaveBeenCalledTimes(2)
+    expect(createPayment.mock.calls.map(([payload]) => payload.paymentNo)).toEqual([
+      'PAY-retry-stable',
+      'PAY-retry-stable',
+    ])
+    expect(orderStatus.paymentFailure.value).toBeNull()
+    expect(orderStatus.paymentStatus.value).toBe('paid')
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+  })
+
+  it('guards duplicate pending payment submits without sending a second request', async () => {
+    const deferredPayment = createDeferred<PaymentResponse>()
+    const createPayment = vi.fn(() => deferredPayment.promise)
+    const orderStatus = useMallOrderStatus({
+      createPayment,
+      createPaymentNo: () => 'PAY-pending',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse())
+
+    const firstPayment = orderStatus.submitPayment(session)
+    const secondPayment = orderStatus.submitPayment(session)
+
+    expect(createPayment).toHaveBeenCalledOnce()
+    await expect(secondPayment).resolves.toBeNull()
+
+    deferredPayment.resolve(createPaymentResponse({ paymentNo: 'PAY-pending' }))
+    await firstPayment
+
+    expect(orderStatus.paymentNo.value).toBe('PAY-pending')
+    expect(orderStatus.paymentStatus.value).toBe('paid')
   })
 })
 
@@ -693,7 +820,7 @@ function createDeferred<T>() {
   return { promise, resolve }
 }
 
-function createPaymentResponse(): PaymentResponse {
+function createPaymentResponse(patch: Partial<PaymentResponse> = {}): PaymentResponse {
   return {
     paymentId: 701,
     paymentNo: 'PAY-duplicate',
@@ -704,6 +831,7 @@ function createPaymentResponse(): PaymentResponse {
     channel: 'mock',
     status: 'paid',
     amountCent: 59900,
+    ...patch,
   }
 }
 

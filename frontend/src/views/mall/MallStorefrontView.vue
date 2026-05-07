@@ -127,6 +127,7 @@ const deepLinkRecovery = computed(() => createMallOrderDeepLinkRecoveryView(
 ))
 const cartRestoreMessage = computed(() => describeCartRestore())
 const cartCheckoutGuidance = computed(() => describeCartCheckoutFailure())
+const paymentFailureGuidance = computed(() => describePaymentFailure())
 
 onMounted(() => {
   mallSession.bootstrap()
@@ -447,6 +448,29 @@ function describeCartCheckoutFailure(): string {
   }
 }
 
+function describePaymentFailure(): string {
+  const failure = orderStatus.paymentFailure.value
+  if (!failure) {
+    return ''
+  }
+
+  switch (failure.kind) {
+    case 'auth':
+      return t('mall.orders.paymentFailureAuth')
+    case 'notPayable':
+      return t('mall.orders.paymentFailureNotPayable')
+    case 'duplicatePayment':
+      return t('mall.orders.paymentFailureDuplicate')
+    case 'validation':
+      return t('mall.orders.paymentFailureValidation')
+    case 'system':
+      return t('mall.orders.paymentFailureSystem')
+    case 'unknown':
+    default:
+      return t('mall.orders.paymentFailureUnknown')
+  }
+}
+
 function getOrderSummaryLabels() {
   return {
     created: t('mall.orders.statusCreated'),
@@ -731,7 +755,12 @@ function resolveDefaultShopId(): number {
             <div v-if="orderStatus.orderRefreshResult.value === 'success'" class="inline-feedback success">
               {{ t('mall.orders.refreshSuccess') }}
             </div>
-            <div v-if="orderStatus.errorMessage.value" class="inline-feedback danger">
+            <div v-if="orderStatus.paymentFailure.value" class="inline-feedback danger">
+              <strong>{{ paymentFailureGuidance }}</strong>
+              <span>{{ orderStatus.errorMessage }}</span>
+              <small v-if="orderStatus.paymentNo.value">{{ currentPaymentRefresh.sourceDescription }}</small>
+            </div>
+            <div v-else-if="orderStatus.errorMessage.value" class="inline-feedback danger">
               <strong>{{ t('mall.orders.refreshFailedKeepDetail') }}</strong>
               <span>{{ orderStatus.errorMessage }}</span>
             </div>

@@ -1,4 +1,5 @@
 import type { OrderResponse } from '../../types/api/order'
+import type { PaymentResponse } from '../../types/api/payment'
 
 export interface MallOrderSummaryLabels {
   created: string
@@ -442,6 +443,34 @@ export function mergeOrderIntoList(orders: OrderResponse[], updatedOrder: OrderR
 export function upsertOrderIntoList(orders: OrderResponse[], updatedOrder: OrderResponse): OrderResponse[] {
   const merged = mergeOrderIntoList(orders, updatedOrder)
   return merged === orders ? [updatedOrder, ...orders] : merged
+}
+
+export function applyMallPaymentToOrder(
+  order: OrderResponse | null,
+  payment: PaymentResponse,
+): OrderResponse | null {
+  if (!order || order.orderId !== payment.orderId) {
+    return order
+  }
+
+  if (normalizeText(payment.status) !== 'paid') {
+    return order
+  }
+
+  return {
+    ...order,
+    status: 'paid',
+    fulfillmentStatus: normalizeText(order.fulfillmentStatus) ?? 'unshipped',
+  }
+}
+
+export function applyMallPaymentToOrderList(
+  orders: OrderResponse[],
+  payment: PaymentResponse,
+): OrderResponse[] {
+  const nextOrder = orders.find((order) => order.orderId === payment.orderId)
+  const updatedOrder = applyMallPaymentToOrder(nextOrder ?? null, payment)
+  return updatedOrder ? mergeOrderIntoList(orders, updatedOrder) : orders
 }
 
 export function resolveMallOrderListFilter(order: OrderResponse): MallOrderListFilter {
