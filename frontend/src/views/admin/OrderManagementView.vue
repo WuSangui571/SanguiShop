@@ -1,21 +1,33 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAppPreferences } from '../../composables/useAppPreferences'
 import { useOrderManagement } from '../../composables/useOrderManagement'
 import type { PersistedOpsSession } from '../../types/api/auth'
 import type { OrderStatus } from '../../types/api/order'
 import { formatDateTime, formatMoney } from '../../utils/format'
-import { getAdminOrderStatusLabel } from './orderManagementModel'
+import {
+  ADMIN_ORDER_FILTER_STORAGE_KEY,
+  buildAdminOrderSearchParams,
+  createDefaultOrderFilters,
+  deriveAdminOrderTimeline,
+  deserializeAdminOrderFilters,
+  getAdminOrderStatusLabel,
+  readAdminOrderFiltersFromSearch,
+  serializeAdminOrderFilters,
+  type AdminOrderFilterDraft,
+} from './orderManagementModel'
 
 interface Props {
   session: PersistedOpsSession | null
   canAccessOrderWorkspace: boolean
+  initialOrderId?: number | null
 }
 
 const props = defineProps<Props>()
 const { t } = useAppPreferences()
 const sessionRef = computed(() => props.session)
 const canAccessRef = computed(() => props.canAccessOrderWorkspace)
+const showCancelConfirm = ref(false)
 
 const {
   filters,
@@ -43,7 +55,10 @@ const {
   updateFilters,
   goToPage,
   retry,
-} = useOrderManagement(sessionRef, canAccessRef)
+} = useOrderManagement(sessionRef, canAccessRef, {
+  initialFilters: readInitialOrderFilters(),
+  initialOrderId: props.initialOrderId ?? null,
+})
 
 const statusOptions = computed(() => [
   { label: t('orderAdmin.statusAll'), value: 'all' },
@@ -56,7 +71,22 @@ const statusLabels = computed(() => ({
   created: t('orderAdmin.statusCreated'),
   paid: t('orderAdmin.statusPaid'),
   cancelled: t('orderAdmin.statusCancelled'),
+  shipped: t('orderAdmin.statusShipped'),
 }))
+
+const timelineLabels = computed(() => ({
+  created: t('orderAdmin.timelineCreatedDescription'),
+  paid: t('orderAdmin.timelinePaidDescription'),
+  cancelled: t('orderAdmin.timelineCancelledDescription'),
+  shipped: t('orderAdmin.timelineShippedDescription'),
+  unknown: t('orderAdmin.timelineUnknownDescription'),
+}))
+
+const timelineEntries = computed(() => (
+  detail.value
+    ? deriveAdminOrderTimeline(detail.value.statusTimeline, statusLabels.value, timelineLabels.value)
+    : []
+))
 
 watch(
   () => props.session,
@@ -66,9 +96,21 @@ watch(
   { immediate: true },
 )
 
-onMounted(() => {
-  void bootstrap()
-})
+watch(
+  filters,
+  () => {
+    persistOrderFilters(filters.value)
+    replaceOrderSearchUrl(filters.value, detail.value?.orderId ?? props.initialOrderId ?? null)
+  },
+  { deep: true },
+)
+
+watch(
+  () => detail.value?.orderId,
+  (orderId) => {
+    replaceOrderSearchUrl(filters.value, orderId ?? null)
+  },
+)
 
 function statusLabel(status: OrderStatus): string {
   return getAdminOrderStatusLabel(status, statusLabels.value)
@@ -103,7 +145,59 @@ function onRefreshPayment() {
 }
 
 function onCancelOrder() {
-  void cancelSelectedOrder()
+  showCancelConfirm.value = true
+}
+
+async function confirmCancelOrder() {
+  const cancelled = await cancelSelectedOrder()
+  if (cancelled) {
+    showCancelConfirm.value = false
+  }
+}
+
+function dismissCancelConfirm() {
+  if (!isActionPending.value) {
+    showCancelConfirm.value = false
+  }
+}
+
+function readInitialOrderFilters(): AdminOrderFilterDraft {
+  if (typeof window === 'undefined') {
+    return createDefaultOrderFilters()
+  }
+
+  return readAdminOrderFiltersFromSearch(window.location.search)
+    ?? deserializeAdminOrderFilters(readStoredOrderFilters())
+    ?? createDefaultOrderFilters()
+}
+
+function readStoredOrderFilters(): string | null {
+  try {
+    return window.sessionStorage.getItem(ADMIN_ORDER_FILTER_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function persistOrderFilters(nextFilters: AdminOrderFilterDraft) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.sessionStorage.setItem(ADMIN_ORDER_FILTER_STORAGE_KEY, serializeAdminOrderFilters(nextFilters))
+  } catch {
+    // Filter persistence is best-effort; URL state and in-memory filters still drive the UI.
+  }
+}
+
+function replaceOrderSearchUrl(nextFilters: AdminOrderFilterDraft, orderId: number | null) {
+  if (typeof window === 'undefined' || !window.location.pathname.startsWith('/admin')) {
+    return
+  }
+
+  const params = buildAdminOrderSearchParams(nextFilters, orderId)
+  window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`)
 }
 </script>
 
@@ -305,10 +399,12 @@ function onCancelOrder() {
 
           <div class="section-head">
             <h4>{{ t('orderAdmin.timelineTitle') }}</h4>
+            <p class="section-note">{{ t('orderAdmin.timelineIntro') }}</p>
           </div>
           <div class="timeline">
-            <div v-for="entry in detail.statusTimeline" :key="`${entry.status}-${entry.occurredAt}`" class="timeline-item">
-              <strong>{{ statusLabel(entry.status) }}</strong>
+            <div v-for="entry in timelineEntries" :key="`${entry.status}-${entry.occurredAt}`" class="timeline-item">
+              <strong>{{ entry.statusLabel }}</strong>
+              <p>{{ entry.description }}</p>
               <span>{{ formatDateTime(entry.occurredAt) }}</span>
               <small>{{ entry.traceId ?? detail.traceId ?? '--' }}</small>
             </div>
@@ -320,6 +416,25 @@ function onCancelOrder() {
         </div>
       </section>
     </section>
+
+    <div v-if="showCancelConfirm" class="confirm-backdrop" role="presentation" @click.self="dismissCancelConfirm">
+      <section class="confirm-dialog" role="dialog" aria-modal="true" :aria-label="t('orderAdmin.cancelConfirmTitle')">
+        <h3>{{ t('orderAdmin.cancelConfirmTitle') }}</h3>
+        <p>
+          {{ t('orderAdmin.cancelConfirmBody', {
+            orderNo: detail?.orderNo ?? '--',
+          }) }}
+        </p>
+        <div class="confirm-actions">
+          <button type="button" class="secondary" :disabled="isActionPending" @click="dismissCancelConfirm">
+            {{ t('common.dismiss') }}
+          </button>
+          <button type="button" class="danger" :disabled="isActionPending" @click="confirmCancelOrder">
+            {{ isActionPending ? t('orderAdmin.cancelling') : t('orderAdmin.cancelConfirmAction') }}
+          </button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
@@ -357,9 +472,16 @@ h2 {
 }
 
 .intro,
-.meta {
+.meta,
+.section-note {
   margin: 0.55rem 0 0;
   color: var(--text-muted);
+}
+
+.section-note {
+  max-width: 34rem;
+  font-size: 0.88rem;
+  text-align: right;
 }
 
 .hero-actions,
@@ -416,6 +538,7 @@ select {
   padding: 0.7rem 0.95rem;
   font-weight: 700;
   border: 1px solid var(--border-soft);
+  white-space: normal;
 }
 
 .primary {
@@ -549,24 +672,101 @@ button:disabled {
   border-radius: 0.75rem;
 }
 
+.timeline-item p {
+  margin: 0;
+  color: var(--text-main);
+}
+
 small {
   color: var(--text-muted);
+}
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--overlay-bg);
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 0.75rem;
+  background: var(--bg-panel);
+  color: var(--text-main);
+  box-shadow: var(--shadow-soft);
+}
+
+.confirm-dialog p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 960px) {
   .hero,
   .workspace-grid,
-  .panel-head {
+  .panel-head,
+  .section-head {
     display: grid;
   }
 
   .workspace-grid {
     grid-template-columns: 1fr;
   }
+
+  .section-note {
+    text-align: left;
+  }
 }
 
 @media (max-width: 620px) {
+  .order-admin-shell {
+    width: min(100% - 1rem, 1180px);
+  }
+
+  .hero-actions,
+  .filter-actions,
+  .detail-actions,
+  .pagination,
+  .confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .primary,
+  .secondary,
+  .danger {
+    width: 100%;
+  }
+
+  .list-panel,
+  .detail-panel {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+  }
+
   .table-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-head {
+    display: none;
+  }
+
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 }

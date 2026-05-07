@@ -5,6 +5,8 @@ import type { PersistedOpsSession } from '../types/api/auth'
 import type { AdminOrderDetailResponse, AdminOrderSummaryResponse } from '../types/api/order'
 import type { PaymentResponse } from '../types/api/payment'
 import {
+  applyAdminPaymentToDetail,
+  applyAdminPaymentToSummaries,
   buildAdminCancelOrderRequest,
   buildAdminOrderQuery,
   canCancelAdminOrder,
@@ -17,6 +19,8 @@ import {
 
 interface UseOrderManagementOptions {
   createRequestId?: () => string
+  initialFilters?: AdminOrderFilterDraft | null
+  initialOrderId?: number | null
 }
 
 export function useOrderManagement(
@@ -24,7 +28,7 @@ export function useOrderManagement(
   canAccessWorkspace: Ref<boolean>,
   options: UseOrderManagementOptions = {},
 ) {
-  const filters = ref<AdminOrderFilterDraft>(createDefaultOrderFilters())
+  const filters = ref<AdminOrderFilterDraft>(options.initialFilters ?? createDefaultOrderFilters())
   const items = ref<AdminOrderSummaryResponse[]>([])
   const total = ref(0)
   const detail = ref<AdminOrderDetailResponse | null>(null)
@@ -43,11 +47,14 @@ export function useOrderManagement(
   const canCancelSelectedOrder = computed(() => Boolean(detail.value && canCancelAdminOrder(detail.value.status)))
   const isActionPending = computed(() => actionGate.isPending())
 
-  async function bootstrap() {
+  async function bootstrap(orderId = options.initialOrderId ?? null) {
     if (!canAccessWorkspace.value || !session.value) {
       return
     }
     await refreshList()
+    if (orderId && orderId > 0) {
+      await selectOrder(orderId)
+    }
   }
 
   async function refreshList(selectFirst = false) {
@@ -121,6 +128,8 @@ export function useOrderManagement(
     try {
       const result = await getAdminPaymentByOrderId(detail.value.orderId)
       payment.value = result.data
+      detail.value = applyAdminPaymentToDetail(detail.value, result.data)
+      items.value = applyAdminPaymentToSummaries(items.value, result.data)
       return result.data
     } catch (caught) {
       const error = toAdminOrderError(caught, 'Unable to refresh payment status.')

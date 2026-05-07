@@ -1,14 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import { HttpClientError } from '../../services/httpClient'
 import {
+  applyAdminPaymentToDetail,
+  applyAdminPaymentToSummaries,
+  buildAdminOrderSearchParams,
   buildAdminCancelOrderRequest,
   buildAdminOrderQuery,
   canCancelAdminOrder,
   createDefaultOrderFilters,
   createSubmissionGate,
+  deriveAdminOrderTimeline,
+  deserializeAdminOrderFilters,
+  getAdminOrderTimelineDescription,
   getAdminOrderStatusLabel,
+  readAdminOrderFiltersFromSearch,
+  readAdminOrderIdFromSearch,
+  serializeAdminOrderFilters,
   toAdminOrderError,
 } from './orderManagementModel'
+import type { AdminOrderDetailResponse, AdminOrderSummaryResponse } from '../../types/api/order'
+import type { PaymentResponse } from '../../types/api/payment'
 
 describe('orderManagementModel', () => {
   it('builds trimmed filter payload and omits all or blank filters', () => {
@@ -51,7 +62,137 @@ describe('orderManagementModel', () => {
 
     expect(getAdminOrderStatusLabel('created', labels)).toBe('Unpaid')
     expect(getAdminOrderStatusLabel('paid', labels)).toBe('Paid')
+    expect(getAdminOrderStatusLabel('shipped', { ...labels, shipped: 'Shipped' })).toBe('Shipped')
     expect(getAdminOrderStatusLabel('refunding', labels)).toBe('refunding')
+  })
+
+  it('reads order deep link and filter state from search params', () => {
+    const filters = readAdminOrderFiltersFromSearch('?workspace=order&orderId=101&status=paid&orderNo= ORD-9 &userId=10001&from=2026-05-01T10:00&to=2026-05-02T10:00&page=3&size=50')
+
+    expect(readAdminOrderIdFromSearch('?workspace=order&orderId=101')).toBe(101)
+    expect(readAdminOrderIdFromSearch('?workspace=order&orderId=0')).toBeNull()
+    expect(filters).toEqual({
+      status: 'paid',
+      orderNo: ' ORD-9 ',
+      userId: '10001',
+      fromTime: '2026-05-01T10:00',
+      toTime: '2026-05-02T10:00',
+      page: 3,
+      size: 50,
+    })
+  })
+
+  it('builds shareable order search params without all or blank filters', () => {
+    const filters = createDefaultOrderFilters()
+    filters.status = 'all'
+    filters.orderNo = ' ORD-001 '
+    filters.userId = ''
+    filters.page = 2
+
+    expect(buildAdminOrderSearchParams(filters, 101).toString()).toBe('workspace=order&orderNo=ORD-001&page=2&size=20&orderId=101')
+  })
+
+  it('serializes and restores order filters from session storage payload', () => {
+    const filters = createDefaultOrderFilters()
+    filters.status = 'cancelled'
+    filters.orderNo = 'ORD-002'
+    filters.page = 4
+
+    expect(deserializeAdminOrderFilters(serializeAdminOrderFilters(filters))).toEqual(filters)
+    expect(deserializeAdminOrderFilters('{"version":2}')).toBeNull()
+    expect(deserializeAdminOrderFilters('not-json')).toBeNull()
+  })
+
+  it('derives operator-readable timeline descriptions', () => {
+    const statusLabels = {
+      created: 'Unpaid',
+      paid: 'Paid',
+      cancelled: 'Cancelled',
+      shipped: 'Shipped',
+    }
+    const timelineLabels = {
+      created: 'Order was created and is awaiting payment.',
+      paid: 'Payment was confirmed.',
+      cancelled: 'Order was cancelled and release work should be complete.',
+      shipped: 'Shipment was confirmed.',
+      unknown: 'Backend returned an unrecognized status.',
+    }
+
+    expect(getAdminOrderTimelineDescription('paid', timelineLabels)).toBe('Payment was confirmed.')
+    expect(getAdminOrderTimelineDescription('refunding', timelineLabels)).toBe('Backend returned an unrecognized status.')
+    expect(deriveAdminOrderTimeline([
+      { status: 'created', occurredAt: '2026-05-01T10:00:00+08:00', traceId: 'trace-created' },
+      { status: 'shipped', occurredAt: '2026-05-02T10:00:00+08:00', traceId: 'trace-shipped' },
+    ], statusLabels, timelineLabels)).toEqual([
+      {
+        status: 'created',
+        statusLabel: 'Unpaid',
+        occurredAt: '2026-05-01T10:00:00+08:00',
+        traceId: 'trace-created',
+        description: 'Order was created and is awaiting payment.',
+      },
+      {
+        status: 'shipped',
+        statusLabel: 'Shipped',
+        occurredAt: '2026-05-02T10:00:00+08:00',
+        traceId: 'trace-shipped',
+        description: 'Shipment was confirmed.',
+      },
+    ])
+  })
+
+  it('writes refreshed payment number back into current detail and list item snapshots', () => {
+    const detail: AdminOrderDetailResponse = {
+      orderId: 101,
+      orderNo: 'ORD-101',
+      shopId: 1,
+      userId: '10001',
+      requestId: 'req-101',
+      reservationNo: 'RSV-101',
+      paymentNo: null,
+      status: 'created',
+      totalAmountCent: 9900,
+      traceId: 'trace-101',
+      createdAt: '2026-05-01T10:00:00+08:00',
+      updatedAt: '2026-05-01T10:00:00+08:00',
+      items: [],
+      statusTimeline: [],
+    }
+    const summaries: AdminOrderSummaryResponse[] = [
+      {
+        orderId: 101,
+        orderNo: 'ORD-101',
+        shopId: 1,
+        userId: '10001',
+        status: 'created',
+        totalAmountCent: 9900,
+        paymentNo: null,
+        itemCount: 1,
+        traceId: 'trace-101',
+        createdAt: '2026-05-01T10:00:00+08:00',
+        updatedAt: '2026-05-01T10:00:00+08:00',
+      },
+    ]
+    const payment: PaymentResponse = {
+      paymentId: 201,
+      paymentNo: 'PAY-201',
+      orderId: 101,
+      orderNo: 'ORD-101',
+      shopId: 1,
+      userId: '10001',
+      channel: 'mock',
+      status: 'paid',
+      amountCent: 9900,
+    }
+
+    expect(applyAdminPaymentToDetail(detail, payment)).toMatchObject({
+      paymentNo: 'PAY-201',
+      status: 'paid',
+    })
+    expect(applyAdminPaymentToSummaries(summaries, payment)[0]).toMatchObject({
+      paymentNo: 'PAY-201',
+      status: 'paid',
+    })
   })
 
   it('preserves backend error code message and traceId', () => {

@@ -8,6 +8,7 @@ import OpsLoginView from './views/auth/OpsLoginView.vue'
 import CompensationDashboardView from './views/admin/CompensationDashboardView.vue'
 import FulfillmentManagementView from './views/admin/FulfillmentManagementView.vue'
 import OrderManagementView from './views/admin/OrderManagementView.vue'
+import { readAdminOrderIdFromSearch } from './views/admin/orderManagementModel'
 import ProductManagementView from './views/admin/ProductManagementView.vue'
 import MallStorefrontView from './views/mall/MallStorefrontView.vue'
 
@@ -29,7 +30,10 @@ const PRODUCT_CATALOG_ADMIN_PERMISSION = 'PRODUCT_CATALOG_ADMIN'
 const ORDER_MANAGEMENT_ADMIN_PERMISSION = 'ORDER_MANAGEMENT_ADMIN'
 const LOGISTICS_FULFILLMENT_ADMIN_PERMISSION = 'LOGISTICS_FULFILLMENT_ADMIN'
 const OPS_COMPENSATION_ADMIN_PERMISSION = 'OPS_COMPENSATION_ADMIN'
-const activeAdminWorkspace = ref<'product' | 'order' | 'fulfillment' | 'compensation'>('product')
+type AdminWorkspace = 'product' | 'order' | 'fulfillment' | 'compensation'
+
+const activeAdminWorkspace = ref<AdminWorkspace>(readAdminWorkspaceFromLocation() ?? 'product')
+const initialAdminOrderId = readInitialAdminOrderId()
 
 const isAdminSurface = computed(() => {
   if (typeof window === 'undefined') {
@@ -72,7 +76,7 @@ const canAccessFulfillmentWorkspace = computed(() => {
 })
 
 const availableAdminWorkspaces = computed(() => {
-  const workspaces: Array<'product' | 'order' | 'fulfillment' | 'compensation'> = []
+  const workspaces: AdminWorkspace[] = []
   if (canAccessProductWorkspace.value) {
     workspaces.push('product')
   }
@@ -101,8 +105,51 @@ watch(
   { immediate: true },
 )
 
-function selectWorkspace(workspace: 'product' | 'order' | 'fulfillment' | 'compensation') {
+watch(
+  activeAdminWorkspace,
+  (workspace) => {
+    replaceAdminWorkspaceUrl(workspace)
+  },
+)
+
+function selectWorkspace(workspace: AdminWorkspace) {
   activeAdminWorkspace.value = workspace
+}
+
+function readAdminWorkspaceFromLocation(): AdminWorkspace | null {
+  if (typeof window === 'undefined' || !window.location.pathname.startsWith('/admin')) {
+    return null
+  }
+
+  const workspace = new URLSearchParams(window.location.search).get('workspace')
+  return workspace === 'product'
+    || workspace === 'order'
+    || workspace === 'fulfillment'
+    || workspace === 'compensation'
+    ? workspace
+    : null
+}
+
+function readInitialAdminOrderId(): number | null {
+  if (typeof window === 'undefined' || !window.location.pathname.startsWith('/admin')) {
+    return null
+  }
+  return readAdminOrderIdFromSearch(window.location.search)
+}
+
+function replaceAdminWorkspaceUrl(workspace: AdminWorkspace) {
+  if (typeof window === 'undefined' || !window.location.pathname.startsWith('/admin')) {
+    return
+  }
+
+  const url = new URL(window.location.href)
+  url.searchParams.set('workspace', workspace)
+  if (workspace !== 'order') {
+    for (const key of ['orderId', 'status', 'orderNo', 'userId', 'from', 'to', 'page', 'size']) {
+      url.searchParams.delete(key)
+    }
+  }
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
 }
 
 onMounted(() => {
@@ -204,6 +251,7 @@ onMounted(() => {
         v-else-if="activeAdminWorkspace === 'order' && canAccessOrderWorkspace"
         :session="state.session"
         :can-access-order-workspace="canAccessOrderWorkspace"
+        :initial-order-id="initialAdminOrderId"
       />
       <FulfillmentManagementView
         v-else-if="activeAdminWorkspace === 'fulfillment' && canAccessFulfillmentWorkspace"

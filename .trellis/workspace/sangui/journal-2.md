@@ -98,3 +98,36 @@ SanguiShop admin now has an operational order management surface. Operators can 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 43: 管理端发货物流履约 MVP
+
+**Date**: 2026-05-07
+**Task**: 管理端发货物流履约 MVP
+**Branch**: `main`
+
+### Summary
+
+Completed the admin fulfillment/logistics MVP: logistics-service now owns shipment records and admin shipping APIs, order-service owns fulfillment snapshots and paid->shipped transitions, gateway/security/specs were updated, and the mall/admin frontends now expose fulfillment status and shipping controls.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1cabf72` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

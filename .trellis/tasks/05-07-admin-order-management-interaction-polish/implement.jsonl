@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Admin order UI stays under frontend/src/views/admin and reuses service/composable boundaries."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Order page interaction and responsive states must preserve component/UI state rules."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "useOrderManagement owns async state, retries, and request routing through services."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "URL/session filter state is client preference/state, not backend fact."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Order/payment DTO fields and unknown status fallback must stay typed."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin order/payment gateway contracts and required UI handling apply."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Completion requires typecheck/lint/tests and mobile layout review."}

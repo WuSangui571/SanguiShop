@@ -1,0 +1,8 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review UI states, props/emits, and responsive interaction quality."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Review composable async state, retry, and service boundaries."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Review URL/session persistence and typed translation usage."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review DTO compatibility and unknown status fallback."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Review admin order/payment contract handling and error preservation."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Run and evaluate frontend quality gates."}
