@@ -131,3 +131,77 @@ Completed the admin fulfillment/logistics MVP: logistics-service now owns shipme
 ### Next Steps
 
 - None - task complete
+
+
+## Session 44: 管理端订单管理交互打磨
+
+**Date**: 2026-05-07
+**Task**: 管理端订单管理交互打磨
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+### Summary
+
+Completed and human-tested the admin order management interaction polish. Commit `1c15406 feat(admin): ????????` improves the existing `/admin` order workspace without changing backend contracts or database schema.
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Deep Link | `/admin?workspace=order&orderId=101` now opens the order workspace and loads the specified order detail directly. |
+| Filter Persistence | Admin order filters persist through shareable URL params and `sessionStorage` key `sangui.admin.order.filters.v1`; blank filters and `status=all` stay out of API payloads. |
+| Cancel Safety | Admin cancellation now requires a confirmation dialog before sending the cancel request while preserving duplicate-submit protection. |
+| Payment Refresh | Refreshing payment status writes returned `paymentNo` and paid status into the current detail/list display snapshot to avoid inconsistent UI. |
+| Timeline Copy | Order status timeline now includes operator-readable descriptions for created, paid, cancelled, shipped, and unknown states. |
+| Mobile Layout | Narrow-screen list/detail/actions/table layouts were tightened so buttons remain reachable and long values wrap cleanly. |
+| Specs & Tests | Frontend API spec now documents order deep-link/filter persistence contracts; `orderManagementModel` tests cover URL parsing, persistence, timeline descriptions, and payment display merge. |
+
+### Verification
+
+- Human manual testing: passed.
+- Human commit: `1c15406 feat(admin): ????????`.
+- AI: `cmd /c npm run typecheck` passed.
+- AI: `cmd /c npm run lint` passed.
+- AI: `cmd /c npm run build` passed.
+- AI: `git diff --check` passed.
+- AI Vitest and Vite dev server remained blocked in sandbox by esbuild `spawn EPERM`; escalation was blocked by the approval service. Human manual testing covered the admin order polish flow.
+
+### Updated Files / Modules
+
+- `frontend/src/App.vue`
+- `frontend/src/composables/useOrderManagement.ts`
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/styles.css`
+- `frontend/src/views/admin/OrderManagementView.vue`
+- `frontend/src/views/admin/orderManagementModel.ts`
+- `frontend/src/views/admin/orderManagementModel.test.ts`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-07-admin-order-management-interaction-polish/prd.md`
+
+### Result
+
+The admin order workspace now supports direct operational handoff links, refresh-safe filters, safer cancellation, clearer lifecycle reading, and better narrow-screen usability. This completes the direct admin operations chain after order management MVP and fulfillment/logistics MVP.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1c15406` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
