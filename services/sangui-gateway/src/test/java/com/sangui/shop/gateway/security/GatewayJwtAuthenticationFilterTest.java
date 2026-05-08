@@ -153,6 +153,39 @@ class GatewayJwtAuthenticationFilterTest {
     }
 
     @Test
+    void allowsPublicReviewImageReadButProtectsUploadWrite() throws Exception {
+        MockServerWebExchange readExchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.GET, "/api/uploads/review-images/review-a.jpg")
+                .header(SanguiIdentityHeaderNames.USER_ID, "spoofed")
+                .header(TraceConstants.TRACE_ID_HEADER, "trace-upload-read")
+        );
+        AtomicReference<ServerWebExchange> forwardedRead = new AtomicReference<>();
+
+        filter.filter(readExchange, capture(forwardedRead)).block();
+
+        assertThat(forwardedRead.get()).isNotNull();
+        assertThat(forwardedRead.get().getRequest().getHeaders().containsKey(SanguiIdentityHeaderNames.USER_ID))
+                .isFalse();
+        assertThat(forwardedRead.get().getRequest().getHeaders().getFirst(TraceConstants.TRACE_ID_HEADER))
+                .isEqualTo("trace-upload-read");
+        assertThat(readExchange.getResponse().getStatusCode()).isNull();
+
+        MockServerWebExchange writeExchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.POST, "/api/uploads/review-images")
+                .header(TraceConstants.TRACE_ID_HEADER, "trace-upload-write")
+        );
+        AtomicReference<ServerWebExchange> forwardedWrite = new AtomicReference<>();
+
+        filter.filter(writeExchange, capture(forwardedWrite)).block();
+
+        assertThat(forwardedWrite.get()).isNull();
+        assertThat(writeExchange.getResponse().getStatusCode().value()).isEqualTo(401);
+        JsonNode body = objectMapper.readTree(writeExchange.getResponse().getBodyAsString().block());
+        assertThat(body.get("code").asText()).isEqualTo(CommonErrorCode.AUTH_TOKEN_MISSING.code());
+        assertThat(body.get("traceId").asText()).isEqualTo("trace-upload-write");
+    }
+
+    @Test
     void keepsAdminPaymentRoutesProtected() throws Exception {
         MockServerWebExchange adminExchange = MockServerWebExchange.from(MockServerHttpRequest
                 .method(HttpMethod.GET, "/api/admin/payments/by-order/101")

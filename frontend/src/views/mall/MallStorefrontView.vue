@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useAppPreferences } from '../../composables/useAppPreferences'
 import { getProduct, listProductReviews, listProducts } from '../../services/productApi'
 import { HttpClientError } from '../../services/httpClient'
+import { uploadReviewImage } from '../../services/uploadApi'
 import { useMallCart } from '../../composables/useMallCart'
 import { useMallOrderStatus } from '../../composables/useMallOrderStatus'
 import { useMallSession } from '../../composables/useMallSession'
@@ -33,6 +34,13 @@ import { createMallProductReviewView } from './mallProductReviewModel'
 import ProductCheckoutPanel from './ProductCheckoutPanel.vue'
 
 const DEFAULT_PAGE_SIZE = 12
+const REVIEW_IMAGE_MAX_COUNT = 6
+
+interface ReviewImageDraft {
+  url: string
+  name: string
+  sizeBytes: number
+}
 
 const { t } = useAppPreferences()
 const mallSession = useMallSession()
@@ -76,6 +84,9 @@ const reviewForm = reactive({
   rating: 5,
   content: '',
 })
+const reviewImages = ref<ReviewImageDraft[]>([])
+const reviewUploadError = ref('')
+const isUploadingReviewImage = ref(false)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 const canGoPrev = computed(() => page.value > 1)
@@ -165,6 +176,11 @@ const productReviewView = computed(() => createMallProductReviewView(productRevi
 }, getProductReviewLabels()))
 const canGoPrevProductReview = computed(() => productReviewPage.value > 1 && !isLoadingProductReviews.value)
 const canGoNextProductReview = computed(() => productReviewPage.value < productReviewTotalPages.value && !isLoadingProductReviews.value)
+const canSubmitReviewForm = computed(() => (
+  orderStatus.canReview.value
+  && !orderStatus.isSubmittingReview.value
+  && !isUploadingReviewImage.value
+))
 
 onMounted(() => {
   mallSession.bootstrap()
@@ -265,6 +281,7 @@ async function submitLogin() {
 }
 
 async function handleOrderCreated(order: OrderResponse) {
+  resetReviewDraft()
   orderStatus.acceptCreatedOrder(order)
   replaceOrderUrl(order.orderId, '')
   linkedDetailOrderId.value = null
@@ -272,6 +289,7 @@ async function handleOrderCreated(order: OrderResponse) {
 }
 
 async function selectOrder(orderId: number) {
+  resetReviewDraft()
   replaceOrderUrl(orderId, '')
   deepLinkOrderId.value = null
   deepLinkFailureMessage.value = ''
@@ -294,12 +312,16 @@ async function cancelCurrentOrder() {
 async function confirmCurrentOrderReceipt() {
   const completed = await orderStatus.confirmCurrentOrderReceipt()
   if (completed) {
+    resetReviewDraft()
     replaceOrderUrl(completed.orderId, '')
     await loadOrderPage()
   }
 }
 
 async function submitCurrentOrderReview() {
+  if (isUploadingReviewImage.value) {
+    return
+  }
   const openProductId = selectedProduct.value?.productId
   const shouldRefreshOpenProductReviews = Boolean(
     openProductId && orderStatus.order.value?.items.some((item) => item.productId === openProductId),
@@ -307,16 +329,62 @@ async function submitCurrentOrderReview() {
   const review = await orderStatus.submitCurrentOrderReview({
     rating: reviewForm.rating,
     content: reviewForm.content,
+    imageUrls: reviewImages.value.map((image) => image.url),
   })
   if (review) {
     reviewForm.rating = 5
     reviewForm.content = ''
+    resetReviewDraft()
     replaceOrderUrl(review.orderId, '')
     if (shouldRefreshOpenProductReviews && openProductId) {
       void loadProductReviews(openProductId, 1)
     }
     await loadOrderPage()
   }
+}
+
+async function handleReviewImageSelected(event: Event) {
+  const input = event.target instanceof HTMLInputElement ? event.target : null
+  const files = Array.from(input?.files ?? [])
+  if (input) {
+    input.value = ''
+  }
+  if (!files.length || isUploadingReviewImage.value) {
+    return
+  }
+  const remaining = REVIEW_IMAGE_MAX_COUNT - reviewImages.value.length
+  if (files.length > remaining) {
+    reviewUploadError.value = t('mall.orders.reviewImageLimit', { count: REVIEW_IMAGE_MAX_COUNT })
+    return
+  }
+
+  isUploadingReviewImage.value = true
+  reviewUploadError.value = ''
+  try {
+    for (const file of files) {
+      const result = await uploadReviewImage(file)
+      reviewImages.value.push({
+        url: result.data.url,
+        name: file.name || result.data.url,
+        sizeBytes: result.data.sizeBytes,
+      })
+    }
+  } catch (caught) {
+    reviewUploadError.value = describeError(caught, t('mall.orders.reviewImageUploadFallback'))
+  } finally {
+    isUploadingReviewImage.value = false
+  }
+}
+
+function removeReviewImage(index: number) {
+  reviewImages.value = reviewImages.value.filter((_, currentIndex) => currentIndex !== index)
+  reviewUploadError.value = ''
+}
+
+function resetReviewDraft() {
+  reviewImages.value = []
+  reviewUploadError.value = ''
+  isUploadingReviewImage.value = false
 }
 
 function handleAddToCart(item: CartItemInput) {
@@ -382,6 +450,7 @@ async function restoreOrderFromUrl() {
   const orderId = Number(rawOrderId)
   const paymentNo = params.get('paymentNo') ?? ''
   if (Number.isFinite(orderId) && orderId > 0) {
+    resetReviewDraft()
     isRestoringOrderFromUrl.value = true
     try {
       const wasLoadedOnCurrentPage = orderStatus.orders.value.some((item) => item.orderId === orderId)
@@ -1009,11 +1078,19 @@ function resolveDefaultShopId(): number {
                 <strong>{{ t('mall.orders.reviewRatingValue', { rating: orderStatus.order.value.review.rating }) }}</strong>
                 <p>{{ orderStatus.order.value.review.content || t('mall.orders.reviewContentEmpty') }}</p>
                 <small>{{ t('mall.orders.reviewCreatedAt', { time: formatDateTime(orderStatus.order.value.review.createdAt) }) }}</small>
+                <div v-if="orderStatus.order.value.review.imageUrls.length" class="review-images">
+                  <img
+                    v-for="imageUrl in orderStatus.order.value.review.imageUrls"
+                    :key="imageUrl"
+                    :src="imageUrl"
+                    :alt="t('mall.orders.reviewImageAlt')"
+                  >
+                </div>
               </div>
               <form v-else-if="currentReview.canSubmitReview" class="review-form" @submit.prevent="submitCurrentOrderReview()">
                 <label>
                   <span>{{ t('mall.orders.reviewRating') }}</span>
-                  <select v-model.number="reviewForm.rating" :disabled="orderStatus.isSubmittingReview.value">
+                  <select v-model.number="reviewForm.rating" :disabled="orderStatus.isSubmittingReview.value || isUploadingReviewImage">
                     <option :value="5">{{ t('mall.orders.reviewRatingFive') }}</option>
                     <option :value="4">{{ t('mall.orders.reviewRatingFour') }}</option>
                     <option :value="3">{{ t('mall.orders.reviewRatingThree') }}</option>
@@ -1027,13 +1104,42 @@ function resolveDefaultShopId(): number {
                     v-model="reviewForm.content"
                     :maxlength="500"
                     :placeholder="t('mall.orders.reviewContentPlaceholder')"
-                    :disabled="orderStatus.isSubmittingReview.value"
+                    :disabled="orderStatus.isSubmittingReview.value || isUploadingReviewImage"
                   ></textarea>
                 </label>
+                <label>
+                  <span>{{ t('mall.orders.reviewImages') }}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    :disabled="orderStatus.isSubmittingReview.value || isUploadingReviewImage || reviewImages.length >= REVIEW_IMAGE_MAX_COUNT"
+                    @change="handleReviewImageSelected"
+                  >
+                </label>
+                <div v-if="reviewImages.length" class="review-upload-list">
+                  <div v-for="(image, index) in reviewImages" :key="image.url" class="review-upload-item">
+                    <img :src="image.url" :alt="t('mall.orders.reviewImageAlt')">
+                    <div>
+                      <strong>{{ image.name }}</strong>
+                      <small>{{ t('mall.orders.reviewImageUploaded') }}</small>
+                    </div>
+                    <button
+                      type="button"
+                      class="text-action subtle"
+                      :disabled="orderStatus.isSubmittingReview.value || isUploadingReviewImage"
+                      @click="removeReviewImage(index)"
+                    >
+                      {{ t('common.remove') }}
+                    </button>
+                  </div>
+                </div>
+                <p v-if="isUploadingReviewImage" class="action-boundary">{{ t('mall.orders.reviewImageUploading') }}</p>
+                <p v-if="reviewUploadError" class="inline-feedback danger">{{ reviewUploadError }}</p>
                 <button
                   type="submit"
                   class="primary-action"
-                  :disabled="!orderStatus.canReview.value || orderStatus.isSubmittingReview.value"
+                  :disabled="!canSubmitReviewForm"
                 >
                   {{ currentReview.submitLabel }}
                 </button>
@@ -1863,7 +1969,8 @@ h2 {
 }
 
 .review-form select,
-.review-form textarea {
+.review-form textarea,
+.review-form input[type='file'] {
   width: 100%;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
@@ -1880,6 +1987,47 @@ h2 {
 
 .review-snapshot strong {
   color: var(--text-main);
+}
+
+.review-upload-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.review-upload-item {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.review-upload-item img {
+  width: 4rem;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-main);
+}
+
+.review-upload-item div {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.review-upload-item strong,
+.review-upload-item small {
+  overflow-wrap: anywhere;
+}
+
+.review-upload-item small {
+  color: var(--text-muted);
+  font-weight: 800;
 }
 
 .logistics-source {
@@ -2279,6 +2427,14 @@ h2 {
 
   .order-search {
     grid-template-columns: 1fr;
+  }
+
+  .review-upload-item {
+    grid-template-columns: 4rem minmax(0, 1fr);
+  }
+
+  .review-upload-item button {
+    grid-column: 1 / -1;
   }
 }
 </style>

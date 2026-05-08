@@ -1,0 +1,16 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "API and DTO contract, idempotency, validation, response envelope"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order review create and public product review projection contracts"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Public product review API and product-service/order-service projection boundary"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Order review image_urls persistence and storage contract documentation"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Validation, business error, and traceId response handling"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Review upload/submission trace logging and sensitive data boundary"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Service package ownership and layering"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall order review, upload API, and product review display contracts"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review form UI states and component behavior"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable data fetching, loading/error/retry behavior"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "API DTO and optional field safety"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer payload and failure-mode checklist"}
+{"file": ".trellis/spec/backend/upload-storage-contracts.md", "reason": "Review image upload API and storage boundary"}

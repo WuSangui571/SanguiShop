@@ -24,6 +24,7 @@ interface RequestOptions {
   body?: unknown
   method?: 'GET' | 'POST' | 'PUT'
   query?: Record<string, QueryValue>
+  formData?: FormData
   suppressAuthStateChange?: boolean
   authContext?: AuthContext
 }
@@ -86,11 +87,13 @@ function toMeta<T>(response: Response, payload: ApiResult<T> | null): ApiRespons
   }
 }
 
-function buildHeaders(authContext: AuthContext): HeadersInit {
+function buildHeaders(authContext: AuthContext, contentType: 'json' | 'form' = 'json'): HeadersInit {
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
     'X-Trace-Id': createRequestTraceId(),
+  }
+  if (contentType === 'json') {
+    headers['Content-Type'] = 'application/json'
   }
 
   const token = resolveAuthToken(authContext)
@@ -106,10 +109,12 @@ async function requestJson<T>(path: string, init: RequestOptions = {}): Promise<
   const authContext = init.authContext ?? 'ops'
   const requestInit: RequestInit = {
     method,
-    headers: buildHeaders(authContext),
+    headers: buildHeaders(authContext, init.formData ? 'form' : 'json'),
   }
 
-  if (method !== 'GET') {
+  if (init.formData) {
+    requestInit.body = init.formData
+  } else if (method !== 'GET') {
     requestInit.body = JSON.stringify(init.body ?? {})
   }
 
@@ -147,6 +152,18 @@ export async function postJson<T>(
 ): Promise<JsonResponse<T>> {
   return requestJson<T>(path, {
     body,
+    suppressAuthStateChange: options.suppressAuthStateChange,
+    authContext: options.authContext,
+  })
+}
+
+export async function postFormData<T>(
+  path: string,
+  formData: FormData,
+  options: { suppressAuthStateChange?: boolean; authContext?: AuthContext } = {},
+): Promise<JsonResponse<T>> {
+  return requestJson<T>(path, {
+    formData,
     suppressAuthStateChange: options.suppressAuthStateChange,
     authContext: options.authContext,
   })

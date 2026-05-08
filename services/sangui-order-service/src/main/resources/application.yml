@@ -44,6 +44,11 @@ sangui:
       read-timeout-ms: ${SANGUI_PRODUCT_READ_TIMEOUT_MS:3000}
   shop:
     default-shop-id: ${SANGUI_DEFAULT_SHOP_ID:1}
+  uploads:
+    review-images:
+      storage-directory: ${SANGUI_REVIEW_IMAGE_STORAGE_DIRECTORY:./data/uploads/review-images}
+      public-base-path: ${SANGUI_REVIEW_IMAGE_PUBLIC_BASE_PATH:/api/uploads/review-images}
+      max-file-size-bytes: ${SANGUI_REVIEW_IMAGE_MAX_FILE_SIZE_BYTES:5242880}
   compensation:
     order-timeout:
       enabled: ${SANGUI_ORDER_TIMEOUT_COMPENSATION_ENABLED:false}

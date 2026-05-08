@@ -251,7 +251,7 @@ Good/Base/Bad cases:
 
 - Good: `(shop_id, order_id)` rejects a second review for the same order even with a different `request_id`.
 - Good: `(shop_id, user_id, request_id)` returns the original review for an exact replay and rejects changed payloads as `IDEMPOTENCY_CONFLICT`.
-- Base: `image_urls` stores validated JSON text until a dedicated upload/storage contract exists.
+- Base: `image_urls` stores validated JSON text containing public review upload URLs from `POST /api/uploads/review-images`; the local storage boundary is documented in `upload-storage-contracts.md`.
 - Bad: review rows omit `shop_id`, `request_id`, or `trace_id`.
 
 ## Order Review Visibility Moderation Columns

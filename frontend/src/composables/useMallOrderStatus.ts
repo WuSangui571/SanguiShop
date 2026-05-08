@@ -226,7 +226,11 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
     }
   }
 
-  async function submitCurrentOrderReview(input: { rating: number, content?: string | null }): Promise<OrderReviewResponse | null> {
+  async function submitCurrentOrderReview(input: {
+    rating: number
+    content?: string | null
+    imageUrls?: string[]
+  }): Promise<OrderReviewResponse | null> {
     if (!order.value || !canReview.value) {
       return null
     }
@@ -241,7 +245,7 @@ export function useMallOrderStatus(options: UseMallOrderStatusOptions = {}) {
           requestId: (options.createOrderReviewRequestId ?? createOrderReviewRequestId)(),
           rating: input.rating,
           content: input.content ?? null,
-          imageUrls: [],
+          imageUrls: input.imageUrls ?? [],
         },
       )
       order.value = applyMallReviewToOrder(order.value, response)

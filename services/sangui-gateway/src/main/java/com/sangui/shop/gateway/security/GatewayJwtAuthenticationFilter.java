@@ -116,7 +116,9 @@ public class GatewayJwtAuthenticationFilter implements GlobalFilter, Ordered {
     private boolean isPublicEndpoint(ServerWebExchange exchange) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
-        return isPublicAuthEndpoint(request, path) || isPublicProductReadEndpoint(request, path);
+        return isPublicAuthEndpoint(request, path)
+                || isPublicProductReadEndpoint(request, path)
+                || isPublicUploadReadEndpoint(request, path);
     }
 
     private boolean isPublicAuthEndpoint(ServerHttpRequest request, String path) {
@@ -129,6 +131,11 @@ public class GatewayJwtAuthenticationFilter implements GlobalFilter, Ordered {
     private boolean isPublicProductReadEndpoint(ServerHttpRequest request, String path) {
         return request.getMethod() == HttpMethod.GET
                 && ("/api/products".equals(path) || path.matches("^/api/products/\\d+(/reviews)?$"));
+    }
+
+    private boolean isPublicUploadReadEndpoint(ServerHttpRequest request, String path) {
+        return request.getMethod() == HttpMethod.GET
+                && path.matches("^/api/uploads/review-images/[A-Za-z0-9._-]+\\.(jpg|jpeg|png|webp)$");
     }
 
     private boolean isCorsPreflightRequest(ServerWebExchange exchange) {

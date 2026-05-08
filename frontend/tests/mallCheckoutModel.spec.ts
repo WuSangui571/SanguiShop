@@ -556,6 +556,36 @@ describe('mall checkout model', () => {
     expect(orderStatus.canReview.value).toBe(false)
   })
 
+  it('submits completed order review with uploaded image urls', async () => {
+    const createOrderReview = vi.fn(async () => createReviewResponse({
+      imageUrls: ['/api/uploads/review-images/review-a.jpg'],
+    }))
+    const orderStatus = useMallOrderStatus({
+      createOrderReview,
+      createOrderReviewRequestId: () => 'review-with-image',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      reviewed: false,
+      review: null,
+    }))
+
+    await orderStatus.submitCurrentOrderReview({
+      rating: 5,
+      content: 'good',
+      imageUrls: ['/api/uploads/review-images/review-a.jpg'],
+    })
+
+    expect(createOrderReview).toHaveBeenCalledWith(501, {
+      requestId: 'review-with-image',
+      rating: 5,
+      content: 'good',
+      imageUrls: ['/api/uploads/review-images/review-a.jpg'],
+    })
+    expect(orderStatus.order.value?.review?.imageUrls).toEqual(['/api/uploads/review-images/review-a.jpg'])
+  })
+
   it('guards duplicate pending review submits and keeps completed detail on failure', async () => {
     const deferredReview = createDeferred<OrderReviewResponse>()
     const createOrderReview = vi.fn(() => deferredReview.promise)

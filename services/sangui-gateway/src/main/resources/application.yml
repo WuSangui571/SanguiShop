@@ -44,6 +44,10 @@ spring:
           uri: lb://sangui-order
           predicates:
             - Path=/api/orders/**
+        - id: sangui-order-uploads
+          uri: lb://sangui-order
+          predicates:
+            - Path=/api/uploads/**
         - id: sangui-order-admin
           uri: lb://sangui-order
           predicates:

@@ -250,7 +250,9 @@ Request:
   "requestId": "review-20260508-0001",
   "rating": 5,
   "content": "Product and delivery matched expectations.",
-  "imageUrls": []
+  "imageUrls": [
+    "/api/uploads/review-images/0e9a8c2d-7f4e-4b43-bce0-7e50ef3f58e4.jpg"
+  ]
 }
 ```
 
@@ -267,7 +269,9 @@ Response data:
   "userId": "10001",
   "rating": 5,
   "content": "Product and delivery matched expectations.",
-  "imageUrls": [],
+  "imageUrls": [
+    "/api/uploads/review-images/0e9a8c2d-7f4e-4b43-bce0-7e50ef3f58e4.jpg"
+  ],
   "requestId": "review-20260508-0001",
   "traceId": "trace-review",
   "createdAt": "2026-05-08T10:00:00+08:00"
@@ -283,6 +287,8 @@ Rules:
 - Replaying the same `(shopId, userId, requestId)` with the same `orderId`, `rating`, normalized `content`, and normalized `imageUrls` returns the original review.
 - Replaying the same `(shopId, userId, requestId)` with a different payload returns `IDEMPOTENCY_CONFLICT`.
 - Reviewing the same order with a different request id returns `ORDER_REVIEW_ALREADY_EXISTS`.
+- `imageUrls` must be omitted, empty, or contain only same-origin review upload URLs matching `/api/uploads/review-images/{fileName}` where `{fileName}` is a generated safe image file name ending in `.jpg`, `.jpeg`, `.png`, or `.webp`.
+- `imageUrls` must not contain local disk paths, `file:` URLs, relative object keys, arbitrary external URLs, blank values, or internal storage identifiers.
 - Logs must include `traceId`, `shopId`, `userId`, `orderId`, `orderNo`, `requestId`, `rating`, and `outcome`.
 
 ### `GET /api/orders/{orderId}/review`
@@ -310,7 +316,9 @@ Rules:
     "userId": "10001",
     "rating": 5,
     "content": "Product and delivery matched expectations.",
-    "imageUrls": [],
+  "imageUrls": [
+    "/api/uploads/review-images/0e9a8c2d-7f4e-4b43-bce0-7e50ef3f58e4.jpg"
+  ],
     "requestId": "review-20260508-0001",
     "traceId": "trace-review",
     "createdAt": "2026-05-08T10:00:00+08:00"
@@ -323,7 +331,7 @@ Validation and error matrix:
 | Case | HTTP | code |
 | --- | --- | --- |
 | Missing trusted principal | 401 | `AUTH_TOKEN_MISSING` |
-| Invalid path id, blank `requestId`, missing/non-1..5 rating, content > 500, image count > 6, or blank image URL | 400 | `VALIDATION_FAILED` |
+| Invalid path id, blank `requestId`, missing/non-1..5 rating, content > 500, image count > 6, blank image URL, unsafe image URL, external image URL, local path, or `file:` URL | 400 | `VALIDATION_FAILED` |
 | Missing order or wrong owner | 404 | `ORDER_NOT_FOUND` |
 | Review non-`completed` order | 409 | `ORDER_STATUS_INVALID` |
 | Same order reviewed with different `requestId` | 409 | `ORDER_REVIEW_ALREADY_EXISTS` |
@@ -339,10 +347,13 @@ Good/Base/Bad cases:
 
 - Good: completed owned order can create one review and response snapshots expose `reviewed=true`.
 - Good: same request id and same payload replays the existing review without inserting another row.
+- Good: same request id with the same normalized uploaded `imageUrls` replays the existing review.
+- Good: same request id with different normalized `imageUrls` returns `IDEMPOTENCY_CONFLICT`.
 - Good: same order with another request id returns `ORDER_REVIEW_ALREADY_EXISTS`.
 - Good: wrong user receives `ORDER_NOT_FOUND`.
-- Base: `imageUrls` is a validated string array only; real upload/storage remains out of scope.
+- Base: `imageUrls` stores validated JSON text containing upload API public URLs; local filesystem storage is documented in `upload-storage-contracts.md`.
 - Bad: frontend marks an order reviewed without backend review creation.
+- Bad: frontend submits `file:` URLs, local disk paths, arbitrary external URLs, internal object keys, or storage trace fields in `imageUrls`.
 
 ## Product-Facing Review Query Addendum
 

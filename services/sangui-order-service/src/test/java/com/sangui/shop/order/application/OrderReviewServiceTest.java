@@ -49,7 +49,12 @@ class OrderReviewServiceTest {
         OrderReviewResponse response = orderReviewService.createReview(
                 USER_PRINCIPAL,
                 orderId,
-                new CreateOrderReviewRequest(" review-001 ", 5, " good ", List.of(" https://img.example/a.png ")),
+                new CreateOrderReviewRequest(
+                        " review-001 ",
+                        5,
+                        " good ",
+                        List.of(" /api/uploads/review-images/review-a.jpg ")
+                ),
                 "trace-review"
         );
 
@@ -57,7 +62,7 @@ class OrderReviewServiceTest {
         assertThat(response.orderNo()).isEqualTo("ORD-001");
         assertThat(response.rating()).isEqualTo(5);
         assertThat(response.content()).isEqualTo("good");
-        assertThat(response.imageUrls()).containsExactly("https://img.example/a.png");
+        assertThat(response.imageUrls()).containsExactly("/api/uploads/review-images/review-a.jpg");
         assertThat(response.requestId()).isEqualTo("review-001");
         assertThat(response.traceId()).isEqualTo("trace-review");
         assertThat(orderRepository.findSnapshotById(1L, orderId).orElseThrow().review()).isNotNull();
@@ -98,6 +103,27 @@ class OrderReviewServiceTest {
                 USER_PRINCIPAL,
                 orderId,
                 new CreateOrderReviewRequest("review-001", 4, "good", List.of()),
+                "trace-review"
+        )).isInstanceOfSatisfying(SanguiException.class, exception -> {
+            assertThat(exception.errorCode().code()).isEqualTo("IDEMPOTENCY_CONFLICT");
+            assertThat(exception.httpStatus()).isEqualTo(409);
+        });
+    }
+
+    @Test
+    void createReviewRejectsSameRequestIdWithDifferentImageUrls() {
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", OrderStatus.COMPLETED);
+        orderReviewService.createReview(
+                USER_PRINCIPAL,
+                orderId,
+                new CreateOrderReviewRequest("review-001", 5, "good", List.of("/api/uploads/review-images/a.jpg")),
+                "trace-review"
+        );
+
+        assertThatThrownBy(() -> orderReviewService.createReview(
+                USER_PRINCIPAL,
+                orderId,
+                new CreateOrderReviewRequest("review-001", 5, "good", List.of("/api/uploads/review-images/b.jpg")),
                 "trace-review"
         )).isInstanceOfSatisfying(SanguiException.class, exception -> {
             assertThat(exception.errorCode().code()).isEqualTo("IDEMPOTENCY_CONFLICT");
@@ -180,6 +206,20 @@ class OrderReviewServiceTest {
                 USER_PRINCIPAL,
                 orderId,
                 new CreateOrderReviewRequest("review-001", 5, "good", List.of("")),
+                "trace-review"
+        )).isInstanceOfSatisfying(SanguiException.class, exception -> assertThat(exception.errorCode().code()).isEqualTo("VALIDATION_FAILED"));
+
+        assertThatThrownBy(() -> orderReviewService.createReview(
+                USER_PRINCIPAL,
+                orderId,
+                new CreateOrderReviewRequest("review-001", 5, "good", List.of("https://cdn.example/review.jpg")),
+                "trace-review"
+        )).isInstanceOfSatisfying(SanguiException.class, exception -> assertThat(exception.errorCode().code()).isEqualTo("VALIDATION_FAILED"));
+
+        assertThatThrownBy(() -> orderReviewService.createReview(
+                USER_PRINCIPAL,
+                orderId,
+                new CreateOrderReviewRequest("review-001", 5, "good", List.of("file:///tmp/review.jpg")),
                 "trace-review"
         )).isInstanceOfSatisfying(SanguiException.class, exception -> assertThat(exception.errorCode().code()).isEqualTo("VALIDATION_FAILED"));
     }

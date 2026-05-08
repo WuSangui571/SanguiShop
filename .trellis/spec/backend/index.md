@@ -23,6 +23,7 @@ SanguiShop is a single-merchant ecommerce platform, but all core business tables
 | [Inventory Reserve Contracts](./inventory-reserve-contracts.md) | Before SKU stock / reserve / confirm / release changes | Inventory ownership, reservation APIs, schema, idempotency |
 | [Order Create Contracts](./order-create-contracts.md) | Before order create / order-service schema changes | Order create API, principal scope, product snapshot, idempotency |
 | [Payment Pay Contracts](./payment-pay-contracts.md) | Before payment API / payment-service / order pay status changes | Payment API, internal order pay contract, idempotency, schema |
+| [Upload Storage Contracts](./upload-storage-contracts.md) | Before upload / file storage / public asset URL work | Multipart upload boundary, file limits, public URL safety |
 | [Quality Guidelines](./quality-guidelines.md) | Before review or completion | Tests, review habits, forbidden patterns |
 
 ## Pre-Development Checklist

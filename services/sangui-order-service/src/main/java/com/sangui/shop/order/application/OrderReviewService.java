@@ -14,6 +14,7 @@ import com.sangui.shop.order.domain.OrderStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,6 +27,8 @@ public class OrderReviewService {
     private static final Logger log = LoggerFactory.getLogger(OrderReviewService.class);
     private static final int MAX_CONTENT_LENGTH = 500;
     private static final int MAX_IMAGE_COUNT = 6;
+    private static final Pattern REVIEW_IMAGE_URL_PATTERN =
+            Pattern.compile("^/api/uploads/review-images/[A-Za-z0-9._-]+\\.(jpg|jpeg|png|webp)$");
 
     private final OrderRepository orderRepository;
 
@@ -155,6 +158,7 @@ public class OrderReviewService {
                 ? List.of()
                 : request.imageUrls().stream()
                         .map(this::requireText)
+                        .peek(this::requireReviewImageUrl)
                         .toList();
         if (imageUrls.size() > MAX_IMAGE_COUNT) {
             throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
@@ -189,6 +193,12 @@ public class OrderReviewService {
             throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
         }
         return normalized;
+    }
+
+    private void requireReviewImageUrl(String value) {
+        if (!REVIEW_IMAGE_URL_PATTERN.matcher(value).matches()) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
     }
 
     private String trimToNull(String value) {

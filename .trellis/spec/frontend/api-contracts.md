@@ -171,6 +171,7 @@ Frontend customer order status flows must use these gateway routes through `serv
 | `cancelOrder(orderId)` | `POST /api/orders/{orderId}/cancel` | `mall` | Enable only for `created` orders and guard duplicate clicks. |
 | `confirmOrderReceipt(orderId,{requestId})` | `POST /api/orders/{orderId}/receipt-confirmations` | `mall` | Enable only for shipped orders, generate `requestId`, guard duplicate clicks, and preserve shipped detail on failure. |
 | `createOrderReview(orderId,{requestId,rating,content,imageUrls})` | `POST /api/orders/{orderId}/reviews` | `mall` | Enable only for completed unreviewed orders, generate `requestId`, guard duplicate clicks, and preserve completed detail on failure. |
+| `uploadReviewImage(file)` | `POST /api/uploads/review-images` | `mall` | Send `multipart/form-data` part `file`; disable review submit while upload is pending; preserve draft and backend error on failure. |
 | `getOrderReview(orderId)` | `GET /api/orders/{orderId}/review` | `mall` | Use only if `OrderResponse.review` is not enough; nullable success means no review yet. |
 | `getPayment(paymentNo)` | `GET /api/payments/{paymentNo}` | `mall` | Manual refresh only unless bounded polling with cleanup is explicitly implemented. |
 | `listProductReviews(productId,{page,size,withImages})` | `GET /api/products/{productId}/reviews?page=&size=&withImages=` | `none` | Load product reviews independently from product detail, omit false `withImages`, and preserve backend errors. |
@@ -201,7 +202,11 @@ Order status display rules:
 - Successful review submission merges `reviewed=true` and `review` into current detail and loaded list item without moving the order out of the completed main filter.
 - Failed review submission must keep the completed detail/order snapshot and display backend `code`, `message`, and `traceId`.
 - Deep-linked completed reviewed orders must render the review snapshot and must not show an enabled review submit button.
-- `imageUrls` is submitted as an empty array from the mall UI until upload/storage is defined.
+- Review image upload accepts JPEG, PNG, and WebP files. The frontend must submit only upload response `url` values in `imageUrls`.
+- Review image upload failures must preserve order detail, rating/content draft, already uploaded image previews, and backend `code/message/traceId`.
+- While any review image upload is pending, review submit must be disabled and no review request may be sent.
+- Removing an uploaded preview must remove that URL from the final `createOrderReview` payload.
+- Successful review submission must render the submitted image snapshot in order detail and may refresh matching open product reviews asynchronously.
 
 Required tests:
 
@@ -219,6 +224,10 @@ Required tests:
 - Duplicate pending receipt confirmation sends no second request.
 - Deep-linked completed order displays completed snapshot and disables receipt action.
 - Completed unreviewed order review submission succeeds and updates detail/list state to reviewed.
+- Review image upload payload uses `multipart/form-data` and does not override the browser-generated content type boundary.
+- Review image delete preview removes that URL from submitted `imageUrls`.
+- Review image upload failure preserves the completed order detail, rating/content draft, uploaded previews, and backend trace.
+- Completed unreviewed order review submission carries uploaded `imageUrls`.
 - Duplicate pending review submission sends no second request.
 - Review failure preserves completed detail and backend trace.
 - Deep-linked completed reviewed order displays review snapshot and disables review action.
