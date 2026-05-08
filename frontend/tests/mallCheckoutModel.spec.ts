@@ -17,7 +17,7 @@ import { useMallCart } from '../src/composables/useMallCart'
 import { useMallOrderStatus } from '../src/composables/useMallOrderStatus'
 import type { ProductDetailResponse } from '../src/types/api/product'
 import type { MallSession } from '../src/types/api/auth'
-import type { CreateOrderRequest, OrderResponse } from '../src/types/api/order'
+import type { CreateOrderRequest, OrderResponse, OrderReviewResponse } from '../src/types/api/order'
 import type { PaymentResponse } from '../src/types/api/payment'
 
 const product: ProductDetailResponse = {
@@ -516,6 +516,83 @@ describe('mall checkout model', () => {
     )
   })
 
+  it('submits completed order review once and merges reviewed detail into the list', async () => {
+    const createOrderReview = vi.fn(async () => createReviewResponse())
+    const orderStatus = useMallOrderStatus({
+      createOrderReview,
+      createOrderReviewRequestId: () => 'review-001',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      reviewed: false,
+      review: null,
+    }))
+
+    await orderStatus.submitCurrentOrderReview({
+      rating: 5,
+      content: 'good',
+    })
+
+    expect(createOrderReview).toHaveBeenCalledWith(501, {
+      requestId: 'review-001',
+      rating: 5,
+      content: 'good',
+      imageUrls: [],
+    })
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'completed',
+      reviewed: true,
+      review: {
+        orderReviewId: 9001,
+        rating: 5,
+      },
+    })
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      orderId: 501,
+      status: 'completed',
+      reviewed: true,
+    })
+    expect(orderStatus.canReview.value).toBe(false)
+  })
+
+  it('guards duplicate pending review submits and keeps completed detail on failure', async () => {
+    const deferredReview = createDeferred<OrderReviewResponse>()
+    const createOrderReview = vi.fn(() => deferredReview.promise)
+    const orderStatus = useMallOrderStatus({
+      createOrderReview,
+      createOrderReviewRequestId: () => 'review-pending',
+    })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      reviewed: false,
+      review: null,
+    }))
+
+    const firstSubmit = orderStatus.submitCurrentOrderReview({ rating: 4, content: 'ok' })
+    const duplicateSubmit = orderStatus.submitCurrentOrderReview({ rating: 4, content: 'ok' })
+
+    expect(createOrderReview).toHaveBeenCalledOnce()
+    await expect(duplicateSubmit).resolves.toBeNull()
+
+    deferredReview.reject(new HttpClientError('Already reviewed.', {
+      code: 'ORDER_REVIEW_ALREADY_EXISTS',
+      status: 409,
+      traceId: 'trace-review-exists',
+    }))
+    await firstSubmit
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'completed',
+      reviewed: false,
+    })
+    expect(orderStatus.errorMessage.value).toBe(
+      'ORDER_REVIEW_ALREADY_EXISTS: Already reviewed. Trace ID trace-review-exists.',
+    )
+    expect(orderStatus.canReview.value).toBe(true)
+  })
+
   it('shows traceId when order detail loading fails', async () => {
     const getOrder = vi.fn(async () => {
       throw new HttpClientError('Order missing.', {
@@ -1004,6 +1081,23 @@ function createPaymentResponse(patch: Partial<PaymentResponse> = {}): PaymentRes
     channel: 'mock',
     status: 'paid',
     amountCent: 59900,
+    ...patch,
+  }
+}
+
+function createReviewResponse(patch: Partial<OrderReviewResponse> = {}): OrderReviewResponse {
+  return {
+    orderReviewId: 9001,
+    shopId: 1,
+    orderId: 501,
+    orderNo: 'ORD-501',
+    userId: '10001',
+    rating: 5,
+    content: 'good',
+    imageUrls: [],
+    requestId: 'review-001',
+    traceId: 'trace-review',
+    createdAt: '2026-05-08T10:00:00+08:00',
     ...patch,
   }
 }

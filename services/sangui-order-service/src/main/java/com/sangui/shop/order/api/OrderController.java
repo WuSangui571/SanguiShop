@@ -4,13 +4,16 @@ import com.sangui.shop.common.core.api.ApiResult;
 import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.ConfirmOrderReceiptRequest;
+import com.sangui.shop.order.api.dto.CreateOrderReviewRequest;
 import com.sangui.shop.order.api.dto.CreateOrderRequest;
 import com.sangui.shop.order.api.dto.OrderPageResponse;
+import com.sangui.shop.order.api.dto.OrderReviewResponse;
 import com.sangui.shop.order.api.dto.OrderResponse;
 import com.sangui.shop.order.application.OrderCancelService;
 import com.sangui.shop.order.application.OrderCreateService;
 import com.sangui.shop.order.application.OrderQueryService;
 import com.sangui.shop.order.application.OrderReceiptConfirmationService;
+import com.sangui.shop.order.application.OrderReviewService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -33,17 +36,43 @@ public class OrderController {
     private final OrderCancelService orderCancelService;
     private final OrderQueryService orderQueryService;
     private final OrderReceiptConfirmationService orderReceiptConfirmationService;
+    private final OrderReviewService orderReviewService;
 
     public OrderController(
             OrderCreateService orderCreateService,
             OrderCancelService orderCancelService,
             OrderQueryService orderQueryService,
-            OrderReceiptConfirmationService orderReceiptConfirmationService
+            OrderReceiptConfirmationService orderReceiptConfirmationService,
+            OrderReviewService orderReviewService
     ) {
         this.orderCreateService = orderCreateService;
         this.orderCancelService = orderCancelService;
         this.orderQueryService = orderQueryService;
         this.orderReceiptConfirmationService = orderReceiptConfirmationService;
+        this.orderReviewService = orderReviewService;
+    }
+
+    @PostMapping("/{orderId}/reviews")
+    public ApiResult<OrderReviewResponse> createReview(
+            SanguiPrincipal principal,
+            @PathVariable @Min(1) Long orderId,
+            @Valid @RequestBody CreateOrderReviewRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = traceId(httpRequest);
+        OrderReviewResponse response = orderReviewService.createReview(principal, orderId, request, traceId);
+        return ApiResult.ok("ORDER_REVIEW_CREATED", response, traceId);
+    }
+
+    @GetMapping("/{orderId}/review")
+    public ApiResult<OrderReviewResponse> getReview(
+            SanguiPrincipal principal,
+            @PathVariable @Min(1) Long orderId,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = traceId(httpRequest);
+        OrderReviewResponse response = orderReviewService.getReview(principal, orderId);
+        return ApiResult.ok("ORDER_REVIEW_DETAIL", response, traceId);
     }
 
     @PostMapping

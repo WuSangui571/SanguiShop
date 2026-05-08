@@ -237,6 +237,113 @@ Good/Base/Bad cases:
 - Base: no inventory, payment, MQ, or logistics-service side effect is required for receipt confirmation in this MVP.
 - Bad: frontend marks an order completed without a backend state transition.
 
+## Customer Order Review Addendum
+
+Order review MVP is owned by `services/sangui-order-service` because the first-phase user experience needs completed order state, one-order-one-review uniqueness, and `OrderResponse.reviewed/review` snapshots without cross-service projection.
+
+### `POST /api/orders/{orderId}/reviews`
+
+Request:
+
+```json
+{
+  "requestId": "review-20260508-0001",
+  "rating": 5,
+  "content": "Product and delivery matched expectations.",
+  "imageUrls": []
+}
+```
+
+Response code: `ORDER_REVIEW_CREATED`.
+
+Response data:
+
+```json
+{
+  "orderReviewId": 9001,
+  "shopId": 1,
+  "orderId": 101,
+  "orderNo": "ORD9F5C0A1B2C3D4E5F6A7B",
+  "userId": "10001",
+  "rating": 5,
+  "content": "Product and delivery matched expectations.",
+  "imageUrls": [],
+  "requestId": "review-20260508-0001",
+  "traceId": "trace-review",
+  "createdAt": "2026-05-08T10:00:00+08:00"
+}
+```
+
+Rules:
+
+- Controller must use trusted `SanguiPrincipal`; request body must not carry `shopId` or `userId`.
+- Only the owning principal within `(shopId, userId)` can review an order.
+- Only `completed` orders can receive a new review.
+- `created`, `paid`, `shipped`, `cancelled`, and unsupported statuses return `ORDER_STATUS_INVALID`.
+- Replaying the same `(shopId, userId, requestId)` with the same `orderId`, `rating`, normalized `content`, and normalized `imageUrls` returns the original review.
+- Replaying the same `(shopId, userId, requestId)` with a different payload returns `IDEMPOTENCY_CONFLICT`.
+- Reviewing the same order with a different request id returns `ORDER_REVIEW_ALREADY_EXISTS`.
+- Logs must include `traceId`, `shopId`, `userId`, `orderId`, `orderNo`, `requestId`, `rating`, and `outcome`.
+
+### `GET /api/orders/{orderId}/review`
+
+Response code: `ORDER_REVIEW_DETAIL`.
+
+Rules:
+
+- Controller uses trusted `SanguiPrincipal`.
+- Missing order or wrong owner returns `ORDER_NOT_FOUND`.
+- An owned order without a review returns success with `data = null` so deep-link recovery can distinguish "no review yet" from missing access.
+
+### Order Response Review Snapshot
+
+`GET /api/orders/{orderId}` and `GET /api/orders` add compatible fields:
+
+```json
+{
+  "reviewed": true,
+  "review": {
+    "orderReviewId": 9001,
+    "shopId": 1,
+    "orderId": 101,
+    "orderNo": "ORD9F5C0A1B2C3D4E5F6A7B",
+    "userId": "10001",
+    "rating": 5,
+    "content": "Product and delivery matched expectations.",
+    "imageUrls": [],
+    "requestId": "review-20260508-0001",
+    "traceId": "trace-review",
+    "createdAt": "2026-05-08T10:00:00+08:00"
+  }
+}
+```
+
+Validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Missing trusted principal | 401 | `AUTH_TOKEN_MISSING` |
+| Invalid path id, blank `requestId`, missing/non-1..5 rating, content > 500, image count > 6, or blank image URL | 400 | `VALIDATION_FAILED` |
+| Missing order or wrong owner | 404 | `ORDER_NOT_FOUND` |
+| Review non-`completed` order | 409 | `ORDER_STATUS_INVALID` |
+| Same order reviewed with different `requestId` | 409 | `ORDER_REVIEW_ALREADY_EXISTS` |
+| Same `requestId` with different payload | 409 | `IDEMPOTENCY_CONFLICT` |
+
+Required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=OrderReviewServiceTest,OrderControllerTest,OrderQueryServiceTest,OrderReviewMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: completed owned order can create one review and response snapshots expose `reviewed=true`.
+- Good: same request id and same payload replays the existing review without inserting another row.
+- Good: same order with another request id returns `ORDER_REVIEW_ALREADY_EXISTS`.
+- Good: wrong user receives `ORDER_NOT_FOUND`.
+- Base: `imageUrls` is a validated string array only; real upload/storage remains out of scope.
+- Bad: frontend marks an order reviewed without backend review creation.
+
 ## Database Contract
 
 Schema env and migrations:

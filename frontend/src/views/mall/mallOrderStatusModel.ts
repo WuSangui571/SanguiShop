@@ -1,4 +1,5 @@
 import type { OrderResponse } from '../../types/api/order'
+import type { OrderReviewResponse } from '../../types/api/order'
 import type { PaymentResponse } from '../../types/api/payment'
 
 export interface MallOrderSummaryLabels {
@@ -86,6 +87,28 @@ export interface MallOrderActionLabels {
   confirmReceipt: string
   confirmingReceipt: string
   receiptReady: string
+}
+
+export interface MallOrderReviewLabels {
+  pending: string
+  ready: string
+  reviewed: string
+  notCompleted: string
+  unknownPrefix: string
+  refreshSuggestion: string
+  submitReview: string
+  submittingReview: string
+}
+
+export interface MallOrderReviewOptions {
+  isSubmittingReview?: boolean
+}
+
+export interface MallOrderReviewView {
+  statusLabel: string
+  message: string
+  canSubmitReview: boolean
+  submitLabel: string
 }
 
 export interface MallOrderActionOptions {
@@ -440,6 +463,43 @@ export function createMallOrderActionView(
   }
 }
 
+export function createMallOrderReviewView(
+  order: OrderResponse | null,
+  labels: MallOrderReviewLabels,
+  options: MallOrderReviewOptions = {},
+): MallOrderReviewView {
+  if (!order) {
+    return createOrderReviewView(labels.pending, labels.pending, false, labels.submitReview)
+  }
+
+  const phase = resolveLifecyclePhase(order)
+  if (phase === 'completed') {
+    if (hasOrderReview(order)) {
+      return createOrderReviewView(labels.reviewed, labels.reviewed, false, labels.submitReview)
+    }
+    return createOrderReviewView(
+      labels.ready,
+      labels.ready,
+      !options.isSubmittingReview,
+      options.isSubmittingReview ? labels.submittingReview : labels.submitReview,
+    )
+  }
+
+  if (phase === 'unknown') {
+    const rawStatus = resolveRawUnknownStatus(order)
+    const message = rawStatus
+      ? `${labels.unknownPrefix}${rawStatus}. ${labels.refreshSuggestion}`
+      : labels.notCompleted
+    return createOrderReviewView(labels.pending, message, false, labels.submitReview)
+  }
+
+  return createOrderReviewView(labels.pending, labels.notCompleted, false, labels.submitReview)
+}
+
+export function describeMallOrderReviewState(order: OrderResponse, labels: MallOrderReviewLabels): string {
+  return createMallOrderReviewView(order, labels).statusLabel
+}
+
 export function createMallPaymentRefreshView(
   order: OrderResponse | null,
   paymentNo: string,
@@ -551,6 +611,30 @@ export function applyMallPaymentToOrderList(
 ): OrderResponse[] {
   const nextOrder = orders.find((order) => order.orderId === payment.orderId)
   const updatedOrder = applyMallPaymentToOrder(nextOrder ?? null, payment)
+  return updatedOrder ? mergeOrderIntoList(orders, updatedOrder) : orders
+}
+
+export function applyMallReviewToOrder(
+  order: OrderResponse | null,
+  review: OrderReviewResponse,
+): OrderResponse | null {
+  if (!order || order.orderId !== review.orderId) {
+    return order
+  }
+
+  return {
+    ...order,
+    reviewed: true,
+    review,
+  }
+}
+
+export function applyMallReviewToOrderList(
+  orders: OrderResponse[],
+  review: OrderReviewResponse,
+): OrderResponse[] {
+  const nextOrder = orders.find((order) => order.orderId === review.orderId)
+  const updatedOrder = applyMallReviewToOrder(nextOrder ?? null, review)
   return updatedOrder ? mergeOrderIntoList(orders, updatedOrder) : orders
 }
 
@@ -779,6 +863,24 @@ function isShipped(order: OrderResponse): boolean {
 
 function isCompleted(order: OrderResponse): boolean {
   return normalizeText(order.status) === 'completed' || normalizeText(order.fulfillmentStatus) === 'completed'
+}
+
+function hasOrderReview(order: OrderResponse): boolean {
+  return order.reviewed === true || Boolean(order.review)
+}
+
+function createOrderReviewView(
+  statusLabel: string,
+  message: string,
+  canSubmitReview: boolean,
+  submitLabel: string,
+): MallOrderReviewView {
+  return {
+    statusLabel,
+    message,
+    canSubmitReview,
+    submitLabel,
+  }
 }
 
 function resolveLifecyclePhase(order: OrderResponse | null): MallOrderLifecyclePhase {

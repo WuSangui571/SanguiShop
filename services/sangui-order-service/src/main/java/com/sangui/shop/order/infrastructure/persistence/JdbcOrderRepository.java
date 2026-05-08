@@ -1,5 +1,8 @@
 package com.sangui.shop.order.infrastructure.persistence;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.order.domain.AdminOrderQuery;
 import com.sangui.shop.order.domain.FulfillmentOrderQuery;
 import com.sangui.shop.order.domain.OrderCompensationAttemptQuery;
@@ -10,6 +13,7 @@ import com.sangui.shop.order.domain.OrderItemDraft;
 import com.sangui.shop.order.domain.OrderItemRecord;
 import com.sangui.shop.order.domain.OrderRecord;
 import com.sangui.shop.order.domain.OrderRepository;
+import com.sangui.shop.order.domain.OrderReviewRecord;
 import com.sangui.shop.order.domain.OrderSnapshot;
 import com.sangui.shop.order.domain.OrderStatus;
 import java.sql.PreparedStatement;
@@ -27,6 +31,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class JdbcOrderRepository implements OrderRepository {
+
+    private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {
+    };
 
     private static final RowMapper<OrderRecord> ORDER_ROW_MAPPER = (rs, rowNum) -> new OrderRecord(
             rs.getLong("id"),
@@ -92,9 +99,11 @@ public class JdbcOrderRepository implements OrderRepository {
     );
 
     private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
 
-    public JdbcOrderRepository(JdbcTemplate jdbcTemplate) {
+    public JdbcOrderRepository(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
         this.jdbcTemplate = jdbcTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -139,6 +148,39 @@ public class JdbcOrderRepository implements OrderRepository {
                 userId,
                 requestId
         ).stream().findFirst().map(this::toSnapshot);
+    }
+
+    @Override
+    public Optional<OrderReviewRecord> findReviewByOrderId(Long shopId, Long orderId) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, order_id, order_no, user_id, rating, content, image_urls, request_id, trace_id,
+                               created_at, updated_at
+                        FROM oms_order_review
+                        WHERE shop_id = ? AND order_id = ? AND deleted = 0
+                        LIMIT 1
+                        """,
+                this::mapReview,
+                shopId,
+                orderId
+        ).stream().findFirst();
+    }
+
+    @Override
+    public Optional<OrderReviewRecord> findReviewByRequestId(Long shopId, String userId, String requestId) {
+        return jdbcTemplate.query(
+                """
+                        SELECT id, shop_id, order_id, order_no, user_id, rating, content, image_urls, request_id, trace_id,
+                               created_at, updated_at
+                        FROM oms_order_review
+                        WHERE shop_id = ? AND user_id = ? AND request_id = ? AND deleted = 0
+                        LIMIT 1
+                        """,
+                this::mapReview,
+                shopId,
+                userId,
+                requestId
+        ).stream().findFirst();
     }
 
     @Override
@@ -389,6 +431,36 @@ public class JdbcOrderRepository implements OrderRepository {
     }
 
     @Override
+    public Long createReview(OrderReviewRecord review) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement statement = connection.prepareStatement(
+                    """
+                            INSERT INTO oms_order_review (
+                                shop_id, order_id, order_no, user_id, rating, content, image_urls, request_id, trace_id
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            statement.setLong(1, review.shopId());
+            statement.setLong(2, review.orderId());
+            statement.setString(3, review.orderNo());
+            statement.setString(4, review.userId());
+            statement.setInt(5, review.rating());
+            statement.setString(6, review.content());
+            statement.setString(7, toJson(review.imageUrls()));
+            statement.setString(8, review.requestId());
+            statement.setString(9, review.traceId());
+            return statement;
+        }, keyHolder);
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new IllegalStateException("Order review insert did not return a generated id");
+        }
+        return key.longValue();
+    }
+
+    @Override
     public int updateStatus(Long shopId, Long orderId, OrderStatus currentStatus, OrderStatus nextStatus) {
         return jdbcTemplate.update(
                 """
@@ -547,7 +619,44 @@ public class JdbcOrderRepository implements OrderRepository {
                 order.shopId(),
                 order.id()
         );
-        return new OrderSnapshot(order, items);
+        OrderReviewRecord review = findReviewByOrderId(order.shopId(), order.id()).orElse(null);
+        return new OrderSnapshot(order, items, review);
+    }
+
+    private OrderReviewRecord mapReview(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new OrderReviewRecord(
+                rs.getLong("id"),
+                rs.getLong("shop_id"),
+                rs.getLong("order_id"),
+                rs.getString("order_no"),
+                rs.getString("user_id"),
+                rs.getInt("rating"),
+                rs.getString("content"),
+                fromJson(rs.getString("image_urls")),
+                rs.getString("request_id"),
+                rs.getString("trace_id"),
+                rs.getTimestamp("created_at").toLocalDateTime(),
+                rs.getTimestamp("updated_at").toLocalDateTime()
+        );
+    }
+
+    private String toJson(List<String> values) {
+        try {
+            return objectMapper.writeValueAsString(values == null ? List.of() : values);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Failed to serialize order review image urls", exception);
+        }
+    }
+
+    private List<String> fromJson(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(value, STRING_LIST_TYPE);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Failed to deserialize order review image urls", exception);
+        }
     }
 
     private void insertItems(Long shopId, Long orderId, List<OrderItemDraft> items) {

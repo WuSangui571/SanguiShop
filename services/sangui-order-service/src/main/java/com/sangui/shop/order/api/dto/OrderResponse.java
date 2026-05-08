@@ -18,7 +18,9 @@ public record OrderResponse(
         String carrier,
         String trackingNo,
         OffsetDateTime shippedAt,
-        OffsetDateTime completedAt
+        OffsetDateTime completedAt,
+        Boolean reviewed,
+        OrderReviewResponse review
 ) {
     public OrderResponse(
             Long orderId,
@@ -30,7 +32,7 @@ public record OrderResponse(
             Long totalAmountCent,
             List<OrderItemResponse> items
     ) {
-        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, null, null, null, null, null, null, null);
+        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, null, null, null, null, null, null, null, false, null);
     }
 
     public OrderResponse(
@@ -45,7 +47,7 @@ public record OrderResponse(
             OffsetDateTime createdAt,
             OffsetDateTime updatedAt
     ) {
-        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, createdAt, updatedAt, null, null, null, null, null);
+        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, createdAt, updatedAt, null, null, null, null, null, false, null);
     }
 
     public OrderResponse(
@@ -64,6 +66,26 @@ public record OrderResponse(
             String trackingNo,
             OffsetDateTime shippedAt
     ) {
-        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, createdAt, updatedAt, fulfillmentStatus, carrier, trackingNo, shippedAt, null);
+        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, createdAt, updatedAt, fulfillmentStatus, carrier, trackingNo, shippedAt, null, false, null);
+    }
+
+    public OrderResponse(
+            Long orderId,
+            String orderNo,
+            Long shopId,
+            String userId,
+            String requestId,
+            String status,
+            Long totalAmountCent,
+            List<OrderItemResponse> items,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt,
+            String fulfillmentStatus,
+            String carrier,
+            String trackingNo,
+            OffsetDateTime shippedAt,
+            OffsetDateTime completedAt
+    ) {
+        this(orderId, orderNo, shopId, userId, requestId, status, totalAmountCent, items, createdAt, updatedAt, fulfillmentStatus, carrier, trackingNo, shippedAt, completedAt, false, null);
     }
 }

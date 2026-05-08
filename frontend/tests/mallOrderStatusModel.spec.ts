@@ -4,6 +4,8 @@ import type { PaymentResponse } from '../src/types/api/payment'
 import {
   applyMallPaymentToOrder,
   applyMallPaymentToOrderList,
+  applyMallReviewToOrder,
+  applyMallReviewToOrderList,
   createMallOrderEmptyStateView,
   createMallOrderLinkedDetailView,
   createMallOrderDeepLinkRecoveryView,
@@ -12,8 +14,10 @@ import {
   createMallOrderLifecycleTimeline,
   createMallOrderListFilterOptions,
   createMallOrderPaginationView,
+  createMallOrderReviewView,
   createMallOrderSearchContinuation,
   createMallPaymentRefreshView,
+  describeMallOrderReviewState,
   describeMallOrderListSummary,
   filterMallOrders,
   findLoadedMallOrder,
@@ -82,6 +86,17 @@ const actionLabels = {
   confirmReceipt: 'Confirm receipt',
   confirmingReceipt: 'Confirming',
   receiptReady: 'Confirm receipt after delivery.',
+}
+
+const reviewLabels = {
+  pending: 'Pending completion',
+  ready: 'Ready to review',
+  reviewed: 'Reviewed',
+  notCompleted: 'Review is available after completion.',
+  unknownPrefix: 'Unknown order status: ',
+  refreshSuggestion: 'Refresh the order before trying again.',
+  submitReview: 'Submit review',
+  submittingReview: 'Submitting...',
 }
 
 const paymentRefreshLabels = {
@@ -483,6 +498,72 @@ describe('mallOrderStatusModel', () => {
     ).message).toBe('The current order status changed and moved out of this filter.')
   })
 
+  it('derives review state only for completed unreviewed orders', () => {
+    expect(createMallOrderReviewView(createOrder({ status: 'created' }), reviewLabels)).toMatchObject({
+      statusLabel: 'Pending completion',
+      canSubmitReview: false,
+      message: 'Review is available after completion.',
+    })
+
+    const completed = createMallOrderReviewView(createOrder({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    }), reviewLabels)
+    expect(completed).toEqual({
+      statusLabel: 'Ready to review',
+      message: 'Ready to review',
+      canSubmitReview: true,
+      submitLabel: 'Submit review',
+    })
+
+    const pending = createMallOrderReviewView(createOrder({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    }), reviewLabels, { isSubmittingReview: true })
+    expect(pending.canSubmitReview).toBe(false)
+    expect(pending.submitLabel).toBe('Submitting...')
+
+    const reviewed = createMallOrderReviewView(createOrder({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      reviewed: true,
+    }), reviewLabels)
+    expect(reviewed.statusLabel).toBe('Reviewed')
+    expect(reviewed.canSubmitReview).toBe(false)
+    expect(describeMallOrderReviewState(createOrder({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      reviewed: true,
+    }), reviewLabels)).toBe('Reviewed')
+
+    const unknown = createMallOrderReviewView(createOrder({ status: 'reviewing' }), reviewLabels)
+    expect(unknown.message).toBe('Unknown order status: reviewing. Refresh the order before trying again.')
+  })
+
+  it('merges submitted reviews into detail and list while staying completed', () => {
+    const completed = createOrder({
+      orderId: 501,
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    })
+    const review = createReview()
+    const updated = applyMallReviewToOrder(completed, review)
+
+    expect(updated).toMatchObject({
+      orderId: 501,
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      reviewed: true,
+      review,
+    })
+    expect(resolveMallOrderListFilter(updated ?? completed)).toBe('completed')
+    expect(applyMallReviewToOrderList([completed], review)[0]).toMatchObject({
+      reviewed: true,
+      review,
+    })
+    expect(applyMallReviewToOrder(createOrder({ orderId: 999 }), review)?.review).toBeUndefined()
+  })
+
   it('applies paid payment responses to detail and list as awaiting shipment', () => {
     const unpaid = createOrder({
       orderId: 501,
@@ -765,6 +846,23 @@ function createPayment(patch: Partial<PaymentResponse> = {}): PaymentResponse {
     channel: 'mock',
     status: 'paid',
     amountCent: 59900,
+    ...patch,
+  }
+}
+
+function createReview(patch: Partial<NonNullable<OrderResponse['review']>> = {}): NonNullable<OrderResponse['review']> {
+  return {
+    orderReviewId: 9001,
+    shopId: 1,
+    orderId: 501,
+    orderNo: 'ORD-501',
+    userId: '10001',
+    rating: 5,
+    content: 'good',
+    imageUrls: [],
+    requestId: 'review-001',
+    traceId: 'trace-review',
+    createdAt: '2026-05-08T10:00:00+08:00',
     ...patch,
   }
 }

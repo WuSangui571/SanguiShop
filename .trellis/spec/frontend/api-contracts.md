@@ -139,6 +139,8 @@ Frontend customer order status flows must use these gateway routes through `serv
 | `listOrders({page,size})` | `GET /api/orders?page=&size=` | `mall` | Show empty/loading/error states and never send `shopId` / `userId` query fields. |
 | `cancelOrder(orderId)` | `POST /api/orders/{orderId}/cancel` | `mall` | Enable only for `created` orders and guard duplicate clicks. |
 | `confirmOrderReceipt(orderId,{requestId})` | `POST /api/orders/{orderId}/receipt-confirmations` | `mall` | Enable only for shipped orders, generate `requestId`, guard duplicate clicks, and preserve shipped detail on failure. |
+| `createOrderReview(orderId,{requestId,rating,content,imageUrls})` | `POST /api/orders/{orderId}/reviews` | `mall` | Enable only for completed unreviewed orders, generate `requestId`, guard duplicate clicks, and preserve completed detail on failure. |
+| `getOrderReview(orderId)` | `GET /api/orders/{orderId}/review` | `mall` | Use only if `OrderResponse.review` is not enough; nullable success means no review yet. |
 | `getPayment(paymentNo)` | `GET /api/payments/{paymentNo}` | `mall` | Manual refresh only unless bounded polling with cleanup is explicitly implemented. |
 
 Order status display rules:
@@ -162,6 +164,12 @@ Order status display rules:
 - If a refreshed order moves out of the active order-status filter, the empty state must explain that the current order status changed rather than implying the order disappeared.
 - Deep-linked customer orders loaded from `/mall?orderId=...` must explain shipped logistics as an order snapshot and must not require a payment number or tracking API.
 - Deep-linked completed customer orders must render completion from the order snapshot and must not show an enabled confirm-receipt action.
+- Completed unreviewed customer orders show a review action/form; created, paid/unshipped, shipped, cancelled, and unknown statuses disable review with explicit reason.
+- While review submission is pending, repeat clicks must be ignored without sending a second request.
+- Successful review submission merges `reviewed=true` and `review` into current detail and loaded list item without moving the order out of the completed main filter.
+- Failed review submission must keep the completed detail/order snapshot and display backend `code`, `message`, and `traceId`.
+- Deep-linked completed reviewed orders must render the review snapshot and must not show an enabled review submit button.
+- `imageUrls` is submitted as an empty array from the mall UI until upload/storage is defined.
 
 Required tests:
 
@@ -178,6 +186,10 @@ Required tests:
 - Receipt confirmation failure preserves shipped detail and backend trace.
 - Duplicate pending receipt confirmation sends no second request.
 - Deep-linked completed order displays completed snapshot and disables receipt action.
+- Completed unreviewed order review submission succeeds and updates detail/list state to reviewed.
+- Duplicate pending review submission sends no second request.
+- Review failure preserves completed detail and backend trace.
+- Deep-linked completed reviewed order displays review snapshot and disables review action.
 - Unknown fulfillment status falls back to the raw backend value.
 - Active filter empty state distinguishes status movement after refresh.
 - Duplicate cancel click guard.

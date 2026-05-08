@@ -21,6 +21,27 @@ export interface OrderItemResponse {
   lineAmountCent: number
 }
 
+export interface OrderReviewResponse {
+  orderReviewId: number
+  shopId: number
+  orderId: number
+  orderNo: string
+  userId: string
+  rating: number
+  content: string | null
+  imageUrls: string[]
+  requestId: string
+  traceId: string | null
+  createdAt: string | null
+}
+
+export interface CreateOrderReviewRequest {
+  requestId: string
+  rating: number
+  content?: string | null
+  imageUrls?: string[]
+}
+
 export interface OrderResponse {
   orderId: number
   orderNo: string
@@ -37,6 +58,8 @@ export interface OrderResponse {
   trackingNo?: string | null
   shippedAt?: string | null
   completedAt?: string | null
+  reviewed?: boolean
+  review?: OrderReviewResponse | null
 }
 
 export interface OrderPageResponse {

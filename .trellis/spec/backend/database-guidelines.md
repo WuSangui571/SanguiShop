@@ -206,6 +206,54 @@ Good/Base/Bad cases:
 - Bad: storing stack traces or multi-line raw payloads in `last_compensation_reason`.
 - Bad: adding ops query APIs without persisting any latest-compensation metadata.
 
+## Order Review MVP Table
+
+Customer order reviews are persisted in order-service for the first-phase completed-order feedback experience.
+
+Migration:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V8__create_order_review_tables.sql`
+
+Required table:
+
+```sql
+CREATE TABLE oms_order_review (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    shop_id BIGINT NOT NULL DEFAULT 1,
+    order_id BIGINT NOT NULL,
+    order_no VARCHAR(64) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    rating INT NOT NULL,
+    content VARCHAR(500) NULL,
+    image_urls TEXT NULL,
+    request_id VARCHAR(64) NOT NULL,
+    trace_id VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    version INT NOT NULL DEFAULT 0
+);
+```
+
+Required constraints and indexes:
+
+- `uk_oms_order_review_shop_order (shop_id, order_id)` prevents duplicate reviews for one order.
+- `uk_oms_order_review_shop_user_request (shop_id, user_id, request_id)` backs frontend duplicate-submit idempotency.
+- `idx_oms_order_review_shop_user_created (shop_id, user_id, created_at)` supports customer review history or future profile pages.
+
+Executable validation:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=OrderReviewMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: `(shop_id, order_id)` rejects a second review for the same order even with a different `request_id`.
+- Good: `(shop_id, user_id, request_id)` returns the original review for an exact replay and rejects changed payloads as `IDEMPOTENCY_CONFLICT`.
+- Base: `image_urls` stores validated JSON text until a dedicated upload/storage contract exists.
+- Bad: review rows omit `shop_id`, `request_id`, or `trace_id`.
+
 ## Compensation Attempt History Tables
 
 Follow-up compensation operations persist immutable attempt history alongside latest row metadata.

@@ -17,10 +17,12 @@ import {
   createMallOrderFulfillmentView,
   createMallOrderLifecycleTimeline,
   createMallOrderLinkedDetailView,
+  createMallOrderReviewView,
   createMallPaymentRefreshView,
   createMallOrderPaginationView,
   createMallOrderSearchContinuation,
   describeMallOrderListSummary,
+  describeMallOrderReviewState,
   filterMallOrders,
   findLoadedMallOrder,
   createMallOrderListFilterOptions,
@@ -63,6 +65,10 @@ const loginForm = reactive({
   usernameOrMobile: '',
   password: '',
 })
+const reviewForm = reactive({
+  rating: 5,
+  content: '',
+})
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 const canGoPrev = computed(() => page.value > 1)
@@ -99,6 +105,13 @@ const currentPaymentRefresh = computed(() => createMallPaymentRefreshView(
   getPaymentRefreshLabels(),
   {
     isRefreshing: orderStatus.isRefreshingPayment.value,
+  },
+))
+const currentReview = computed(() => createMallOrderReviewView(
+  orderStatus.order.value,
+  getReviewLabels(),
+  {
+    isSubmittingReview: orderStatus.isSubmittingReview.value,
   },
 ))
 const orderFilterOptions = computed(() => createMallOrderListFilterOptions(
@@ -224,6 +237,19 @@ async function confirmCurrentOrderReceipt() {
   const completed = await orderStatus.confirmCurrentOrderReceipt()
   if (completed) {
     replaceOrderUrl(completed.orderId, '')
+    await loadOrderPage()
+  }
+}
+
+async function submitCurrentOrderReview() {
+  const review = await orderStatus.submitCurrentOrderReview({
+    rating: reviewForm.rating,
+    content: reviewForm.content,
+  })
+  if (review) {
+    reviewForm.rating = 5
+    reviewForm.content = ''
+    replaceOrderUrl(review.orderId, '')
     await loadOrderPage()
   }
 }
@@ -403,6 +429,10 @@ function describeOrderSummary(order: OrderResponse): string {
 
 function describeOrderStage(order: OrderResponse): string {
   return createMallOrderLifecycleTimeline(order, getLifecycleLabels()).stageLabel
+}
+
+function describeOrderReview(order: OrderResponse): string {
+  return describeMallOrderReviewState(order, getReviewLabels())
 }
 
 function describeOrderStatus(status: string): string {
@@ -597,6 +627,19 @@ function getActionLabels() {
   }
 }
 
+function getReviewLabels() {
+  return {
+    pending: t('mall.orders.reviewPending'),
+    ready: t('mall.orders.reviewReady'),
+    reviewed: t('mall.orders.reviewed'),
+    notCompleted: t('mall.orders.reviewNotCompleted'),
+    unknownPrefix: t('mall.orders.reviewUnknownPrefix'),
+    refreshSuggestion: t('mall.orders.actionRefreshSuggestion'),
+    submitReview: t('mall.orders.submitReview'),
+    submittingReview: t('mall.orders.submittingReview'),
+  }
+}
+
 function getPaymentRefreshLabels() {
   return {
     available: t('mall.orders.paymentRefreshAvailable'),
@@ -728,6 +771,7 @@ function resolveDefaultShopId(): number {
               <small class="order-card-summary">{{ describeOrderSummary(order) }}</small>
               <small class="order-stage-row">
                 <span class="order-stage-badge">{{ describeOrderStage(order) }}</span>
+                <span class="order-stage-badge">{{ describeOrderReview(order) }}</span>
                 <span>{{ formatDateTime(order.createdAt) }}</span>
               </small>
               <small v-if="orderStatus.order.value?.orderId === order.orderId" class="order-card-updated">
@@ -797,6 +841,7 @@ function resolveDefaultShopId(): number {
               <span>{{ describeOrderStatus(orderStatus.order.value.status) }}</span>
               <span>{{ t('mall.orders.paymentStatus', { status: orderStatus.paymentStatus.value }) }}</span>
               <span>{{ t('mall.orders.fulfillmentStatus', { status: currentFulfillment.statusLabel }) }}</span>
+              <span>{{ t('mall.orders.reviewStatus', { status: currentReview.statusLabel }) }}</span>
               <span>{{ t('mall.orders.lastUpdated', { time: formatDateTime(orderStatus.order.value.updatedAt) }) }}</span>
             </div>
 
@@ -864,6 +909,50 @@ function resolveDefaultShopId(): number {
                 <strong>{{ formatMoney(item.lineAmountCent) }}</strong>
               </div>
             </div>
+
+            <section class="review-panel" :aria-label="t('mall.orders.reviewTitle')">
+              <div class="review-heading">
+                <div>
+                  <p class="eyebrow">{{ t('mall.orders.reviewKicker') }}</p>
+                  <h4>{{ t('mall.orders.reviewTitle') }}</h4>
+                </div>
+                <span>{{ currentReview.statusLabel }}</span>
+              </div>
+              <p>{{ currentReview.message }}</p>
+              <div v-if="orderStatus.order.value.review" class="review-snapshot">
+                <strong>{{ t('mall.orders.reviewRatingValue', { rating: orderStatus.order.value.review.rating }) }}</strong>
+                <p>{{ orderStatus.order.value.review.content || t('mall.orders.reviewContentEmpty') }}</p>
+                <small>{{ t('mall.orders.reviewCreatedAt', { time: formatDateTime(orderStatus.order.value.review.createdAt) }) }}</small>
+              </div>
+              <form v-else-if="currentReview.canSubmitReview" class="review-form" @submit.prevent="submitCurrentOrderReview()">
+                <label>
+                  <span>{{ t('mall.orders.reviewRating') }}</span>
+                  <select v-model.number="reviewForm.rating" :disabled="orderStatus.isSubmittingReview.value">
+                    <option :value="5">{{ t('mall.orders.reviewRatingFive') }}</option>
+                    <option :value="4">{{ t('mall.orders.reviewRatingFour') }}</option>
+                    <option :value="3">{{ t('mall.orders.reviewRatingThree') }}</option>
+                    <option :value="2">{{ t('mall.orders.reviewRatingTwo') }}</option>
+                    <option :value="1">{{ t('mall.orders.reviewRatingOne') }}</option>
+                  </select>
+                </label>
+                <label>
+                  <span>{{ t('mall.orders.reviewContent') }}</span>
+                  <textarea
+                    v-model="reviewForm.content"
+                    :maxlength="500"
+                    :placeholder="t('mall.orders.reviewContentPlaceholder')"
+                    :disabled="orderStatus.isSubmittingReview.value"
+                  ></textarea>
+                </label>
+                <button
+                  type="submit"
+                  class="primary-action"
+                  :disabled="!orderStatus.canReview.value || orderStatus.isSubmittingReview.value"
+                >
+                  {{ currentReview.submitLabel }}
+                </button>
+              </form>
+            </section>
 
             <div class="checkout-actions">
               <button
@@ -1540,7 +1629,8 @@ h2 {
   overflow-wrap: anywhere;
 }
 
-.logistics-panel {
+.logistics-panel,
+.review-panel {
   display: grid;
   gap: 0.85rem;
   padding: 1rem;
@@ -1549,19 +1639,22 @@ h2 {
   background: var(--surface-subtle);
 }
 
-.logistics-heading {
+.logistics-heading,
+.review-heading {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.logistics-heading h4 {
+.logistics-heading h4,
+.review-heading h4 {
   margin: 0;
   font-size: 1.05rem;
 }
 
-.logistics-heading span {
+.logistics-heading span,
+.review-heading span {
   flex: 0 0 auto;
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
@@ -1570,10 +1663,44 @@ h2 {
   font-weight: 900;
 }
 
-.logistics-panel p {
+.logistics-panel p,
+.review-panel p {
   margin: 0;
   color: var(--text-muted);
   font-weight: 700;
+}
+
+.review-form,
+.review-snapshot {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.review-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-weight: 900;
+}
+
+.review-form select,
+.review-form textarea {
+  width: 100%;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+  background: var(--input-bg);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.review-form textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.review-snapshot strong {
+  color: var(--text-main);
 }
 
 .logistics-source {

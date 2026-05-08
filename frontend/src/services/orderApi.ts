@@ -6,7 +6,9 @@ import type {
   AdminOrderQueryParams,
   ConfirmOrderReceiptRequest,
   CreateOrderRequest,
+  CreateOrderReviewRequest,
   OrderPageResponse,
+  OrderReviewResponse,
   OrderResponse,
 } from '../types/api/order'
 
@@ -47,6 +49,24 @@ export function confirmOrderReceipt(orderId: number, payload: ConfirmOrderReceip
       suppressAuthStateChange: true,
     },
   )
+}
+
+export function createOrderReview(orderId: number, payload: CreateOrderReviewRequest) {
+  return postJson<OrderReviewResponse>(
+    `/api/orders/${encodeURIComponent(String(orderId))}/reviews`,
+    payload,
+    {
+      authContext: 'mall',
+      suppressAuthStateChange: true,
+    },
+  )
+}
+
+export function getOrderReview(orderId: number) {
+  return getJson<OrderReviewResponse | null>(`/api/orders/${encodeURIComponent(String(orderId))}/review`, {}, {
+    authContext: 'mall',
+    suppressAuthStateChange: true,
+  })
 }
 
 export function listAdminOrders(params: AdminOrderQueryParams) {

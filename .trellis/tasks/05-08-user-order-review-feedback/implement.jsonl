@@ -1,0 +1,19 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Backend service/package layout for order review implementation"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "API envelope, idempotency, DTO, and error contract rules"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Protected API and trusted principal security rules"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Review table migration, shop_id, indexes, and uniqueness rules"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Validation and business error mapping rules"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Required trace/order/user/request logging fields"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Existing customer order state machine and order response contract"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend completion and targeted test requirements"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall order API, requestId, error, and state sync contract"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Mall UI async state and business component rules"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable/service boundary and duplicate request handling"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Server/client state boundaries and typed copy rules"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "API DTO compatibility and unknown fallback rules"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend lint/typecheck/test completion rules"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer API/DB/frontend consistency checklist"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Service boundary, consistency, security, and observability review"}

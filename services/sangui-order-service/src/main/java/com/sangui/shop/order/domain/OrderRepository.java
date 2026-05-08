@@ -12,6 +12,18 @@ public interface OrderRepository {
 
     Optional<OrderSnapshot> findByRequestId(Long shopId, String userId, String requestId);
 
+    default Optional<OrderReviewRecord> findReviewByOrderId(Long shopId, Long orderId) {
+        throw new UnsupportedOperationException("Order review query is not implemented");
+    }
+
+    default Optional<OrderReviewRecord> findReviewByRequestId(Long shopId, String userId, String requestId) {
+        throw new UnsupportedOperationException("Order review idempotency query is not implemented");
+    }
+
+    default Long createReview(OrderReviewRecord review) {
+        throw new UnsupportedOperationException("Order review persistence is not implemented");
+    }
+
     default List<OrderSnapshot> findSnapshotsByUser(Long shopId, String userId, int offset, int limit) {
         throw new UnsupportedOperationException("Customer order list query is not implemented");
     }

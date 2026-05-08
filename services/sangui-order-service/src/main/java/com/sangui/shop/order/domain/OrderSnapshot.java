@@ -4,6 +4,10 @@ import java.util.List;
 
 public record OrderSnapshot(
         OrderRecord order,
-        List<OrderItemRecord> items
+        List<OrderItemRecord> items,
+        OrderReviewRecord review
 ) {
+    public OrderSnapshot(OrderRecord order, List<OrderItemRecord> items) {
+        this(order, items, null);
+    }
 }

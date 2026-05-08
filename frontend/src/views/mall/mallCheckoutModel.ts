@@ -86,6 +86,10 @@ export function createReceiptConfirmationRequestId(): string {
   return `mall-receipt-${createRandomId()}`
 }
 
+export function createOrderReviewRequestId(): string {
+  return `mall-review-${createRandomId()}`
+}
+
 export function describeMallApiError(caught: unknown): string {
   if (caught instanceof HttpClientError) {
     const trace = caught.traceId ? ` Trace ID ${caught.traceId}.` : ''

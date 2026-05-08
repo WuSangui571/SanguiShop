@@ -2,7 +2,9 @@ package com.sangui.shop.order.application;
 
 import com.sangui.shop.order.api.dto.OrderItemResponse;
 import com.sangui.shop.order.api.dto.OrderResponse;
+import com.sangui.shop.order.api.dto.OrderReviewResponse;
 import com.sangui.shop.order.domain.OrderItemRecord;
+import com.sangui.shop.order.domain.OrderReviewRecord;
 import com.sangui.shop.order.domain.OrderSnapshot;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -33,7 +35,28 @@ final class OrderResponseMapper {
                 snapshot.order().carrier(),
                 snapshot.order().trackingNo(),
                 toOffsetDateTime(snapshot.order().shippedAt()),
-                toOffsetDateTime(snapshot.order().completedAt())
+                toOffsetDateTime(snapshot.order().completedAt()),
+                snapshot.review() != null,
+                toReviewResponse(snapshot.review())
+        );
+    }
+
+    static OrderReviewResponse toReviewResponse(OrderReviewRecord review) {
+        if (review == null) {
+            return null;
+        }
+        return new OrderReviewResponse(
+                review.id(),
+                review.shopId(),
+                review.orderId(),
+                review.orderNo(),
+                review.userId(),
+                review.rating(),
+                review.content(),
+                review.imageUrls(),
+                review.requestId(),
+                review.traceId(),
+                toOffsetDateTime(review.createdAt())
         );
     }
 

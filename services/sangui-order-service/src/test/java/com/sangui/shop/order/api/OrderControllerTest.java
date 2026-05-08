@@ -17,14 +17,18 @@ import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.order.api.dto.ConfirmOrderReceiptRequest;
+import com.sangui.shop.order.api.dto.CreateOrderReviewRequest;
 import com.sangui.shop.order.api.dto.CreateOrderRequest;
 import com.sangui.shop.order.api.dto.OrderItemResponse;
 import com.sangui.shop.order.api.dto.OrderResponse;
 import com.sangui.shop.order.api.dto.OrderPageResponse;
+import com.sangui.shop.order.api.dto.OrderReviewResponse;
 import com.sangui.shop.order.application.OrderCancelService;
 import com.sangui.shop.order.application.OrderCreateService;
 import com.sangui.shop.order.application.OrderQueryService;
 import com.sangui.shop.order.application.OrderReceiptConfirmationService;
+import com.sangui.shop.order.application.OrderReviewService;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -61,6 +65,9 @@ class OrderControllerTest {
 
     @MockBean
     private OrderReceiptConfirmationService orderReceiptConfirmationService;
+
+    @MockBean
+    private OrderReviewService orderReviewService;
 
     @Test
     void createOrderUsesPrincipalParameterInsteadOfBodyIdentity() throws Exception {
@@ -273,6 +280,98 @@ class OrderControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.traceId").value("trace-receipt-validation"));
+    }
+
+    @Test
+    void createReviewUsesPrincipalScopePayloadAndTraceId() throws Exception {
+        when(orderReviewService.createReview(any(), eq(101L), any(), eq("trace-review")))
+                .thenReturn(new OrderReviewResponse(
+                        9001L,
+                        1L,
+                        101L,
+                        "ORD-101",
+                        "10001",
+                        5,
+                        "good",
+                        List.of("https://img.example/a.png"),
+                        "review-001",
+                        "trace-review",
+                        OffsetDateTime.parse("2026-05-08T10:00:00+08:00")
+                ));
+
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt-1");
+        mockMvc.perform(post("/api/orders/101/reviews")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-review")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "requestId", "review-001",
+                                "rating", 5,
+                                "content", "good",
+                                "imageUrls", List.of("https://img.example/a.png")
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ORDER_REVIEW_CREATED"))
+                .andExpect(jsonPath("$.traceId").value("trace-review"))
+                .andExpect(jsonPath("$.data.orderReviewId").value(9001))
+                .andExpect(jsonPath("$.data.rating").value(5));
+
+        ArgumentCaptor<SanguiPrincipal> principalCaptor = ArgumentCaptor.forClass(SanguiPrincipal.class);
+        ArgumentCaptor<CreateOrderReviewRequest> requestCaptor = ArgumentCaptor.forClass(CreateOrderReviewRequest.class);
+        verify(orderReviewService).createReview(
+                principalCaptor.capture(),
+                eq(101L),
+                requestCaptor.capture(),
+                eq("trace-review")
+        );
+        org.assertj.core.api.Assertions.assertThat(principalCaptor.getValue().shopId()).isEqualTo(1L);
+        org.assertj.core.api.Assertions.assertThat(principalCaptor.getValue().userId()).isEqualTo("10001");
+        org.assertj.core.api.Assertions.assertThat(requestCaptor.getValue().requestId()).isEqualTo("review-001");
+        org.assertj.core.api.Assertions.assertThat(requestCaptor.getValue().rating()).isEqualTo(5);
+    }
+
+    @Test
+    void getReviewUsesPrincipalScope() throws Exception {
+        when(orderReviewService.getReview(any(), eq(101L)))
+                .thenReturn(new OrderReviewResponse(
+                        9001L,
+                        1L,
+                        101L,
+                        "ORD-101",
+                        "10001",
+                        5,
+                        "good",
+                        List.of(),
+                        "review-001",
+                        "trace-review",
+                        OffsetDateTime.parse("2026-05-08T10:00:00+08:00")
+                ));
+
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt-1");
+        mockMvc.perform(get("/api/orders/101/review")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-review-detail"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ORDER_REVIEW_DETAIL"))
+                .andExpect(jsonPath("$.data.orderId").value(101))
+                .andExpect(jsonPath("$.data.requestId").value("review-001"));
+    }
+
+    @Test
+    void createReviewValidationFailureUsesStableErrorEnvelope() throws Exception {
+        SanguiPrincipal principal = new SanguiPrincipal("10001", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt-1");
+        mockMvc.perform(post("/api/orders/101/reviews")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, principal)
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-review-validation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "requestId", "",
+                                "rating", 6,
+                                "content", "good"
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.traceId").value("trace-review-validation"));
     }
 
     @TestConfiguration
