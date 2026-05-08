@@ -49,6 +49,7 @@ export interface ProductReviewPageResponse {
   productId: number
   averageRating: number
   reviewCount: number
+  ratingDistribution: Record<string, number>
   page: number
   size: number
   items: ProductReviewItemResponse[]

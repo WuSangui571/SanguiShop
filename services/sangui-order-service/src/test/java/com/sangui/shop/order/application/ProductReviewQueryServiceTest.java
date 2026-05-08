@@ -10,6 +10,7 @@ import com.sangui.shop.order.domain.ProductReviewListItem;
 import com.sangui.shop.order.domain.ProductReviewSummary;
 import com.sangui.shop.order.domain.ReviewVisibilityStatus;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -21,9 +22,9 @@ class ProductReviewQueryServiceTest {
 
     @Test
     void returnsPagedProductReviewsWithSummaryAndMaskedUsers() {
-        when(orderRepository.summarizeProductReviews(1L, 301L))
-                .thenReturn(new ProductReviewSummary(2L, 4.46));
-        when(orderRepository.findProductReviews(1L, 301L, 0, 10))
+        when(orderRepository.summarizeProductReviews(1L, 301L, false))
+                .thenReturn(new ProductReviewSummary(2L, 4.46, Map.of(4, 1L, 5, 1L)));
+        when(orderRepository.findProductReviews(1L, 301L, false, 0, 10))
                 .thenReturn(List.of(
                         new ProductReviewListItem(
                                 9002L,
@@ -51,11 +52,18 @@ class ProductReviewQueryServiceTest {
                         )
                 ));
 
-        ProductReviewPageResponse response = service.listProductReviews(new ProductReviewQueryRequest(1L, 301L, 1, 10));
+        ProductReviewPageResponse response = service.listProductReviews(new ProductReviewQueryRequest(
+                1L,
+                301L,
+                1,
+                10,
+                false
+        ));
 
         assertThat(response.productId()).isEqualTo(301L);
         assertThat(response.averageRating()).isEqualTo(4.5);
         assertThat(response.reviewCount()).isEqualTo(2L);
+        assertThat(response.ratingDistribution()).containsEntry(1, 0L).containsEntry(4, 1L).containsEntry(5, 1L);
         assertThat(response.items()).hasSize(2);
         assertThat(response.items().getFirst().maskedUserId()).isEqualTo("10***01");
         assertThat(response.items().get(1).maskedUserId()).isEqualTo("u***");
@@ -67,17 +75,50 @@ class ProductReviewQueryServiceTest {
 
     @Test
     void returnsEmptySummaryForProductWithoutReviewsAndCapsSize() {
-        when(orderRepository.summarizeProductReviews(1L, 301L))
-                .thenReturn(new ProductReviewSummary(0L, null));
-        when(orderRepository.findProductReviews(1L, 301L, 0, 50))
+        when(orderRepository.summarizeProductReviews(1L, 301L, false))
+                .thenReturn(new ProductReviewSummary(0L, null, Map.of()));
+        when(orderRepository.findProductReviews(1L, 301L, false, 0, 50))
                 .thenReturn(List.of());
 
-        ProductReviewPageResponse response = service.listProductReviews(new ProductReviewQueryRequest(1L, 301L, null, 200));
+        ProductReviewPageResponse response = service.listProductReviews(new ProductReviewQueryRequest(
+                1L,
+                301L,
+                null,
+                200,
+                null
+        ));
 
         assertThat(response.page()).isEqualTo(1);
         assertThat(response.size()).isEqualTo(50);
         assertThat(response.averageRating()).isEqualTo(0.0);
         assertThat(response.reviewCount()).isZero();
+        assertThat(response.ratingDistribution()).containsOnly(
+                Map.entry(1, 0L),
+                Map.entry(2, 0L),
+                Map.entry(3, 0L),
+                Map.entry(4, 0L),
+                Map.entry(5, 0L)
+        );
         assertThat(response.items()).isEmpty();
+    }
+
+    @Test
+    void passesWithImagesFilterToSummaryAndListQueries() {
+        when(orderRepository.summarizeProductReviews(1L, 301L, true))
+                .thenReturn(new ProductReviewSummary(1L, 5.0, Map.of(5, 1L)));
+        when(orderRepository.findProductReviews(1L, 301L, true, 5, 5))
+                .thenReturn(List.of());
+
+        ProductReviewPageResponse response = service.listProductReviews(new ProductReviewQueryRequest(
+                1L,
+                301L,
+                2,
+                5,
+                true
+        ));
+
+        assertThat(response.reviewCount()).isEqualTo(1L);
+        assertThat(response.page()).isEqualTo(2);
+        assertThat(response.ratingDistribution()).containsEntry(5, 1L);
     }
 }

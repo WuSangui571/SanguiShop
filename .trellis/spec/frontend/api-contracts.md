@@ -173,7 +173,7 @@ Frontend customer order status flows must use these gateway routes through `serv
 | `createOrderReview(orderId,{requestId,rating,content,imageUrls})` | `POST /api/orders/{orderId}/reviews` | `mall` | Enable only for completed unreviewed orders, generate `requestId`, guard duplicate clicks, and preserve completed detail on failure. |
 | `getOrderReview(orderId)` | `GET /api/orders/{orderId}/review` | `mall` | Use only if `OrderResponse.review` is not enough; nullable success means no review yet. |
 | `getPayment(paymentNo)` | `GET /api/payments/{paymentNo}` | `mall` | Manual refresh only unless bounded polling with cleanup is explicitly implemented. |
-| `listProductReviews(productId,{page,size})` | `GET /api/products/{productId}/reviews?page=&size=` | `none` | Load product reviews independently from product detail and preserve backend errors. |
+| `listProductReviews(productId,{page,size,withImages})` | `GET /api/products/{productId}/reviews?page=&size=&withImages=` | `none` | Load product reviews independently from product detail, omit false `withImages`, and preserve backend errors. |
 
 Order status display rules:
 
@@ -233,13 +233,19 @@ Mall product review display rules:
 - Product review loading has independent `loading`, `empty`, `error`, and `retry` states.
 - Product review query failure must not disable SKU selection, add-to-cart, buy-now, or existing checkout controls.
 - Empty review response displays the localized no-review empty state.
+- Product review response summary comes from the backend: `averageRating`, `reviewCount`, `ratingDistribution`, `page`, and `size`; the frontend must not fabricate public summary counts from the current page items.
+- `ratingDistribution` is displayed as five rows for ratings `5..1`; missing keys are treated as zero only for defensive rendering.
+- The "with images" toggle sends `withImages=true`, resets to page `1`, and keeps summary/list/pagination aligned with the backend filtered response. False is omitted from the query payload.
 - Review item display includes rating, content, `createdAt`, `skuName`, backend-provided `maskedUserId`, and optional `merchantReply`.
+- Review item image URLs may be shown as public review thumbnails, but the frontend must not infer image-only filtering locally.
 - Product review item must not display backend reply audit fields such as operator, request id, or trace id.
 - Product review API errors must preserve backend `code`, `message`, and `traceId`.
+- Successful customer review submission may refresh matching open product detail reviews asynchronously when the selected product appears in the reviewed order items; this refresh must not block order detail/list state updates.
 
 Required tests:
 
-- Product review summary and item formatting for rating, time, SKU name, masked user, and optional merchant reply.
+- Product review summary, rating distribution, pagination summary, image URLs, and item formatting for rating, time, SKU name, masked user, and optional merchant reply.
+- Product review query payload includes `withImages=true` only when the image-only filter is active.
 - Optional merchant reply absence handling.
 - Product with no reviews renders empty state.
 - Product review API error preservation through the shared mall API error formatter.

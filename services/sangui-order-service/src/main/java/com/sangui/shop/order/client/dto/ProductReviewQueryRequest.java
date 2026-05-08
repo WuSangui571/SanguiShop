@@ -9,6 +9,7 @@ public record ProductReviewQueryRequest(
         @NotNull @Positive Long shopId,
         @NotNull @Positive Long productId,
         @Min(1) Integer page,
-        @Min(1) @Max(50) Integer size
+        @Min(1) @Max(50) Integer size,
+        Boolean withImages
 ) {
 }

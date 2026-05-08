@@ -196,6 +196,7 @@ class ProductCatalogServiceTest {
                 activeProductId,
                 4.5,
                 2L,
+                Map.of(4, 1L, 5, 1L),
                 1,
                 10,
                 List.of()
@@ -204,14 +205,17 @@ class ProductCatalogServiceTest {
         ProductReviewPageResponse response = productCatalogService.listProductReviews(
                 activeProductId,
                 new PageRequest(1, 10),
+                true,
                 "trace-review-list"
         );
 
         assertThat(response.productId()).isEqualTo(activeProductId);
         assertThat(response.averageRating()).isEqualTo(4.5);
         assertThat(response.reviewCount()).isEqualTo(2L);
+        assertThat(response.ratingDistribution()).containsEntry(5, 1L);
         assertThat(orderReviewClient.lastShopId).isEqualTo(1L);
         assertThat(orderReviewClient.lastProductId).isEqualTo(activeProductId);
+        assertThat(orderReviewClient.lastWithImages).isTrue();
         assertThat(orderReviewClient.lastTraceId).isEqualTo("trace-review-list");
     }
 
@@ -221,7 +225,7 @@ class ProductCatalogServiceTest {
                 new ProductSkuDraft("draft-sku", "Draft SKU", 1000L, 5L)
         ));
 
-        assertThatThrownBy(() -> productCatalogService.listProductReviews(draftProductId, new PageRequest(1, 10), "trace"))
+        assertThatThrownBy(() -> productCatalogService.listProductReviews(draftProductId, new PageRequest(1, 10), false, "trace"))
                 .isInstanceOfSatisfying(SanguiException.class, exception -> {
                     assertThat(exception.errorCode().code()).isEqualTo("PRODUCT_NOT_FOUND");
                     assertThat(exception.httpStatus()).isEqualTo(404);
@@ -279,6 +283,7 @@ class ProductCatalogServiceTest {
         private com.sangui.shop.product.client.dto.ProductReviewPageResponse response;
         private Long lastShopId;
         private Long lastProductId;
+        private boolean lastWithImages;
         private String lastTraceId;
 
         @Override
@@ -287,13 +292,23 @@ class ProductCatalogServiceTest {
                 Long productId,
                 int page,
                 int size,
+                boolean withImages,
                 String traceId
         ) {
             lastShopId = shopId;
             lastProductId = productId;
+            lastWithImages = withImages;
             lastTraceId = traceId;
             return response == null
-                    ? new com.sangui.shop.product.client.dto.ProductReviewPageResponse(productId, 0.0, 0L, page, size, List.of())
+                    ? new com.sangui.shop.product.client.dto.ProductReviewPageResponse(
+                            productId,
+                            0.0,
+                            0L,
+                            Map.of(),
+                            page,
+                            size,
+                            List.of()
+                    )
                     : response;
         }
     }

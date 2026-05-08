@@ -12,7 +12,7 @@ This document covers public catalog read APIs and admin product maintenance. Inv
 | --- | --- | --- | --- |
 | `GET /api/products?page=1&size=20` | anonymous allowed | `PRODUCT_LISTED` | `PageResponse<ProductSummaryResponse>` |
 | `GET /api/products/{productId}` | anonymous allowed | `PRODUCT_FETCHED` | `ProductDetailResponse` |
-| `GET /api/products/{productId}/reviews?page=1&size=10` | anonymous allowed | `PRODUCT_REVIEWS_FETCHED` | `ProductReviewPageResponse` |
+| `GET /api/products/{productId}/reviews?page=1&size=10&withImages=false` | anonymous allowed | `PRODUCT_REVIEWS_FETCHED` | `ProductReviewPageResponse` |
 
 Rules:
 
@@ -151,7 +151,7 @@ Rules:
 
 Route:
 
-- `GET /api/products/{productId}/reviews?page=1&size=10`
+- `GET /api/products/{productId}/reviews?page=1&size=10&withImages=false`
 
 Response:
 
@@ -160,6 +160,13 @@ Response:
   "productId": 301,
   "averageRating": 4.5,
   "reviewCount": 2,
+  "ratingDistribution": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 1,
+    "5": 1
+  },
   "page": 1,
   "size": 10,
   "items": [
@@ -184,9 +191,12 @@ Rules:
 
 - `productId` must be a positive path value and must resolve to an active public product in the default shop scope.
 - `page` defaults to `1`, `size` defaults to `10`, and `size` is capped at `50`.
-- Product-service calls order-service internal `POST /internal/orders/reviews/by-product/query` with `shopId`, `productId`, `page`, and `size`.
+- `withImages` defaults to `false`; `true` filters both summary and list to visible reviews whose `imageUrls` are non-empty.
+- Product-service calls order-service internal `POST /internal/orders/reviews/by-product/query` with `shopId`, `productId`, `page`, `size`, and `withImages`.
 - Product-service must forward the current trace id to order-service as `X-Trace-Id`.
 - Public item fields must not include raw `shopId`, raw `userId`, `orderId`, `orderNo`, `requestId`, or `traceId`.
+- `averageRating`, `reviewCount`, `ratingDistribution`, `items`, and pagination all use the same visible-review and `withImages` filter.
+- `ratingDistribution` always contains keys `1..5`; empty results return all zero counts.
 - Optional `merchantReply` includes only `content` and `repliedAt`; reply operator, request id, and trace id remain admin-only.
 - Hidden review rows are omitted. Visible review rows with hidden replies stay visible but omit `merchantReply`.
 - If order-service is unavailable, product-service maps the failure to `DOWNSTREAM_TIMEOUT`.
@@ -365,6 +375,7 @@ Good/Base/Bad cases:
 - Good: status update and stock adjustment carry `requestId` and preserve unified `ApiResult<T>` `code/message/data/traceId/timestamp`.
 - Good: public read still exposes only active products.
 - Good: public product review read returns completed-order review assets through product-service without exposing order identifiers.
+- Good: public product review read forwards `withImages=true` to order-service and returns matching `ratingDistribution`.
 - Base: omitted `availableStock` defaults to `0`.
 - Base: order-service remains the review projection source until a dedicated review projection service/table is introduced.
 - Bad: public read exposes draft products or audit fields.

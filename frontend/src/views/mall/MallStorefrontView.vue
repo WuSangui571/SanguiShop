@@ -52,6 +52,7 @@ const detailError = ref('')
 const productReviews = ref<ProductReviewPageResponse | null>(null)
 const productReviewPage = ref(1)
 const productReviewSize = ref(5)
+const productReviewWithImages = ref(false)
 const isLoadingProductReviews = ref(false)
 const productReviewError = ref('')
 const isRestoringOrderFromUrl = ref(false)
@@ -153,9 +154,17 @@ const cartRestoreMessage = computed(() => describeCartRestore())
 const cartCheckoutGuidance = computed(() => describeCartCheckoutFailure())
 const paymentFailureGuidance = computed(() => describePaymentFailure())
 const productReviewTotalPages = computed(() => Math.max(1, Math.ceil((productReviews.value?.reviewCount ?? 0) / productReviewSize.value)))
-const productReviewView = computed(() => createMallProductReviewView(productReviews.value, getProductReviewLabels()))
-const canGoPrevProductReview = computed(() => productReviewPage.value > 1)
-const canGoNextProductReview = computed(() => productReviewPage.value < productReviewTotalPages.value)
+const productReviewView = computed(() => createMallProductReviewView(productReviews.value ?? {
+  productId: selectedProduct.value?.productId ?? 0,
+  averageRating: 0,
+  reviewCount: 0,
+  ratingDistribution: {},
+  page: productReviewPage.value,
+  size: productReviewSize.value,
+  items: [],
+}, getProductReviewLabels()))
+const canGoPrevProductReview = computed(() => productReviewPage.value > 1 && !isLoadingProductReviews.value)
+const canGoNextProductReview = computed(() => productReviewPage.value < productReviewTotalPages.value && !isLoadingProductReviews.value)
 
 onMounted(() => {
   mallSession.bootstrap()
@@ -217,6 +226,7 @@ async function loadProductReviews(productId = selectedProduct.value?.productId, 
     const result = await listProductReviews(productId, {
       page: nextPage,
       size: productReviewSize.value,
+      withImages: productReviewWithImages.value,
     })
     productReviews.value = result.data
     productReviewPage.value = result.data.page
@@ -231,8 +241,14 @@ async function loadProductReviews(productId = selectedProduct.value?.productId, 
 function resetProductReviews() {
   productReviews.value = null
   productReviewPage.value = 1
+  productReviewWithImages.value = false
   productReviewError.value = ''
   isLoadingProductReviews.value = false
+}
+
+async function toggleProductReviewWithImages() {
+  productReviewWithImages.value = !productReviewWithImages.value
+  await loadProductReviews(selectedProduct.value?.productId, 1)
 }
 
 async function submitLogin() {
@@ -284,6 +300,10 @@ async function confirmCurrentOrderReceipt() {
 }
 
 async function submitCurrentOrderReview() {
+  const openProductId = selectedProduct.value?.productId
+  const shouldRefreshOpenProductReviews = Boolean(
+    openProductId && orderStatus.order.value?.items.some((item) => item.productId === openProductId),
+  )
   const review = await orderStatus.submitCurrentOrderReview({
     rating: reviewForm.rating,
     content: reviewForm.content,
@@ -292,6 +312,9 @@ async function submitCurrentOrderReview() {
     reviewForm.rating = 5
     reviewForm.content = ''
     replaceOrderUrl(review.orderId, '')
+    if (shouldRefreshOpenProductReviews && openProductId) {
+      void loadProductReviews(openProductId, 1)
+    }
     await loadOrderPage()
   }
 }
@@ -687,6 +710,13 @@ function getProductReviewLabels() {
     empty: t('mall.catalog.reviewsEmpty'),
     summary: t('mall.catalog.reviewsSummary'),
     ratingValue: t('mall.catalog.reviewRatingValue'),
+    ratingDistribution: t('mall.catalog.reviewRatingDistribution'),
+    pageSummary: t('mall.catalog.reviewPageSummary', {
+      page: '{page}',
+      totalPages: '{totalPages}',
+      total: '{total}',
+      size: '{size}',
+    }),
     createdAt: t('mall.catalog.reviewCreatedAt'),
     skuName: t('mall.catalog.reviewSkuName'),
     user: t('mall.catalog.reviewUser'),
@@ -1183,12 +1213,39 @@ function resolveDefaultShopId(): number {
                 </div>
                 <strong>{{ productReviewView.summary }}</strong>
               </div>
+              <div class="review-tools">
+                <button
+                  type="button"
+                  class="filter-chip"
+                  :class="{ active: productReviewWithImages }"
+                  :aria-pressed="productReviewWithImages"
+                  :disabled="isLoadingProductReviews"
+                  @click="toggleProductReviewWithImages()"
+                >
+                  {{ t('mall.catalog.reviewsWithImages') }}
+                </button>
+                <span>{{ productReviewView.pageSummary }}</span>
+              </div>
+              <div class="review-distribution" :aria-label="t('mall.catalog.reviewsDistribution')">
+                <div
+                  v-for="row in productReviewView.distribution"
+                  :key="row.rating"
+                  class="review-distribution-row"
+                >
+                  <span>{{ row.label }}</span>
+                  <div class="review-distribution-track">
+                    <i :style="row.barStyle" />
+                  </div>
+                  <strong>{{ row.count }}</strong>
+                  <small>{{ row.percentLabel }}</small>
+                </div>
+              </div>
               <div v-if="isLoadingProductReviews" class="status-block compact">{{ t('common.loading') }}</div>
-              <div v-else-if="productReviewError" class="status-block danger compact">
+              <div v-if="productReviewError" class="status-block danger compact">
                 <p>{{ productReviewError }}</p>
                 <button type="button" @click="loadProductReviews()">{{ t('common.retry') }}</button>
               </div>
-              <div v-else-if="productReviewView.isEmpty" class="status-block compact">
+              <div v-else-if="productReviewView.isEmpty && !isLoadingProductReviews" class="status-block compact">
                 {{ productReviewView.emptyMessage }}
               </div>
               <div v-else class="product-review-list">
@@ -1206,6 +1263,14 @@ function resolveDefaultShopId(): number {
                     <span>{{ review.skuNameLabel }}</span>
                     <span>{{ review.createdAtLabel }}</span>
                   </div>
+                  <div v-if="review.imageUrls.length" class="review-images">
+                    <img
+                      v-for="imageUrl in review.imageUrls"
+                      :key="imageUrl"
+                      :src="imageUrl"
+                      :alt="t('mall.catalog.reviewImageAlt')"
+                    >
+                  </div>
                   <div v-if="review.merchantReply" class="merchant-reply">
                     <strong>{{ t('mall.catalog.merchantReply') }}</strong>
                     <p>{{ review.merchantReply.content }}</p>
@@ -1220,7 +1285,7 @@ function resolveDefaultShopId(): number {
                   >
                     {{ t('common.prev') }}
                   </button>
-                  <span>{{ productReviewPage }} / {{ productReviewTotalPages }}</span>
+                  <span>{{ productReviewView.pageSummary }}</span>
                   <button
                     type="button"
                     :disabled="!canGoNextProductReview"
@@ -2040,6 +2105,69 @@ h2 {
   font-size: 1.25rem;
 }
 
+.review-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-height: 2.4rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.filter-chip {
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: var(--surface-main);
+  color: var(--text-main);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.filter-chip.active {
+  border-color: var(--accent);
+  background: var(--chip-bg);
+  color: var(--chip-text);
+}
+
+.filter-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.review-distribution {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.review-distribution-row {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, 4.5rem) minmax(5rem, 1fr) minmax(1.5rem, auto) minmax(2.5rem, auto);
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.review-distribution-track {
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+}
+
+.review-distribution-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
 .review-header strong,
 .review-item-top strong {
   color: var(--text-main);
@@ -2055,6 +2183,21 @@ h2 {
 .product-review-item p {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.review-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 5.5rem));
+  gap: 0.5rem;
+}
+
+.review-images img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-main);
 }
 
 .merchant-reply {

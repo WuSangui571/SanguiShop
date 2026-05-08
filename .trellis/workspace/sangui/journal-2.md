@@ -1024,3 +1024,83 @@ The review chain now has an operational governance loop: users can create review
 ### Next Steps
 
 - None - task complete
+
+
+## Session 57: 商家评价回复二期
+
+**Date**: 2026-05-08
+**Task**: 商家评价回复二期
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Backend reply API | Added merchant reply endpoints `POST /api/admin/reviews/{reviewId}/reply` and `POST /api/admin/reviews/{reviewId}/reply/visibility` in order-service. |
+| Reply persistence | Added V10 `oms_order_review` reply snapshot fields for one merchant reply: content, visibility, request id, operator, trace id, and update time. |
+| Permission and scope | Reply writes require trusted `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN` permission and stay scoped to the principal `shopId`. |
+| Idempotency | Reply create/edit and reply visibility writes use required trimmed `requestId`; stable replay returns current snapshot and conflicting replay returns `IDEMPOTENCY_CONFLICT`. |
+| Public product reviews | Product review item now supports optional `merchantReply` with only `content` and `repliedAt`; hidden reviews remain excluded and hidden replies are omitted while the review stays visible. |
+| Admin frontend | Review management workspace now shows reply state and supports reply, edit reply, hide reply, restore reply, pending guard, and backend error `code/message/traceId` preservation. |
+| Mall frontend | Product detail review cards render a merchant reply block when present without exposing admin audit fields. |
+| Spec sync | Updated backend DB/order/product contracts and frontend API contracts with concrete fields, validation matrix, required tests, and Good/Base/Bad cases. |
+
+**Updated Files**:
+- `services/sangui-order-service/src/main/resources/db/migration/V10__add_order_review_merchant_reply.sql`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/AdminReviewController.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/AdminReviewManagementService.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/ProductReviewQueryService.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/persistence/JdbcOrderRepository.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/application/ProductCatalogService.java`
+- `frontend/src/views/admin/ReviewManagementView.vue`
+- `frontend/src/composables/useReviewManagement.ts`
+- `frontend/src/views/admin/reviewManagementModel.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/mallProductReviewModel.ts`
+- `.trellis/spec/backend/database-guidelines.md`
+- `.trellis/spec/backend/order-create-contracts.md`
+- `.trellis/spec/backend/product-catalog-contracts.md`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-08-merchant-review-reply-phase2/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human commit: `7108290 feat(mall): ????????`.
+- AI backend compile passed:
+  - `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-product-service" -am -DskipTests compile`
+- AI backend targeted tests passed:
+  - `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-Dtest=AdminReviewManagementServiceTest,ProductReviewQueryServiceTest,AdminReviewControllerTest,InternalOrderReviewControllerTest,OrderReviewMerchantReplyMigrationContractTest,ProductCatalogServiceTest,ProductCatalogControllerTest" "-pl=services/sangui-order-service,services/sangui-product-service" -am "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- AI frontend checks passed:
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test -- reviewManagementModel mallProductReviewModel`
+- AI: `git diff --check` passed with Windows line-ending warnings only.
+
+### Result
+
+The review domain now has a complete public and merchant-side communication loop: users create reviews, public product detail displays visible reviews and visible merchant replies, and authorized merchant admins can manage both review visibility and one official merchant reply without touching order, payment, inventory, refund, or logistics state machines.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7108290` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

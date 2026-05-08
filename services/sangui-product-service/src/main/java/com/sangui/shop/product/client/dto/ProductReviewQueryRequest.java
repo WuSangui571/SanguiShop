@@ -4,6 +4,7 @@ public record ProductReviewQueryRequest(
         Long shopId,
         Long productId,
         Integer page,
-        Integer size
+        Integer size,
+        Boolean withImages
 ) {
 }

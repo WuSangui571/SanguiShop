@@ -357,7 +357,8 @@ Request:
   "shopId": 1,
   "productId": 301,
   "page": 1,
-  "size": 10
+  "size": 10,
+  "withImages": false
 }
 ```
 
@@ -370,6 +371,13 @@ Response data:
   "productId": 301,
   "averageRating": 4.5,
   "reviewCount": 2,
+  "ratingDistribution": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 1,
+    "5": 1
+  },
   "page": 1,
   "size": 10,
   "items": [
@@ -391,8 +399,10 @@ Rules:
 - Query source is `oms_order_review` joined to completed `oms_order` rows and scoped by `shop_id`.
 - Product filtering uses immutable `oms_order_item.product_id`; order-service must not call product-service to infer product membership for this query.
 - Only reviews whose order status is `completed` enter the public projection.
+- `withImages=true` filters both summary and list to visible reviews with non-empty `imageUrls`; omitted or `false` uses all visible reviews.
 - Results sort by `review.created_at DESC, review.id DESC`.
 - `averageRating` is rounded to one decimal; no-review products return `0.0`, `reviewCount=0`, and `items=[]`.
+- `ratingDistribution` always contains keys `1..5`; counts use the same visible-review and `withImages` filter as `averageRating`, `reviewCount`, and pagination.
 - `maskedUserId` is derived server-side; raw `userId`, `orderId`, `orderNo`, `requestId`, and `traceId` must not leave the internal projection.
 
 Validation and error matrix:
@@ -401,7 +411,7 @@ Validation and error matrix:
 | --- | --- | --- |
 | Missing or invalid `shopId` / `productId` | 400 | `VALIDATION_FAILED` |
 | `page <= 0` or `size <= 0` / `size > 50` | 400 | `VALIDATION_FAILED` |
-| Product has no completed-order reviews | 200 | `PRODUCT_REVIEWS_FETCHED` with empty list |
+| Product has no completed-order reviews or no matching image reviews | 200 | `PRODUCT_REVIEWS_FETCHED` with `averageRating=0.0`, `reviewCount=0`, `ratingDistribution` all zero, and `items=[]` |
 
 Required tests:
 
@@ -411,9 +421,12 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 
 Good/Base/Bad cases:
 
-- Good: completed orders with reviews appear under the purchased product id and include SKU snapshot name.
+- Good: completed orders with visible reviews appear under the purchased product id and include SKU snapshot name.
+- Good: `withImages=true` returns only visible reviews whose `imageUrls` array is non-empty and summary counts match that filtered set.
 - Good: created, paid, shipped, cancelled, or unsupported order statuses do not appear.
 - Good: public projection hides raw user/order/trace fields.
+- Good: hidden reviews do not affect `averageRating`, `reviewCount`, `ratingDistribution`, or `items`.
+- Good: visible review + hidden reply appears in `items` without `merchantReply`.
 - Base: an order-level review may represent the purchased product item snapshot until per-SKU review rows exist.
 - Bad: product detail frontend calls customer order list/detail to assemble reviews.
 

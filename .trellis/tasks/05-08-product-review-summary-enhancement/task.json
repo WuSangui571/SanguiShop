@@ -1,7 +1,7 @@
 {
-  "id": "merchant-review-reply-phase2",
-  "name": "merchant-review-reply-phase2",
-  "title": "商家评价回复二期",
+  "id": "product-review-summary-enhancement",
+  "name": "product-review-summary-enhancement",
+  "title": "商品详情评价摘要增强",
   "description": "",
   "status": "planning",
   "dev_type": "fullstack",

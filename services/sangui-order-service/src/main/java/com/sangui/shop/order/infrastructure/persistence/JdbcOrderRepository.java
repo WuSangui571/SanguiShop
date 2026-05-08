@@ -26,7 +26,9 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -217,10 +219,16 @@ public class JdbcOrderRepository implements OrderRepository {
     }
 
     @Override
-    public ProductReviewSummary summarizeProductReviews(Long shopId, Long productId) {
+    public ProductReviewSummary summarizeProductReviews(Long shopId, Long productId, boolean withImages) {
         return jdbcTemplate.queryForObject(
                 """
-                        SELECT COUNT(r.id) AS review_count, AVG(r.rating) AS average_rating
+                        SELECT COUNT(r.id) AS review_count,
+                               AVG(r.rating) AS average_rating,
+                               COALESCE(SUM(CASE WHEN r.rating = 1 THEN 1 ELSE 0 END), 0) AS rating_one_count,
+                               COALESCE(SUM(CASE WHEN r.rating = 2 THEN 1 ELSE 0 END), 0) AS rating_two_count,
+                               COALESCE(SUM(CASE WHEN r.rating = 3 THEN 1 ELSE 0 END), 0) AS rating_three_count,
+                               COALESCE(SUM(CASE WHEN r.rating = 4 THEN 1 ELSE 0 END), 0) AS rating_four_count,
+                               COALESCE(SUM(CASE WHEN r.rating = 5 THEN 1 ELSE 0 END), 0) AS rating_five_count
                         FROM oms_order_review r
                         JOIN oms_order o
                           ON o.shop_id = r.shop_id
@@ -230,6 +238,9 @@ public class JdbcOrderRepository implements OrderRepository {
                           AND r.deleted = 0
                           AND COALESCE(r.visibility_status, 'visible') = 'visible'
                           AND o.status = ?
+                        """
+                        + productReviewImageFilterSql(withImages)
+                        + """
                           AND EXISTS (
                               SELECT 1
                               FROM oms_order_item oi
@@ -241,7 +252,14 @@ public class JdbcOrderRepository implements OrderRepository {
                         """,
                 (rs, rowNum) -> new ProductReviewSummary(
                         rs.getLong("review_count"),
-                        rs.getObject("average_rating") == null ? null : rs.getDouble("average_rating")
+                        rs.getObject("average_rating") == null ? null : rs.getDouble("average_rating"),
+                        productRatingDistribution(
+                                rs.getLong("rating_one_count"),
+                                rs.getLong("rating_two_count"),
+                                rs.getLong("rating_three_count"),
+                                rs.getLong("rating_four_count"),
+                                rs.getLong("rating_five_count")
+                        )
                 ),
                 shopId,
                 OrderStatus.COMPLETED.value(),
@@ -250,7 +268,13 @@ public class JdbcOrderRepository implements OrderRepository {
     }
 
     @Override
-    public List<ProductReviewListItem> findProductReviews(Long shopId, Long productId, int offset, int limit) {
+    public List<ProductReviewListItem> findProductReviews(
+            Long shopId,
+            Long productId,
+            boolean withImages,
+            int offset,
+            int limit
+    ) {
         return jdbcTemplate.query(
                 """
                         SELECT r.id, r.rating, r.content, r.image_urls, r.created_at, r.user_id,
@@ -284,6 +308,9 @@ public class JdbcOrderRepository implements OrderRepository {
                           AND r.deleted = 0
                           AND COALESCE(r.visibility_status, 'visible') = 'visible'
                           AND o.status = ?
+                        """
+                        + productReviewImageFilterSql(withImages)
+                        + """
                           AND EXISTS (
                               SELECT 1
                               FROM oms_order_item oi
@@ -314,6 +341,27 @@ public class JdbcOrderRepository implements OrderRepository {
                 limit,
                 offset
         );
+    }
+
+    private String productReviewImageFilterSql(boolean withImages) {
+        if (!withImages) {
+            return "";
+        }
+        return """
+                          AND r.image_urls IS NOT NULL
+                          AND TRIM(r.image_urls) <> ''
+                          AND TRIM(r.image_urls) <> '[]'
+                """;
+    }
+
+    private Map<Integer, Long> productRatingDistribution(long one, long two, long three, long four, long five) {
+        Map<Integer, Long> distribution = new LinkedHashMap<>();
+        distribution.put(1, one);
+        distribution.put(2, two);
+        distribution.put(3, three);
+        distribution.put(4, four);
+        distribution.put(5, five);
+        return distribution;
     }
 
     @Override

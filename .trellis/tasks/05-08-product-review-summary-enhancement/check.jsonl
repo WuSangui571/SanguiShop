@@ -1,0 +1,9 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality and UI state checks"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality and targeted test expectations"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Check cross-service DTO contract"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Check order review projection contract"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Check product public API contract"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check cross-layer consistency"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check frontend API and review display contract"}

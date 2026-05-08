@@ -43,6 +43,7 @@ class InternalOrderReviewControllerTest {
                         301L,
                         5.0,
                         1L,
+                        Map.of(1, 0L, 2, 0L, 3, 0L, 4, 0L, 5, 1L),
                         1,
                         10,
                         List.of(new ProductReviewItemResponse(
@@ -64,11 +65,13 @@ class InternalOrderReviewControllerTest {
                                 "shopId", 1,
                                 "productId", 301,
                                 "page", 1,
-                                "size", 10
+                                "size", 10,
+                                "withImages", true
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("PRODUCT_REVIEWS_FETCHED"))
                 .andExpect(jsonPath("$.traceId").value("trace-product-review-query"))
+                .andExpect(jsonPath("$.data.ratingDistribution.5").value(1))
                 .andExpect(jsonPath("$.data.items[0].reviewId").value(9001))
                 .andExpect(jsonPath("$.data.items[0].maskedUserId").value("10***01"))
                 .andExpect(jsonPath("$.data.items[0].orderNo").doesNotExist());

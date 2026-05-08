@@ -98,11 +98,12 @@ class ProductCatalogControllerTest {
 
     @Test
     void listProductReviewsReturnsPublicReviewEnvelope() throws Exception {
-        when(productCatalogService.listProductReviews(eq(101L), any(), eq("trace-product-reviews")))
+        when(productCatalogService.listProductReviews(eq(101L), any(), eq(true), eq("trace-product-reviews")))
                 .thenReturn(new ProductReviewPageResponse(
                         101L,
                         4.5,
                         2L,
+                        Map.of(4, 1L, 5, 1L),
                         1,
                         10,
                         List.of(new ProductReviewItemResponse(
@@ -118,13 +119,15 @@ class ProductCatalogControllerTest {
                 ));
 
         mockMvc.perform(get("/api/products/101/reviews")
-                        .header(TraceConstants.TRACE_ID_HEADER, "trace-product-reviews"))
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-product-reviews")
+                        .param("withImages", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("PRODUCT_REVIEWS_FETCHED"))
                 .andExpect(jsonPath("$.traceId").value("trace-product-reviews"))
                 .andExpect(jsonPath("$.data.productId").value(101))
                 .andExpect(jsonPath("$.data.averageRating").value(4.5))
                 .andExpect(jsonPath("$.data.reviewCount").value(2))
+                .andExpect(jsonPath("$.data.ratingDistribution.5").value(1))
                 .andExpect(jsonPath("$.data.items[0].reviewId").value(9001))
                 .andExpect(jsonPath("$.data.items[0].maskedUserId").value("10***01"))
                 .andExpect(jsonPath("$.data.items[0].skuName").value("Size 42"))

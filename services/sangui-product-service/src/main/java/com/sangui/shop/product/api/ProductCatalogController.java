@@ -64,12 +64,14 @@ public class ProductCatalogController {
             @PathVariable @Positive Long productId,
             @RequestParam(defaultValue = "1") @Min(1) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size,
+            @RequestParam(defaultValue = "false") boolean withImages,
             HttpServletRequest httpRequest
     ) {
         String traceId = traceId(httpRequest);
         ProductReviewPageResponse response = productCatalogService.listProductReviews(
                 productId,
                 new PageRequest(page, size),
+                withImages,
                 traceId
         );
         return ApiResult.ok("PRODUCT_REVIEWS_FETCHED", response, traceId);

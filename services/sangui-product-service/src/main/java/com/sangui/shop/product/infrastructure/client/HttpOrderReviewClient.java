@@ -38,12 +38,19 @@ public class HttpOrderReviewClient implements OrderReviewClient {
     }
 
     @Override
-    public ProductReviewPageResponse listProductReviews(Long shopId, Long productId, int page, int size, String traceId) {
+    public ProductReviewPageResponse listProductReviews(
+            Long shopId,
+            Long productId,
+            int page,
+            int size,
+            boolean withImages,
+            String traceId
+    ) {
         try {
             ApiResult<ProductReviewPageResponse> result = restClient.post()
                     .uri("/internal/orders/reviews/by-product/query")
                     .header("X-Trace-Id", traceId == null ? "" : traceId)
-                    .body(new ProductReviewQueryRequest(shopId, productId, page, size))
+                    .body(new ProductReviewQueryRequest(shopId, productId, page, size, withImages))
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, (request, response) -> {
                         throw new SanguiException(CommonErrorCode.DOWNSTREAM_TIMEOUT, 503);

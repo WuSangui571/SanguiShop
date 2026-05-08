@@ -109,7 +109,12 @@ public class ProductCatalogService {
     }
 
     @Transactional(readOnly = true)
-    public ProductReviewPageResponse listProductReviews(Long productId, PageRequest pageRequest, String traceId) {
+    public ProductReviewPageResponse listProductReviews(
+            Long productId,
+            PageRequest pageRequest,
+            boolean withImages,
+            String traceId
+    ) {
         productRepository.findPublicProduct(defaultShopId, productId)
                 .orElseThrow(() -> new SanguiException(ProductErrorCode.PRODUCT_NOT_FOUND, 404));
         com.sangui.shop.product.client.dto.ProductReviewPageResponse response = orderReviewClient.listProductReviews(
@@ -117,12 +122,14 @@ public class ProductCatalogService {
                 productId,
                 pageRequest.page(),
                 pageRequest.size(),
+                withImages,
                 traceId
         );
         return new ProductReviewPageResponse(
                 response.productId(),
                 response.averageRating(),
                 response.reviewCount(),
+                response.ratingDistribution(),
                 response.page(),
                 response.size(),
                 response.items().stream()

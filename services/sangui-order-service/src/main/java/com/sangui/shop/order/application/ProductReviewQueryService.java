@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,14 +36,20 @@ public class ProductReviewQueryService {
         int page = normalizePage(request.page());
         int size = normalizeSize(request.size());
         int offset = (page - 1) * size;
-        ProductReviewSummary summary = orderRepository.summarizeProductReviews(request.shopId(), request.productId());
+        boolean withImages = Boolean.TRUE.equals(request.withImages());
+        ProductReviewSummary summary = orderRepository.summarizeProductReviews(
+                request.shopId(),
+                request.productId(),
+                withImages
+        );
         return new ProductReviewPageResponse(
                 request.productId(),
                 normalizeAverage(summary.averageRating()),
                 summary.reviewCount(),
+                normalizeRatingDistribution(summary.ratingDistribution()),
                 page,
                 size,
-                orderRepository.findProductReviews(request.shopId(), request.productId(), offset, size)
+                orderRepository.findProductReviews(request.shopId(), request.productId(), withImages, offset, size)
                         .stream()
                         .map(this::toResponse)
                         .toList()
@@ -90,6 +98,14 @@ public class ProductReviewQueryService {
             return 0.0;
         }
         return BigDecimal.valueOf(averageRating).setScale(1, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    private Map<Integer, Long> normalizeRatingDistribution(Map<Integer, Long> ratingDistribution) {
+        Map<Integer, Long> result = new LinkedHashMap<>();
+        for (int rating = 1; rating <= 5; rating++) {
+            result.put(rating, ratingDistribution == null ? 0L : ratingDistribution.getOrDefault(rating, 0L));
+        }
+        return result;
     }
 
     private String maskUserId(String userId) {
