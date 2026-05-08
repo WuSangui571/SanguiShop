@@ -1104,3 +1104,90 @@ The review domain now has a complete public and merchant-side communication loop
 ### Next Steps
 
 - None - task complete
+
+
+## Session 58: 商品详情评价摘要增强
+
+**Date**: 2026-05-08
+**Task**: 商品详情评价摘要增强
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Backend review projection | Extended order-service product review projection with `withImages` filtering and `ratingDistribution` for stars `1..5`, using one visible-review/statistics/list pagination scope. |
+| Product public API | Extended product-service `GET /api/products/{productId}/reviews` to accept `withImages`, forward it to order-service, and expose backend-owned rating distribution without reading `oms_*` tables. |
+| Public boundary | Hidden reviews stay excluded from summary and list; visible reviews with hidden replies remain visible without `merchantReply`; public payload still omits raw user/order/request/trace/operator fields. |
+| Mall frontend | Product detail now displays average score, total count, five-star distribution, image-only toggle, review images, stable pagination summary, and independent loading/error/retry states. |
+| Review refresh | Successful customer review submission refreshes matching open product detail reviews asynchronously without blocking order detail/list updates. |
+| Spec sync | Updated backend order/product contracts and frontend API contracts with concrete `withImages`, `ratingDistribution`, empty-result, pagination, and test semantics. |
+
+**Updated Files**:
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/ProductReviewQueryService.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/persistence/JdbcOrderRepository.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/client/dto/ProductReviewPageResponse.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/client/dto/ProductReviewQueryRequest.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderRepository.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/ProductReviewSummary.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/application/ProductReviewQueryServiceTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/InternalOrderReviewControllerTest.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/api/ProductCatalogController.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/application/ProductCatalogService.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/client/OrderReviewClient.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/infrastructure/client/HttpOrderReviewClient.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/api/dto/ProductReviewPageResponse.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/client/dto/ProductReviewPageResponse.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/client/dto/ProductReviewQueryRequest.java`
+- `services/sangui-product-service/src/test/java/com/sangui/shop/product/application/ProductCatalogServiceTest.java`
+- `services/sangui-product-service/src/test/java/com/sangui/shop/product/api/ProductCatalogControllerTest.java`
+- `frontend/src/types/api/product.ts`
+- `frontend/src/services/productApi.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/mallProductReviewModel.ts`
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/tests/mallProductReviewModel.spec.ts`
+- `.trellis/spec/backend/order-create-contracts.md`
+- `.trellis/spec/backend/product-catalog-contracts.md`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-08-product-review-summary-enhancement/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human commit: `8ea53e9 feat(mall): ??????????`.
+- AI backend targeted Maven tests passed:
+  - `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-product-service" -am "-Dtest=ProductReviewQueryServiceTest,InternalOrderReviewControllerTest,ProductCatalogServiceTest,ProductCatalogControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- AI frontend checks passed:
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test -- mallProductReviewModel`
+- AI: `git diff --check` passed with Windows line-ending warnings only.
+
+### Result
+
+Product detail reviews now have deterministic, backend-owned summary and filtering primitives: score distribution, image-only browsing, stable pagination, and review-refresh behavior after submission. This strengthens the public purchasing decision surface while keeping order-service as the review source and avoiding payment, inventory, refund, logistics, or order state-machine changes.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8ea53e9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

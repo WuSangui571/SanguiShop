@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 57
+- **Total Sessions**: 58
 - **Last Active**: 2026-05-08
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1106 | Active |
+| `journal-2.md` | ~1193 | Active |
 | `journal-1.md` | ~1960 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 58 | 2026-05-08 | 商品详情评价摘要增强 | `8ea53e9` | `main` |
 | 57 | 2026-05-08 | 商家评价回复二期 | `7108290` | `main` |
 | 56 | 2026-05-08 | 商家侧评价管理一期 | `2739897` | `main` |
 | 55 | 2026-05-08 | 商品详情页评价展示与购买反馈沉淀 | `3dedbc8` | `main` |
