@@ -852,3 +852,90 @@ The buyer order lifecycle now continues naturally after completion: users can re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 55: 商品详情页评价展示与购买反馈沉淀
+
+**Date**: 2026-05-08
+**Task**: 商品详情页评价展示与购买反馈沉淀
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+### Summary
+
+Completed product detail review display and purchase feedback assetization. The feature exposes completed-order reviews as a product-facing read surface while preserving order-service ownership of the review source and keeping purchase flows independent from review loading.
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Product-facing API | Added anonymous public `GET /api/products/{productId}/reviews?page=&size=` through product-service with `PRODUCT_REVIEWS_FETCHED` response code. |
+| Internal review projection | Added order-service internal `POST /internal/orders/reviews/by-product/query`, scoped by `shopId` and `productId`, filtering only `completed` order reviews and sorting by `created_at DESC, id DESC`. |
+| Public field boundary | Product review list items expose `reviewId`, `rating`, `content`, `imageUrls`, `createdAt`, `maskedUserId`, and `skuName`; raw `userId`, `orderId`, `orderNo`, `requestId`, and `traceId` stay out of the public payload. |
+| Cross-service boundary | Product-service calls order-service through `RestClient` and does not read `oms_*` tables directly. |
+| Gateway | Updated public product read whitelist so unauthenticated users can view `/api/products/{id}/reviews`. |
+| Frontend API/model | Added product review DTOs, `listProductReviews(...)`, and `mallProductReviewModel` for summary, item formatting, empty state, time display, and masked-user display. |
+| Frontend UX | Added product detail review section with loading, empty, error, retry, pagination, and localized copy; review loading failures do not block SKU selection, add-to-cart, or buy-now. |
+| Spec sync | Updated backend product/order contracts and frontend API contracts with concrete payloads, validation matrix, required tests, and Good/Base/Bad cases. |
+
+**Updated Files**:
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/api/ProductCatalogController.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/application/ProductCatalogService.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/client/OrderReviewClient.java`
+- `services/sangui-product-service/src/main/java/com/sangui/shop/product/infrastructure/client/HttpOrderReviewClient.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/InternalOrderReviewController.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/ProductReviewQueryService.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderRepository.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/persistence/JdbcOrderRepository.java`
+- `services/sangui-gateway/src/main/java/com/sangui/shop/gateway/security/GatewayJwtAuthenticationFilter.java`
+- `frontend/src/types/api/product.ts`
+- `frontend/src/services/productApi.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/mallProductReviewModel.ts`
+- `frontend/tests/mallProductReviewModel.spec.ts`
+- `.trellis/spec/backend/product-catalog-contracts.md`
+- `.trellis/spec/backend/order-create-contracts.md`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-08-product-detail-review-display/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human tests: passed.
+- Human commit: `3dedbc8 feat(mall): ???????????`.
+- AI backend targeted Maven tests passed:
+  - `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service,services/sangui-gateway" -am "-Dtest=ProductCatalogServiceTest,ProductCatalogControllerTest,ProductReviewQueryServiceTest,InternalOrderReviewControllerTest,GatewayJwtAuthenticationFilterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- AI frontend checks passed:
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+- AI: `git diff --check` passed with Windows line-ending warnings only.
+- AI targeted Vitest was blocked in sandbox by Vite/esbuild `spawn EPERM`; escalation request was rejected by the automatic approval service, and human local testing passed.
+
+### Result
+
+Product reviews are now visible as product detail assets without changing review submission, order lifecycle, payment, inventory, refunds, or merchant management. The system has a clean product-facing read API, an internal order-service review projection, frontend loading/empty/error/retry states, and executable specs for the next review-management phase.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3dedbc8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
