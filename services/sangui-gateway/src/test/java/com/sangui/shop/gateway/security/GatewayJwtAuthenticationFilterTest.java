@@ -99,7 +99,7 @@ class GatewayJwtAuthenticationFilterTest {
     }
 
     @Test
-    void allowsPublicProductDetailWithoutTokenAndKeepsAdminProductWriteProtected() throws Exception {
+    void allowsPublicProductDetailAndReviewsWithoutTokenAndKeepsAdminProductWriteProtected() throws Exception {
         MockServerWebExchange detailExchange = MockServerWebExchange.from(MockServerHttpRequest
                 .method(HttpMethod.GET, "/api/products/101")
         );
@@ -109,6 +109,16 @@ class GatewayJwtAuthenticationFilterTest {
 
         assertThat(forwardedDetail.get()).isNotNull();
         assertThat(detailExchange.getResponse().getStatusCode()).isNull();
+
+        MockServerWebExchange reviewExchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.GET, "/api/products/101/reviews")
+        );
+        AtomicReference<ServerWebExchange> forwardedReviews = new AtomicReference<>();
+
+        filter.filter(reviewExchange, capture(forwardedReviews)).block();
+
+        assertThat(forwardedReviews.get()).isNotNull();
+        assertThat(reviewExchange.getResponse().getStatusCode()).isNull();
 
         MockServerWebExchange adminExchange = MockServerWebExchange.from(MockServerHttpRequest
                 .method(HttpMethod.POST, "/api/admin/products")

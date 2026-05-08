@@ -10,10 +10,12 @@ import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.product.api.dto.CreateProductRequest;
 import com.sangui.shop.product.api.dto.ProductAdminSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductDetailResponse;
+import com.sangui.shop.product.api.dto.ProductReviewPageResponse;
 import com.sangui.shop.product.api.dto.ProductSkuStockAdjustmentRequest;
 import com.sangui.shop.product.api.dto.ProductStatusUpdateRequest;
 import com.sangui.shop.product.api.dto.UpdateProductRequest;
 import com.sangui.shop.product.api.dto.UpsertProductSkuRequest;
+import com.sangui.shop.product.client.OrderReviewClient;
 import com.sangui.shop.product.domain.ProductDraft;
 import com.sangui.shop.product.domain.ProductAdminListItem;
 import com.sangui.shop.product.domain.ProductInventoryReservationRecord;
@@ -45,12 +47,14 @@ class ProductCatalogServiceTest {
     );
 
     private InMemoryProductRepository productRepository;
+    private FakeOrderReviewClient orderReviewClient;
     private ProductCatalogService productCatalogService;
 
     @BeforeEach
     void setUp() {
         productRepository = new InMemoryProductRepository();
-        productCatalogService = new ProductCatalogService(productRepository, 1L);
+        orderReviewClient = new FakeOrderReviewClient();
+        productCatalogService = new ProductCatalogService(productRepository, orderReviewClient, 1L);
     }
 
     @Test
@@ -184,6 +188,47 @@ class ProductCatalogServiceTest {
     }
 
     @Test
+    void listProductReviewsRequiresActivePublicProductAndUsesDefaultShopScope() {
+        Long activeProductId = productRepository.seedProduct(1L, "10001", "Active Product", ProductStatus.ACTIVE, List.of(
+                new ProductSkuDraft("active-sku", "Active SKU", 2000L, 8L)
+        ));
+        orderReviewClient.response = new com.sangui.shop.product.client.dto.ProductReviewPageResponse(
+                activeProductId,
+                4.5,
+                2L,
+                1,
+                10,
+                List.of()
+        );
+
+        ProductReviewPageResponse response = productCatalogService.listProductReviews(
+                activeProductId,
+                new PageRequest(1, 10),
+                "trace-review-list"
+        );
+
+        assertThat(response.productId()).isEqualTo(activeProductId);
+        assertThat(response.averageRating()).isEqualTo(4.5);
+        assertThat(response.reviewCount()).isEqualTo(2L);
+        assertThat(orderReviewClient.lastShopId).isEqualTo(1L);
+        assertThat(orderReviewClient.lastProductId).isEqualTo(activeProductId);
+        assertThat(orderReviewClient.lastTraceId).isEqualTo("trace-review-list");
+    }
+
+    @Test
+    void listProductReviewsRejectsMissingOrInactiveProduct() {
+        Long draftProductId = productRepository.seedProduct(1L, "10001", "Draft Product", ProductStatus.DRAFT, List.of(
+                new ProductSkuDraft("draft-sku", "Draft SKU", 1000L, 5L)
+        ));
+
+        assertThatThrownBy(() -> productCatalogService.listProductReviews(draftProductId, new PageRequest(1, 10), "trace"))
+                .isInstanceOfSatisfying(SanguiException.class, exception -> {
+                    assertThat(exception.errorCode().code()).isEqualTo("PRODUCT_NOT_FOUND");
+                    assertThat(exception.httpStatus()).isEqualTo(404);
+                });
+    }
+
+    @Test
     void createRejectsNonAdminPrincipal() {
         SanguiPrincipal nonAdmin = new SanguiPrincipal("10002", 1L, java.util.Set.of("USER"), java.util.Set.of(), "jwt");
 
@@ -227,6 +272,30 @@ class ProductCatalogServiceTest {
         assertThat(response.productName()).isEqualTo("Sneaker Pro");
         assertThat(response.skus()).hasSize(2);
         assertThat(productRepository.productsById.get(productId).productName()).isEqualTo("Sneaker Pro");
+    }
+
+    private static final class FakeOrderReviewClient implements OrderReviewClient {
+
+        private com.sangui.shop.product.client.dto.ProductReviewPageResponse response;
+        private Long lastShopId;
+        private Long lastProductId;
+        private String lastTraceId;
+
+        @Override
+        public com.sangui.shop.product.client.dto.ProductReviewPageResponse listProductReviews(
+                Long shopId,
+                Long productId,
+                int page,
+                int size,
+                String traceId
+        ) {
+            lastShopId = shopId;
+            lastProductId = productId;
+            lastTraceId = traceId;
+            return response == null
+                    ? new com.sangui.shop.product.client.dto.ProductReviewPageResponse(productId, 0.0, 0L, page, size, List.of())
+                    : response;
+        }
     }
 
     private static final class InMemoryProductRepository implements ProductRepository {

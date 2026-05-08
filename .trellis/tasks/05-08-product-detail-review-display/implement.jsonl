@@ -1,0 +1,14 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Backend service and package boundary rules"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Public and internal API DTO/envelope contract"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "Public product read API ownership and gateway route"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order review source and completed-order review contract"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Order review schema and query/index rules"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Stable error code and trace response rules"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall product/order API client and error preservation rules"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Product detail async UI state requirements"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Frontend API DTO compatibility and time formatting"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Server-state versus client-state boundaries"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer product review data flow"}

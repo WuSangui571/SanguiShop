@@ -12,12 +12,14 @@ This document covers public catalog read APIs and admin product maintenance. Inv
 | --- | --- | --- | --- |
 | `GET /api/products?page=1&size=20` | anonymous allowed | `PRODUCT_LISTED` | `PageResponse<ProductSummaryResponse>` |
 | `GET /api/products/{productId}` | anonymous allowed | `PRODUCT_FETCHED` | `ProductDetailResponse` |
+| `GET /api/products/{productId}/reviews?page=1&size=10` | anonymous allowed | `PRODUCT_REVIEWS_FETCHED` | `ProductReviewPageResponse` |
 
 Rules:
 
 - public read derives shop scope from `sangui.shop.default-shop-id`
 - only `active` products are visible
 - public responses never expose persistence entities or audit fields
+- product review public read is exposed by product-service and backed by order-service internal projection; product-service must not read `oms_*` tables directly
 
 ## Admin Product APIs
 
@@ -145,6 +147,44 @@ Rules:
 - `reservedStock` is response-only
 - public and admin detail both use stable DTOs instead of persistence entities
 
+### `ProductReviewPageResponse`
+
+Route:
+
+- `GET /api/products/{productId}/reviews?page=1&size=10`
+
+Response:
+
+```json
+{
+  "productId": 301,
+  "averageRating": 4.5,
+  "reviewCount": 2,
+  "page": 1,
+  "size": 10,
+  "items": [
+    {
+      "reviewId": 9001,
+      "rating": 5,
+      "content": "Product matched expectations.",
+      "imageUrls": [],
+      "createdAt": "2026-05-08T10:00:00+08:00",
+      "maskedUserId": "10***01",
+      "skuName": "Size 42"
+    }
+  ]
+}
+```
+
+Rules:
+
+- `productId` must be a positive path value and must resolve to an active public product in the default shop scope.
+- `page` defaults to `1`, `size` defaults to `10`, and `size` is capped at `50`.
+- Product-service calls order-service internal `POST /internal/orders/reviews/by-product/query` with `shopId`, `productId`, `page`, and `size`.
+- Product-service must forward the current trace id to order-service as `X-Trace-Id`.
+- Public item fields must not include raw `shopId`, raw `userId`, `orderId`, `orderNo`, `requestId`, or `traceId`.
+- If order-service is unavailable, product-service maps the failure to `DOWNSTREAM_TIMEOUT`.
+
 ## Internal Snapshot API
 
 ### `POST /internal/products/skus/snapshot`
@@ -214,6 +254,9 @@ Required constraints / indexes:
 | Principal lacks `ADMIN` and `PRODUCT_CATALOG_ADMIN` | 403 | `AUTH_FORBIDDEN` |
 | DTO validation failure | 400 | `VALIDATION_FAILED` |
 | Product missing in principal shop scope | 404 | `PRODUCT_NOT_FOUND` |
+| Public product review path product missing or inactive | 404 | `PRODUCT_NOT_FOUND` |
+| Product review pagination validation failure | 400 | `VALIDATION_FAILED` |
+| Order-service review projection unavailable | 503 | `DOWNSTREAM_TIMEOUT` |
 | SKU missing in principal shop/product scope | 404 | `PRODUCT_SKU_NOT_FOUND` |
 | Publish on non-draft product | 409 | `PRODUCT_STATUS_INVALID` |
 | Unknown status filter or status update value | 409 | `PRODUCT_STATUS_INVALID` |
@@ -223,6 +266,12 @@ Required constraints / indexes:
 
 ```powershell
 mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service" -am "-Dtest=ProductCatalogServiceTest,ProductInventoryServiceTest,ProductCatalogControllerTest,InternalProductSnapshotControllerTest,InternalProductInventoryControllerTest,ProductMigrationContractTest,ProductInventoryMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Product review display changes must also include:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-order-service,services/sangui-gateway" -am "-Dtest=ProductCatalogServiceTest,ProductCatalogControllerTest,ProductReviewQueryServiceTest,InternalOrderReviewControllerTest,GatewayJwtAuthenticationFilterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 ## Local Mall Demo Seed
@@ -309,8 +358,11 @@ Good/Base/Bad cases:
 - Good: SKU detail includes `availableStock` and `reservedStock`.
 - Good: status update and stock adjustment carry `requestId` and preserve unified `ApiResult<T>` `code/message/data/traceId/timestamp`.
 - Good: public read still exposes only active products.
+- Good: public product review read returns completed-order review assets through product-service without exposing order identifiers.
 - Base: omitted `availableStock` defaults to `0`.
+- Base: order-service remains the review projection source until a dedicated review projection service/table is introduced.
 - Bad: public read exposes draft products or audit fields.
+- Bad: product-service directly reads `oms_order` or `oms_order_review`.
 - Bad: price uses floating-point types.
 - Bad: admin write trusts body `shopId` or `userId`.
 - Bad: stock adjustment mutates `reservedStock` directly.

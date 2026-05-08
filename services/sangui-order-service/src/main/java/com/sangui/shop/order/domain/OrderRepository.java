@@ -24,6 +24,14 @@ public interface OrderRepository {
         throw new UnsupportedOperationException("Order review persistence is not implemented");
     }
 
+    default ProductReviewSummary summarizeProductReviews(Long shopId, Long productId) {
+        throw new UnsupportedOperationException("Product review summary query is not implemented");
+    }
+
+    default List<ProductReviewListItem> findProductReviews(Long shopId, Long productId, int offset, int limit) {
+        throw new UnsupportedOperationException("Product review list query is not implemented");
+    }
+
     default List<OrderSnapshot> findSnapshotsByUser(Long shopId, String userId, int offset, int limit) {
         throw new UnsupportedOperationException("Customer order list query is not implemented");
     }

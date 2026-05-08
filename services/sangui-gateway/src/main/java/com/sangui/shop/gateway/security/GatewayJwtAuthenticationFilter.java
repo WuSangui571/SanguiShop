@@ -128,7 +128,7 @@ public class GatewayJwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private boolean isPublicProductReadEndpoint(ServerHttpRequest request, String path) {
         return request.getMethod() == HttpMethod.GET
-                && ("/api/products".equals(path) || path.matches("^/api/products/\\d+$"));
+                && ("/api/products".equals(path) || path.matches("^/api/products/\\d+(/reviews)?$"));
     }
 
     private boolean isCorsPreflightRequest(ServerWebExchange exchange) {

@@ -344,6 +344,79 @@ Good/Base/Bad cases:
 - Base: `imageUrls` is a validated string array only; real upload/storage remains out of scope.
 - Bad: frontend marks an order reviewed without backend review creation.
 
+## Product-Facing Review Query Addendum
+
+Order-service owns the MVP review source and exposes an internal projection for product-service. This keeps public product detail APIs product-facing while avoiding product-service direct reads of order tables.
+
+### `POST /internal/orders/reviews/by-product/query`
+
+Request:
+
+```json
+{
+  "shopId": 1,
+  "productId": 301,
+  "page": 1,
+  "size": 10
+}
+```
+
+Response code: `PRODUCT_REVIEWS_FETCHED`.
+
+Response data:
+
+```json
+{
+  "productId": 301,
+  "averageRating": 4.5,
+  "reviewCount": 2,
+  "page": 1,
+  "size": 10,
+  "items": [
+    {
+      "reviewId": 9001,
+      "rating": 5,
+      "content": "Product matched expectations.",
+      "imageUrls": [],
+      "createdAt": "2026-05-08T10:00:00+08:00",
+      "maskedUserId": "10***01",
+      "skuName": "Size 42"
+    }
+  ]
+}
+```
+
+Rules:
+
+- Query source is `oms_order_review` joined to completed `oms_order` rows and scoped by `shop_id`.
+- Product filtering uses immutable `oms_order_item.product_id`; order-service must not call product-service to infer product membership for this query.
+- Only reviews whose order status is `completed` enter the public projection.
+- Results sort by `review.created_at DESC, review.id DESC`.
+- `averageRating` is rounded to one decimal; no-review products return `0.0`, `reviewCount=0`, and `items=[]`.
+- `maskedUserId` is derived server-side; raw `userId`, `orderId`, `orderNo`, `requestId`, and `traceId` must not leave the internal projection.
+
+Validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Missing or invalid `shopId` / `productId` | 400 | `VALIDATION_FAILED` |
+| `page <= 0` or `size <= 0` / `size > 50` | 400 | `VALIDATION_FAILED` |
+| Product has no completed-order reviews | 200 | `PRODUCT_REVIEWS_FETCHED` with empty list |
+
+Required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=ProductReviewQueryServiceTest,InternalOrderReviewControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: completed orders with reviews appear under the purchased product id and include SKU snapshot name.
+- Good: created, paid, shipped, cancelled, or unsupported order statuses do not appear.
+- Good: public projection hides raw user/order/trace fields.
+- Base: an order-level review may represent the purchased product item snapshot until per-SKU review rows exist.
+- Bad: product detail frontend calls customer order list/detail to assemble reviews.
+
 ## Database Contract
 
 Schema env and migrations:

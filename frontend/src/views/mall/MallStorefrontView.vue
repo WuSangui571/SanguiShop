@@ -1,13 +1,13 @@
 ﻿<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useAppPreferences } from '../../composables/useAppPreferences'
-import { getProduct, listProducts } from '../../services/productApi'
+import { getProduct, listProductReviews, listProducts } from '../../services/productApi'
 import { HttpClientError } from '../../services/httpClient'
 import { useMallCart } from '../../composables/useMallCart'
 import { useMallOrderStatus } from '../../composables/useMallOrderStatus'
 import { useMallSession } from '../../composables/useMallSession'
 import type { OrderResponse } from '../../types/api/order'
-import type { ProductDetailResponse, ProductSummaryResponse } from '../../types/api/product'
+import type { ProductDetailResponse, ProductReviewPageResponse, ProductSummaryResponse } from '../../types/api/product'
 import { formatDateTime, formatMoney } from '../../utils/format'
 import type { CartItemInput } from './mallCartModel'
 import {
@@ -29,6 +29,7 @@ import {
   getMallOrderStatusLabel,
 } from './mallOrderStatusModel'
 import type { MallOrderListFilter, MallOrderSearchResult } from './mallOrderStatusModel'
+import { createMallProductReviewView } from './mallProductReviewModel'
 import ProductCheckoutPanel from './ProductCheckoutPanel.vue'
 
 const DEFAULT_PAGE_SIZE = 12
@@ -48,6 +49,11 @@ const productError = ref('')
 const selectedProduct = ref<ProductDetailResponse | null>(null)
 const isLoadingDetail = ref(false)
 const detailError = ref('')
+const productReviews = ref<ProductReviewPageResponse | null>(null)
+const productReviewPage = ref(1)
+const productReviewSize = ref(5)
+const isLoadingProductReviews = ref(false)
+const productReviewError = ref('')
 const isRestoringOrderFromUrl = ref(false)
 const orderListFilter = ref<MallOrderListFilter>('all')
 const orderSearchQuery = ref('')
@@ -146,6 +152,10 @@ const deepLinkRecovery = computed(() => createMallOrderDeepLinkRecoveryView(
 const cartRestoreMessage = computed(() => describeCartRestore())
 const cartCheckoutGuidance = computed(() => describeCartCheckoutFailure())
 const paymentFailureGuidance = computed(() => describePaymentFailure())
+const productReviewTotalPages = computed(() => Math.max(1, Math.ceil((productReviews.value?.reviewCount ?? 0) / productReviewSize.value)))
+const productReviewView = computed(() => createMallProductReviewView(productReviews.value, getProductReviewLabels()))
+const canGoPrevProductReview = computed(() => productReviewPage.value > 1)
+const canGoNextProductReview = computed(() => productReviewPage.value < productReviewTotalPages.value)
 
 onMounted(() => {
   mallSession.bootstrap()
@@ -181,16 +191,48 @@ async function fetchProducts(nextPage = page.value) {
 async function openProduct(productId: number) {
   isLoadingDetail.value = true
   detailError.value = ''
+  resetProductReviews()
 
   try {
     const result = await getProduct(productId)
     selectedProduct.value = result.data
+    void loadProductReviews(productId, 1)
   } catch (caught) {
     selectedProduct.value = null
+    resetProductReviews()
     detailError.value = describeError(caught, t('mall.catalog.detailFallback'))
   } finally {
     isLoadingDetail.value = false
   }
+}
+
+async function loadProductReviews(productId = selectedProduct.value?.productId, nextPage = productReviewPage.value) {
+  if (!productId) {
+    resetProductReviews()
+    return
+  }
+  isLoadingProductReviews.value = true
+  productReviewError.value = ''
+  try {
+    const result = await listProductReviews(productId, {
+      page: nextPage,
+      size: productReviewSize.value,
+    })
+    productReviews.value = result.data
+    productReviewPage.value = result.data.page
+    productReviewSize.value = result.data.size
+  } catch (caught) {
+    productReviewError.value = describeError(caught, t('mall.catalog.reviewsLoadFallback'))
+  } finally {
+    isLoadingProductReviews.value = false
+  }
+}
+
+function resetProductReviews() {
+  productReviews.value = null
+  productReviewPage.value = 1
+  productReviewError.value = ''
+  isLoadingProductReviews.value = false
 }
 
 async function submitLogin() {
@@ -637,6 +679,18 @@ function getReviewLabels() {
     refreshSuggestion: t('mall.orders.actionRefreshSuggestion'),
     submitReview: t('mall.orders.submitReview'),
     submittingReview: t('mall.orders.submittingReview'),
+  }
+}
+
+function getProductReviewLabels() {
+  return {
+    empty: t('mall.catalog.reviewsEmpty'),
+    summary: t('mall.catalog.reviewsSummary'),
+    ratingValue: t('mall.catalog.reviewRatingValue'),
+    createdAt: t('mall.catalog.reviewCreatedAt'),
+    skuName: t('mall.catalog.reviewSkuName'),
+    user: t('mall.catalog.reviewUser'),
+    contentEmpty: t('mall.catalog.reviewContentEmpty'),
   }
 }
 
@@ -1100,23 +1154,76 @@ function resolveDefaultShopId(): number {
           <div v-else-if="detailError" class="status-block danger">
             <p>{{ detailError }}</p>
           </div>
-          <div v-else-if="selectedProduct" class="detail-layout">
-            <div class="detail-copy">
-              <p class="eyebrow">{{ t('mall.catalog.productKicker', { productId: selectedProduct.productId }) }}</p>
-              <h2>{{ selectedProduct.productName }}</h2>
-              <p>{{ selectedProduct.productDescription }}</p>
-              <div class="detail-facts">
-                <span>{{ selectedProduct.status }}</span>
-                <span>{{ t('mall.catalog.skus', { count: selectedProduct.skus.length }) }}</span>
+          <div v-else-if="selectedProduct" class="detail-stack">
+            <div class="detail-layout">
+              <div class="detail-copy">
+                <p class="eyebrow">{{ t('mall.catalog.productKicker', { productId: selectedProduct.productId }) }}</p>
+                <h2>{{ selectedProduct.productName }}</h2>
+                <p>{{ selectedProduct.productDescription }}</p>
+                <div class="detail-facts">
+                  <span>{{ selectedProduct.status }}</span>
+                  <span>{{ t('mall.catalog.skus', { count: selectedProduct.skus.length }) }}</span>
+                </div>
               </div>
+              <ProductCheckoutPanel
+                :key="selectedProduct.productId"
+                :product="selectedProduct"
+                :session="mallSession.state.session"
+                @add-to-cart="handleAddToCart"
+                @order-created="handleOrderCreated"
+              />
             </div>
-            <ProductCheckoutPanel
-              :key="selectedProduct.productId"
-              :product="selectedProduct"
-              :session="mallSession.state.session"
-              @add-to-cart="handleAddToCart"
-              @order-created="handleOrderCreated"
-            />
+            <section class="product-review-panel">
+              <div class="review-header">
+                <div>
+                  <p class="eyebrow">{{ t('mall.catalog.reviewsKicker') }}</p>
+                  <h3>{{ t('mall.catalog.reviewsTitle') }}</h3>
+                </div>
+                <strong>{{ productReviewView.summary }}</strong>
+              </div>
+              <div v-if="isLoadingProductReviews" class="status-block compact">{{ t('common.loading') }}</div>
+              <div v-else-if="productReviewError" class="status-block danger compact">
+                <p>{{ productReviewError }}</p>
+                <button type="button" @click="loadProductReviews()">{{ t('common.retry') }}</button>
+              </div>
+              <div v-else-if="productReviewView.isEmpty" class="status-block compact">
+                {{ productReviewView.emptyMessage }}
+              </div>
+              <div v-else class="product-review-list">
+                <article
+                  v-for="review in productReviewView.items"
+                  :key="review.reviewId"
+                  class="product-review-item"
+                >
+                  <div class="review-item-top">
+                    <strong>{{ review.ratingLabel }}</strong>
+                    <span>{{ review.userLabel }}</span>
+                  </div>
+                  <p>{{ review.content }}</p>
+                  <div class="review-meta">
+                    <span>{{ review.skuNameLabel }}</span>
+                    <span>{{ review.createdAtLabel }}</span>
+                  </div>
+                </article>
+                <div class="pager">
+                  <button
+                    type="button"
+                    :disabled="!canGoPrevProductReview"
+                    @click="loadProductReviews(selectedProduct.productId, productReviewPage - 1)"
+                  >
+                    {{ t('common.prev') }}
+                  </button>
+                  <span>{{ productReviewPage }} / {{ productReviewTotalPages }}</span>
+                  <button
+                    type="button"
+                    :disabled="!canGoNextProductReview"
+                    @click="loadProductReviews(selectedProduct.productId, productReviewPage + 1)"
+                  >
+                    {{ t('common.next') }}
+                  </button>
+                </div>
+              </div>
+            </section>
           </div>
           <div v-else class="status-block">{{ t('mall.catalog.selectProduct') }}</div>
         </section>
@@ -1855,6 +1962,10 @@ h2 {
   color: var(--danger-text);
 }
 
+.status-block.compact {
+  min-height: 4rem;
+}
+
 .pager {
   margin-top: 1rem;
 }
@@ -1864,6 +1975,14 @@ h2 {
 }
 
 .detail-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.detail-stack,
+.product-review-panel,
+.product-review-list,
+.product-review-item {
   display: grid;
   gap: 1rem;
 }
@@ -1893,6 +2012,53 @@ h2 {
   background: var(--chip-bg);
   color: var(--chip-text);
   font-weight: 800;
+}
+
+.product-review-panel {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.review-header,
+.review-item-top,
+.review-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.review-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.review-header strong,
+.review-item-top strong {
+  color: var(--text-main);
+}
+
+.product-review-item {
+  padding: 0.9rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.product-review-item p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.review-item-top span,
+.review-meta {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.review-meta {
+  flex-wrap: wrap;
 }
 
 @media (max-width: 900px) {

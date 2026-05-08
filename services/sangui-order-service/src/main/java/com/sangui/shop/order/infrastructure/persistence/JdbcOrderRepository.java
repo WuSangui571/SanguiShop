@@ -16,6 +16,8 @@ import com.sangui.shop.order.domain.OrderRepository;
 import com.sangui.shop.order.domain.OrderReviewRecord;
 import com.sangui.shop.order.domain.OrderSnapshot;
 import com.sangui.shop.order.domain.OrderStatus;
+import com.sangui.shop.order.domain.ProductReviewListItem;
+import com.sangui.shop.order.domain.ProductReviewSummary;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDateTime;
@@ -181,6 +183,90 @@ public class JdbcOrderRepository implements OrderRepository {
                 userId,
                 requestId
         ).stream().findFirst();
+    }
+
+    @Override
+    public ProductReviewSummary summarizeProductReviews(Long shopId, Long productId) {
+        return jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(r.id) AS review_count, AVG(r.rating) AS average_rating
+                        FROM oms_order_review r
+                        JOIN oms_order o
+                          ON o.shop_id = r.shop_id
+                         AND o.id = r.order_id
+                         AND o.deleted = 0
+                        WHERE r.shop_id = ?
+                          AND r.deleted = 0
+                          AND o.status = ?
+                          AND EXISTS (
+                              SELECT 1
+                              FROM oms_order_item oi
+                              WHERE oi.shop_id = r.shop_id
+                                AND oi.order_id = r.order_id
+                                AND oi.product_id = ?
+                                AND oi.deleted = 0
+                          )
+                        """,
+                (rs, rowNum) -> new ProductReviewSummary(
+                        rs.getLong("review_count"),
+                        rs.getObject("average_rating") == null ? null : rs.getDouble("average_rating")
+                ),
+                shopId,
+                OrderStatus.COMPLETED.value(),
+                productId
+        );
+    }
+
+    @Override
+    public List<ProductReviewListItem> findProductReviews(Long shopId, Long productId, int offset, int limit) {
+        return jdbcTemplate.query(
+                """
+                        SELECT r.id, r.rating, r.content, r.image_urls, r.created_at, r.user_id,
+                               (
+                                   SELECT oi.sku_name
+                                   FROM oms_order_item oi
+                                   WHERE oi.shop_id = r.shop_id
+                                     AND oi.order_id = r.order_id
+                                     AND oi.product_id = ?
+                                     AND oi.deleted = 0
+                                   ORDER BY oi.id ASC
+                                   LIMIT 1
+                               ) AS sku_name
+                        FROM oms_order_review r
+                        JOIN oms_order o
+                          ON o.shop_id = r.shop_id
+                         AND o.id = r.order_id
+                         AND o.deleted = 0
+                        WHERE r.shop_id = ?
+                          AND r.deleted = 0
+                          AND o.status = ?
+                          AND EXISTS (
+                              SELECT 1
+                              FROM oms_order_item oi
+                              WHERE oi.shop_id = r.shop_id
+                                AND oi.order_id = r.order_id
+                                AND oi.product_id = ?
+                                AND oi.deleted = 0
+                          )
+                        ORDER BY r.created_at DESC, r.id DESC
+                        LIMIT ? OFFSET ?
+                        """,
+                (rs, rowNum) -> new ProductReviewListItem(
+                        rs.getLong("id"),
+                        rs.getInt("rating"),
+                        rs.getString("content"),
+                        fromJson(rs.getString("image_urls")),
+                        rs.getTimestamp("created_at").toLocalDateTime(),
+                        rs.getString("user_id"),
+                        rs.getString("sku_name")
+                ),
+                productId,
+                shopId,
+                OrderStatus.COMPLETED.value(),
+                productId,
+                limit,
+                offset
+        );
     }
 
     @Override

@@ -21,6 +21,8 @@ import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.product.api.dto.CreateProductRequest;
 import com.sangui.shop.product.api.dto.ProductAdminSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductDetailResponse;
+import com.sangui.shop.product.api.dto.ProductReviewItemResponse;
+import com.sangui.shop.product.api.dto.ProductReviewPageResponse;
 import com.sangui.shop.product.api.dto.ProductSkuResponse;
 import com.sangui.shop.product.api.dto.ProductSkuStockAdjustmentRequest;
 import com.sangui.shop.product.api.dto.ProductStatusUpdateRequest;
@@ -28,6 +30,7 @@ import com.sangui.shop.product.api.dto.ProductSummaryResponse;
 import com.sangui.shop.product.application.ProductCatalogService;
 import java.util.List;
 import java.util.Map;
+import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,6 +94,41 @@ class ProductCatalogControllerTest {
                 .andExpect(jsonPath("$.traceId").value("trace-product-detail"))
                 .andExpect(jsonPath("$.data.productId").value(101))
                 .andExpect(jsonPath("$.data.skus[0].skuCode").value("shoe-42"));
+    }
+
+    @Test
+    void listProductReviewsReturnsPublicReviewEnvelope() throws Exception {
+        when(productCatalogService.listProductReviews(eq(101L), any(), eq("trace-product-reviews")))
+                .thenReturn(new ProductReviewPageResponse(
+                        101L,
+                        4.5,
+                        2L,
+                        1,
+                        10,
+                        List.of(new ProductReviewItemResponse(
+                                9001L,
+                                5,
+                                "Matched expectations.",
+                                List.of(),
+                                OffsetDateTime.parse("2026-05-08T10:00:00+08:00"),
+                                "10***01",
+                                "Size 42"
+                        ))
+                ));
+
+        mockMvc.perform(get("/api/products/101/reviews")
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-product-reviews"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("PRODUCT_REVIEWS_FETCHED"))
+                .andExpect(jsonPath("$.traceId").value("trace-product-reviews"))
+                .andExpect(jsonPath("$.data.productId").value(101))
+                .andExpect(jsonPath("$.data.averageRating").value(4.5))
+                .andExpect(jsonPath("$.data.reviewCount").value(2))
+                .andExpect(jsonPath("$.data.items[0].reviewId").value(9001))
+                .andExpect(jsonPath("$.data.items[0].maskedUserId").value("10***01"))
+                .andExpect(jsonPath("$.data.items[0].skuName").value("Size 42"))
+                .andExpect(jsonPath("$.data.items[0].orderNo").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].traceId").doesNotExist());
     }
 
     @Test

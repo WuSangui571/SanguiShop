@@ -142,6 +142,7 @@ Frontend customer order status flows must use these gateway routes through `serv
 | `createOrderReview(orderId,{requestId,rating,content,imageUrls})` | `POST /api/orders/{orderId}/reviews` | `mall` | Enable only for completed unreviewed orders, generate `requestId`, guard duplicate clicks, and preserve completed detail on failure. |
 | `getOrderReview(orderId)` | `GET /api/orders/{orderId}/review` | `mall` | Use only if `OrderResponse.review` is not enough; nullable success means no review yet. |
 | `getPayment(paymentNo)` | `GET /api/payments/{paymentNo}` | `mall` | Manual refresh only unless bounded polling with cleanup is explicitly implemented. |
+| `listProductReviews(productId,{page,size})` | `GET /api/products/{productId}/reviews?page=&size=` | `none` | Load product reviews independently from product detail and preserve backend errors. |
 
 Order status display rules:
 
@@ -194,6 +195,21 @@ Required tests:
 - Active filter empty state distinguishes status movement after refresh.
 - Duplicate cancel click guard.
 - API errors preserve `code`, `message`, and `traceId`.
+
+Mall product review display rules:
+
+- Product detail review data uses `services/productApi.ts` and `types/api/product.ts`; page components must not call order APIs to derive product reviews.
+- Product review loading has independent `loading`, `empty`, `error`, and `retry` states.
+- Product review query failure must not disable SKU selection, add-to-cart, buy-now, or existing checkout controls.
+- Empty review response displays the localized no-review empty state.
+- Review item display includes rating, content, `createdAt`, `skuName`, and backend-provided `maskedUserId`.
+- Product review API errors must preserve backend `code`, `message`, and `traceId`.
+
+Required tests:
+
+- Product review summary and item formatting for rating, time, SKU name, and masked user.
+- Product with no reviews renders empty state.
+- Product review API error preservation through the shared mall API error formatter.
 
 ## Mall Cart Draft MVP
 

@@ -1,0 +1,7 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality and targeted Maven test expectations"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality, typecheck, lint, error state expectations"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Check new API response fields and envelope"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check frontend service/types/error handling"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check cross-layer contract consistency"}

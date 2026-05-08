@@ -8,6 +8,7 @@ import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.product.api.dto.CreateProductRequest;
 import com.sangui.shop.product.api.dto.ProductAdminSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductDetailResponse;
+import com.sangui.shop.product.api.dto.ProductReviewPageResponse;
 import com.sangui.shop.product.api.dto.ProductSkuStockAdjustmentRequest;
 import com.sangui.shop.product.api.dto.ProductSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductStatusUpdateRequest;
@@ -16,6 +17,8 @@ import com.sangui.shop.product.application.ProductCatalogService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -54,6 +57,22 @@ public class ProductCatalogController {
     ) {
         ProductDetailResponse response = productCatalogService.getProduct(productId);
         return ApiResult.ok("PRODUCT_FETCHED", response, traceId(httpRequest));
+    }
+
+    @GetMapping("/products/{productId}/reviews")
+    public ApiResult<ProductReviewPageResponse> listProductReviews(
+            @PathVariable @Positive Long productId,
+            @RequestParam(defaultValue = "1") @Min(1) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = traceId(httpRequest);
+        ProductReviewPageResponse response = productCatalogService.listProductReviews(
+                productId,
+                new PageRequest(page, size),
+                traceId
+        );
+        return ApiResult.ok("PRODUCT_REVIEWS_FETCHED", response, traceId);
     }
 
     @GetMapping("/admin/products")

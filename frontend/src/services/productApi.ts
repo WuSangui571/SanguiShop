@@ -5,6 +5,7 @@ import type {
   ProductCreateRequest,
   ProductDetailResponse,
   ProductListResponse,
+  ProductReviewPageResponse,
   ProductSkuStockAdjustmentRequest,
   ProductStatusUpdateRequest,
   ProductUpdateRequest,
@@ -16,6 +17,14 @@ export function listProducts(payload: { page: number; size: number }) {
 
 export function getProduct(productId: number) {
   return getJson<ProductDetailResponse>(`/api/products/${productId}`, {}, { authContext: 'none' })
+}
+
+export function listProductReviews(productId: number, payload: { page: number; size: number }) {
+  return getJson<ProductReviewPageResponse>(
+    `/api/products/${encodeURIComponent(String(productId))}/reviews`,
+    payload,
+    { authContext: 'none' },
+  )
 }
 
 export function listAdminProducts(payload: { page: number; size: number; status: ProductAdminStatusFilter }) {

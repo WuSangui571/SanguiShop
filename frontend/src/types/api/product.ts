@@ -29,6 +29,25 @@ export interface ProductDetailResponse {
   skus: ProductSkuResponse[]
 }
 
+export interface ProductReviewItemResponse {
+  reviewId: number
+  rating: number
+  content: string | null
+  imageUrls: string[]
+  createdAt: string
+  maskedUserId: string
+  skuName: string
+}
+
+export interface ProductReviewPageResponse {
+  productId: number
+  averageRating: number
+  reviewCount: number
+  page: number
+  size: number
+  items: ProductReviewItemResponse[]
+}
+
 export interface ProductAdminSummaryResponse {
   productId: number
   productName: string

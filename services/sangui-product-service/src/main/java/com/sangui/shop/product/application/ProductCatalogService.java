@@ -11,10 +11,13 @@ import com.sangui.shop.product.api.dto.ProductAdminSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductDetailResponse;
 import com.sangui.shop.product.api.dto.ProductSkuStockAdjustmentRequest;
 import com.sangui.shop.product.api.dto.ProductSkuResponse;
+import com.sangui.shop.product.api.dto.ProductReviewItemResponse;
+import com.sangui.shop.product.api.dto.ProductReviewPageResponse;
 import com.sangui.shop.product.api.dto.ProductSummaryResponse;
 import com.sangui.shop.product.api.dto.ProductStatusUpdateRequest;
 import com.sangui.shop.product.api.dto.UpdateProductRequest;
 import com.sangui.shop.product.api.dto.UpsertProductSkuRequest;
+import com.sangui.shop.product.client.OrderReviewClient;
 import com.sangui.shop.product.domain.ProductAdminListItem;
 import com.sangui.shop.product.domain.ProductDraft;
 import com.sangui.shop.product.domain.ProductErrorCode;
@@ -40,13 +43,16 @@ public class ProductCatalogService {
     private static final String ADMIN_ROLE = "ADMIN";
 
     private final ProductRepository productRepository;
+    private final OrderReviewClient orderReviewClient;
     private final Long defaultShopId;
 
     public ProductCatalogService(
             ProductRepository productRepository,
+            OrderReviewClient orderReviewClient,
             @Value("${sangui.shop.default-shop-id:1}") Long defaultShopId
     ) {
         this.productRepository = productRepository;
+        this.orderReviewClient = orderReviewClient;
         this.defaultShopId = defaultShopId;
     }
 
@@ -100,6 +106,37 @@ public class ProductCatalogService {
         ProductSnapshot snapshot = productRepository.findPublicProduct(defaultShopId, productId)
                 .orElseThrow(() -> new SanguiException(ProductErrorCode.PRODUCT_NOT_FOUND, 404));
         return toDetailResponse(snapshot);
+    }
+
+    @Transactional(readOnly = true)
+    public ProductReviewPageResponse listProductReviews(Long productId, PageRequest pageRequest, String traceId) {
+        productRepository.findPublicProduct(defaultShopId, productId)
+                .orElseThrow(() -> new SanguiException(ProductErrorCode.PRODUCT_NOT_FOUND, 404));
+        com.sangui.shop.product.client.dto.ProductReviewPageResponse response = orderReviewClient.listProductReviews(
+                defaultShopId,
+                productId,
+                pageRequest.page(),
+                pageRequest.size(),
+                traceId
+        );
+        return new ProductReviewPageResponse(
+                response.productId(),
+                response.averageRating(),
+                response.reviewCount(),
+                response.page(),
+                response.size(),
+                response.items().stream()
+                        .map(item -> new ProductReviewItemResponse(
+                                item.reviewId(),
+                                item.rating(),
+                                item.content(),
+                                item.imageUrls(),
+                                item.createdAt(),
+                                item.maskedUserId(),
+                                item.skuName()
+                        ))
+                        .toList()
+        );
     }
 
     @Transactional(readOnly = true)
