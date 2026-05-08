@@ -1191,3 +1191,62 @@ Product detail reviews now have deterministic, backend-owned summary and filteri
 ### Next Steps
 
 - None - task complete
+
+
+## Session 59: 用户评价图片上传与有图评价闭环
+
+**Date**: 2026-05-08
+**Task**: 用户评价图片上传与有图评价闭环
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Backend upload boundary | Added authenticated review image upload through `POST /api/uploads/review-images`, local configurable storage, server-generated file names, MIME/signature validation for JPEG/PNG/WebP, default 5MB size cap, and public `GET /api/uploads/review-images/{fileName}` image reads without exposing local paths or internal keys. |
+| Gateway | Routed `/api/uploads/**` to order-service; allowed anonymous safe image GET reads while keeping upload POST protected by mall JWT. |
+| Order review validation | Tightened `POST /api/orders/{orderId}/reviews` `imageUrls` validation so only generated `/api/uploads/review-images/*` URLs are accepted; external URLs, local paths, `file:` URLs, blanks, and internal keys are rejected. Idempotency conflict checks continue to include normalized image URLs. |
+| Mall frontend | Added review image selection, upload, preview, removal, upload-pending submit guard, upload error preservation with `code/message/traceId`, submitted image snapshots in order detail, and final review payload `imageUrls`. |
+| Frontend API | Added `postFormData` support to the shared HTTP client plus `uploadReviewImage(file)` API wrapper and upload DTO types. |
+| Specs | Added backend upload/storage contract and updated backend order/database and frontend API contracts for image URL boundaries, upload errors, pending states, and tests. |
+| Tests | Added backend upload service/controller/gateway tests and frontend upload API/order review image payload tests. |
+
+### Verification
+
+- Human manual testing: passed.
+- Human commit: `2022959 feat(mall): ??????????`.
+- AI backend targeted Maven tests passed:
+  - `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-gateway" -am "-Dtest=OrderReviewServiceTest,ReviewImageStorageServiceTest,ReviewImageUploadControllerTest,GatewayJwtAuthenticationFilterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- AI frontend checks passed:
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run test -- mallCheckoutModel uploadApi mallProductReviewModel`
+  - `cd frontend; cmd /c npm run build`
+- AI: `git diff --check` passed with Windows line-ending warnings only.
+
+### Result
+
+SanguiShop now has a complete user-generated photo review loop: buyers can upload review images, submit completed-order reviews with stable public image URLs, product detail can show those images and filter by `withImages=true`, and backend contracts prevent public review payloads from leaking local paths, storage internals, or arbitrary external image references.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2022959` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
