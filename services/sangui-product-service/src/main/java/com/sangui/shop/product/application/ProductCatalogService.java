@@ -133,7 +133,13 @@ public class ProductCatalogService {
                                 item.imageUrls(),
                                 item.createdAt(),
                                 item.maskedUserId(),
-                                item.skuName()
+                                item.skuName(),
+                                item.merchantReply() == null
+                                        ? null
+                                        : new com.sangui.shop.product.api.dto.ProductReviewMerchantReplyResponse(
+                                                item.merchantReply().content(),
+                                                item.merchantReply().repliedAt()
+                                        )
                         ))
                         .toList()
         );

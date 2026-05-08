@@ -17,6 +17,7 @@ import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.common.web.SanguiAuthenticationContextFilter;
 import com.sangui.shop.common.web.SanguiPrincipalArgumentResolver;
 import com.sangui.shop.order.api.dto.AdminReviewPageResponse;
+import com.sangui.shop.order.api.dto.AdminReviewReplyRequest;
 import com.sangui.shop.order.api.dto.AdminReviewSummaryResponse;
 import com.sangui.shop.order.api.dto.AdminReviewVisibilityRequest;
 import com.sangui.shop.order.application.AdminReviewManagementService;
@@ -114,6 +115,27 @@ class AdminReviewControllerTest {
         org.assertj.core.api.Assertions.assertThat(requestCaptor.getValue().requestId()).isEqualTo("vis-001");
     }
 
+    @Test
+    void upsertReplyRequiresContentAndReturnsUpdatedEnvelope() throws Exception {
+        when(adminReviewManagementService.upsertReply(any(), eq(9001L), any(), eq("trace-review-reply")))
+                .thenReturn(review("visible"));
+
+        mockMvc.perform(post("/api/admin/reviews/9001/reply")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, adminPrincipal())
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-review-reply")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "content", "Thanks for the feedback.",
+                                "requestId", "reply-001"
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ADMIN_REVIEW_REPLIED"));
+
+        ArgumentCaptor<AdminReviewReplyRequest> requestCaptor = ArgumentCaptor.forClass(AdminReviewReplyRequest.class);
+        verify(adminReviewManagementService).upsertReply(any(), eq(9001L), requestCaptor.capture(), eq("trace-review-reply"));
+        org.assertj.core.api.Assertions.assertThat(requestCaptor.getValue().requestId()).isEqualTo("reply-001");
+    }
+
     private SanguiPrincipal adminPrincipal() {
         return new SanguiPrincipal(
                 "90001",
@@ -142,6 +164,12 @@ class AdminReviewControllerTest {
                 "vis-001",
                 "90001",
                 "trace-review-vis",
+                timestamp,
+                "Thanks for the feedback.",
+                "visible",
+                "reply-001",
+                "90001",
+                "trace-review-reply",
                 timestamp,
                 timestamp
         );

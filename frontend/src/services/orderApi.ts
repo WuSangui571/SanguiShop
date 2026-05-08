@@ -4,6 +4,8 @@ import type {
   AdminOrderDetailResponse,
   AdminOrderPageResponse,
   AdminOrderQueryParams,
+  AdminReviewReplyRequest,
+  AdminReviewReplyVisibilityRequest,
   AdminReviewPageResponse,
   AdminReviewQueryParams,
   AdminReviewVisibilityRequest,
@@ -98,6 +100,22 @@ export function listAdminReviews(params: AdminReviewQueryParams) {
 export function updateAdminReviewVisibility(reviewId: number, payload: AdminReviewVisibilityRequest) {
   return postJson<AdminReviewSummaryResponse>(
     `/api/admin/reviews/${encodeURIComponent(String(reviewId))}/visibility`,
+    payload,
+    { authContext: 'ops' },
+  )
+}
+
+export function upsertAdminReviewReply(reviewId: number, payload: AdminReviewReplyRequest) {
+  return postJson<AdminReviewSummaryResponse>(
+    `/api/admin/reviews/${encodeURIComponent(String(reviewId))}/reply`,
+    payload,
+    { authContext: 'ops' },
+  )
+}
+
+export function updateAdminReviewReplyVisibility(reviewId: number, payload: AdminReviewReplyVisibilityRequest) {
+  return postJson<AdminReviewSummaryResponse>(
+    `/api/admin/reviews/${encodeURIComponent(String(reviewId))}/reply/visibility`,
     payload,
     { authContext: 'ops' },
   )

@@ -52,7 +52,8 @@ class InternalOrderReviewControllerTest {
                                 List.of(),
                                 OffsetDateTime.parse("2026-05-08T10:00:00+08:00"),
                                 "10***01",
-                                "Size 42"
+                                "Size 42",
+                                null
                         ))
                 ));
 

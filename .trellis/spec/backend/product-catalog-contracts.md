@@ -170,7 +170,11 @@ Response:
       "imageUrls": [],
       "createdAt": "2026-05-08T10:00:00+08:00",
       "maskedUserId": "10***01",
-      "skuName": "Size 42"
+      "skuName": "Size 42",
+      "merchantReply": {
+        "content": "Thanks for the feedback.",
+        "repliedAt": "2026-05-08T12:00:00+08:00"
+      }
     }
   ]
 }
@@ -183,6 +187,8 @@ Rules:
 - Product-service calls order-service internal `POST /internal/orders/reviews/by-product/query` with `shopId`, `productId`, `page`, and `size`.
 - Product-service must forward the current trace id to order-service as `X-Trace-Id`.
 - Public item fields must not include raw `shopId`, raw `userId`, `orderId`, `orderNo`, `requestId`, or `traceId`.
+- Optional `merchantReply` includes only `content` and `repliedAt`; reply operator, request id, and trace id remain admin-only.
+- Hidden review rows are omitted. Visible review rows with hidden replies stay visible but omit `merchantReply`.
 - If order-service is unavailable, product-service maps the failure to `DOWNSTREAM_TIMEOUT`.
 
 ## Internal Snapshot API

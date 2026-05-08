@@ -2,12 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { HttpClientError } from '../../services/httpClient'
 import {
   buildAdminReviewQuery,
+  buildAdminReviewReplyRequest,
+  buildAdminReviewReplyVisibilityRequest,
   buildAdminReviewVisibilityRequest,
+  canHideAdminReviewReply,
   canHideAdminReview,
+  canRestoreAdminReviewReply,
   canRestoreAdminReview,
   createDefaultReviewFilters,
   createSubmissionGate,
   deserializeAdminReviewFilters,
+  getAdminReviewReplyLabel,
   getAdminReviewVisibilityLabel,
   replaceAdminReviewItem,
   serializeAdminReviewFilters,
@@ -64,6 +69,17 @@ describe('reviewManagementModel', () => {
     })
   })
 
+  it('builds trimmed reply request payloads', () => {
+    expect(buildAdminReviewReplyRequest(' Thanks ', ' reply-1 ')).toEqual({
+      content: 'Thanks',
+      requestId: 'reply-1',
+    })
+    expect(buildAdminReviewReplyVisibilityRequest('hidden', ' reply-vis-1 ')).toEqual({
+      visibility: 'hidden',
+      requestId: 'reply-vis-1',
+    })
+  })
+
   it('labels visibility values and preserves unknown fallback', () => {
     const labels = {
       visible: 'Visible',
@@ -75,11 +91,28 @@ describe('reviewManagementModel', () => {
     expect(getAdminReviewVisibilityLabel('archived', labels)).toBe('archived')
   })
 
+  it('labels reply state and preserves unknown fallback', () => {
+    const labels = {
+      visible: 'Reply visible',
+      hidden: 'Reply hidden',
+      none: 'No reply',
+    }
+
+    expect(getAdminReviewReplyLabel(review({ replyContent: null }), labels)).toBe('No reply')
+    expect(getAdminReviewReplyLabel(review({ replyContent: 'Thanks', replyVisibilityStatus: 'visible' }), labels)).toBe('Reply visible')
+    expect(getAdminReviewReplyLabel(review({ replyContent: 'Thanks', replyVisibilityStatus: 'hidden' }), labels)).toBe('Reply hidden')
+    expect(getAdminReviewReplyLabel(review({ replyContent: 'Thanks', replyVisibilityStatus: 'archived' }), labels)).toBe('archived')
+  })
+
   it('detects hide and restore action availability', () => {
     expect(canHideAdminReview(review({ visibilityStatus: 'visible' }))).toBe(true)
     expect(canHideAdminReview(review({ visibilityStatus: 'hidden' }))).toBe(false)
     expect(canRestoreAdminReview(review({ visibilityStatus: 'hidden' }))).toBe(true)
     expect(canRestoreAdminReview(review({ visibilityStatus: 'visible' }))).toBe(false)
+    expect(canHideAdminReviewReply(review({ replyContent: 'Thanks', replyVisibilityStatus: 'visible' }))).toBe(true)
+    expect(canHideAdminReviewReply(review({ replyContent: null, replyVisibilityStatus: 'visible' }))).toBe(false)
+    expect(canRestoreAdminReviewReply(review({ replyContent: 'Thanks', replyVisibilityStatus: 'hidden' }))).toBe(true)
+    expect(canRestoreAdminReviewReply(review({ replyContent: 'Thanks', replyVisibilityStatus: 'visible' }))).toBe(false)
   })
 
   it('replaces updated review item in current page', () => {
@@ -149,6 +182,12 @@ function review(patch: Partial<AdminReviewSummaryResponse> = {}): AdminReviewSum
     visibilityOperator: null,
     visibilityTraceId: null,
     visibilityUpdatedAt: null,
+    replyContent: null,
+    replyVisibilityStatus: 'visible',
+    replyRequestId: null,
+    replyOperator: null,
+    replyTraceId: null,
+    replyUpdatedAt: null,
     createdAt: '2026-05-08T10:00:00+08:00',
     ...patch,
   }

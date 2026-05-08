@@ -1,9 +1,11 @@
 import { computed, ref, type Ref } from 'vue'
-import { listAdminReviews, updateAdminReviewVisibility } from '../services/orderApi'
+import { listAdminReviews, updateAdminReviewReplyVisibility, updateAdminReviewVisibility, upsertAdminReviewReply } from '../services/orderApi'
 import type { PersistedOpsSession } from '../types/api/auth'
 import type { AdminReviewSummaryResponse, AdminReviewVisibilityFilter } from '../types/api/order'
 import {
   buildAdminReviewQuery,
+  buildAdminReviewReplyRequest,
+  buildAdminReviewReplyVisibilityRequest,
   buildAdminReviewVisibilityRequest,
   createDefaultReviewFilters,
   createSubmissionGate,
@@ -94,6 +96,52 @@ export function useReviewManagement(
     }
   }
 
+  async function saveReply(reviewId: number, content: string) {
+    if (!canAccessWorkspace.value || !actionGate.begin()) {
+      return false
+    }
+    actionError.value = null
+    pendingReviewId.value = reviewId
+    const requestId = (options.createRequestId ?? createRequestId)()
+    try {
+      const result = await upsertAdminReviewReply(reviewId, buildAdminReviewReplyRequest(content, requestId))
+      items.value = replaceAdminReviewItem(items.value, result.data)
+      return true
+    } catch (caught) {
+      actionError.value = toAdminReviewError(caught, 'Unable to save review reply.')
+      return false
+    } finally {
+      pendingReviewId.value = null
+      actionGate.end()
+    }
+  }
+
+  async function updateReplyVisibility(
+    reviewId: number,
+    visibility: Exclude<AdminReviewVisibilityFilter, 'all'>,
+  ) {
+    if (!canAccessWorkspace.value || !actionGate.begin()) {
+      return false
+    }
+    actionError.value = null
+    pendingReviewId.value = reviewId
+    const requestId = (options.createRequestId ?? createRequestId)()
+    try {
+      const result = await updateAdminReviewReplyVisibility(
+        reviewId,
+        buildAdminReviewReplyVisibilityRequest(visibility, requestId),
+      )
+      items.value = replaceAdminReviewItem(items.value, result.data)
+      return true
+    } catch (caught) {
+      actionError.value = toAdminReviewError(caught, 'Unable to update review reply visibility.')
+      return false
+    } finally {
+      pendingReviewId.value = null
+      actionGate.end()
+    }
+  }
+
   function updateFilters(patch: Partial<AdminReviewFilterDraft>) {
     filters.value = {
       ...filters.value,
@@ -127,6 +175,8 @@ export function useReviewManagement(
     bootstrap,
     refreshList,
     updateVisibility,
+    saveReply,
+    updateReplyVisibility,
     updateFilters,
     goToPage,
     retry,

@@ -4,6 +4,8 @@ import com.sangui.shop.common.core.api.ApiResult;
 import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.AdminReviewPageResponse;
+import com.sangui.shop.order.api.dto.AdminReviewReplyRequest;
+import com.sangui.shop.order.api.dto.AdminReviewReplyVisibilityRequest;
 import com.sangui.shop.order.api.dto.AdminReviewSummaryResponse;
 import com.sangui.shop.order.api.dto.AdminReviewVisibilityRequest;
 import com.sangui.shop.order.application.AdminReviewManagementService;
@@ -72,6 +74,30 @@ public class AdminReviewController {
         String traceId = traceId(httpRequest);
         AdminReviewSummaryResponse response = adminReviewManagementService.updateVisibility(principal, reviewId, request, traceId);
         return ApiResult.ok("ADMIN_REVIEW_VISIBILITY_UPDATED", response, traceId);
+    }
+
+    @PostMapping("/{reviewId}/reply")
+    public ApiResult<AdminReviewSummaryResponse> upsertReply(
+            SanguiPrincipal principal,
+            @PathVariable @Min(1) Long reviewId,
+            @Valid @RequestBody AdminReviewReplyRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = traceId(httpRequest);
+        AdminReviewSummaryResponse response = adminReviewManagementService.upsertReply(principal, reviewId, request, traceId);
+        return ApiResult.ok("ADMIN_REVIEW_REPLIED", response, traceId);
+    }
+
+    @PostMapping("/{reviewId}/reply/visibility")
+    public ApiResult<AdminReviewSummaryResponse> updateReplyVisibility(
+            SanguiPrincipal principal,
+            @PathVariable @Min(1) Long reviewId,
+            @Valid @RequestBody AdminReviewReplyVisibilityRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = traceId(httpRequest);
+        AdminReviewSummaryResponse response = adminReviewManagementService.updateReplyVisibility(principal, reviewId, request, traceId);
+        return ApiResult.ok("ADMIN_REVIEW_REPLY_VISIBILITY_UPDATED", response, traceId);
     }
 
     private LocalDateTime toLocalDateTime(OffsetDateTime value) {

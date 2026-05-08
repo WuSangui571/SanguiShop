@@ -10,6 +10,9 @@ public record ProductReviewListItem(
         List<String> imageUrls,
         LocalDateTime createdAt,
         String userId,
-        String skuName
+        String skuName,
+        String replyContent,
+        ReviewVisibilityStatus replyVisibilityStatus,
+        LocalDateTime replyUpdatedAt
 ) {
 }

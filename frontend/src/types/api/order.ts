@@ -159,6 +159,12 @@ export interface AdminReviewSummaryResponse {
   visibilityOperator: string | null
   visibilityTraceId: string | null
   visibilityUpdatedAt: string | null
+  replyContent: string | null
+  replyVisibilityStatus: Exclude<AdminReviewVisibilityFilter, 'all'>
+  replyRequestId: string | null
+  replyOperator: string | null
+  replyTraceId: string | null
+  replyUpdatedAt: string | null
   createdAt: string | null
 }
 
@@ -172,6 +178,16 @@ export interface AdminReviewPageResponse {
 export interface AdminReviewVisibilityRequest {
   visibility: Exclude<AdminReviewVisibilityFilter, 'all'>
   reason?: string | null
+  requestId: string
+}
+
+export interface AdminReviewReplyRequest {
+  content: string
+  requestId: string
+}
+
+export interface AdminReviewReplyVisibilityRequest {
+  visibility: Exclude<AdminReviewVisibilityFilter, 'all'>
   requestId: string
 }
 

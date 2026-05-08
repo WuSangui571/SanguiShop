@@ -10,6 +10,7 @@ public record ProductReviewItemResponse(
         List<String> imageUrls,
         OffsetDateTime createdAt,
         String maskedUserId,
-        String skuName
+        String skuName,
+        ProductReviewMerchantReplyResponse merchantReply
 ) {
 }

@@ -7,10 +7,13 @@ import type { AdminReviewSummaryResponse } from '../../types/api/order'
 import { formatDateTime } from '../../utils/format'
 import {
   ADMIN_REVIEW_FILTER_STORAGE_KEY,
+  canHideAdminReviewReply,
+  canRestoreAdminReviewReply,
   canHideAdminReview,
   canRestoreAdminReview,
   createDefaultReviewFilters,
   deserializeAdminReviewFilters,
+  getAdminReviewReplyLabel,
   getAdminReviewVisibilityLabel,
   serializeAdminReviewFilters,
   type AdminReviewFilterDraft,
@@ -26,6 +29,7 @@ const { t } = useAppPreferences()
 const sessionRef = computed(() => props.session)
 const canAccessRef = computed(() => props.canAccessReviewWorkspace)
 const moderationReason = ref('')
+const replyDrafts = ref<Record<number, string>>({})
 
 const {
   filters,
@@ -43,6 +47,8 @@ const {
   updateFilters,
   goToPage,
   retry,
+  saveReply,
+  updateReplyVisibility,
 } = useReviewManagement(sessionRef, canAccessRef, {
   initialFilters: readInitialReviewFilters(),
 })
@@ -67,6 +73,12 @@ const visibilityLabels = computed(() => ({
   hidden: t('reviewAdmin.visibilityHidden'),
 }))
 
+const replyLabels = computed(() => ({
+  visible: t('reviewAdmin.replyVisible'),
+  hidden: t('reviewAdmin.replyHidden'),
+  none: t('reviewAdmin.replyNone'),
+}))
+
 watch(
   () => props.session,
   () => {
@@ -87,6 +99,10 @@ function visibilityLabel(item: AdminReviewSummaryResponse): string {
   return getAdminReviewVisibilityLabel(item.visibilityStatus, visibilityLabels.value)
 }
 
+function replyLabel(item: AdminReviewSummaryResponse): string {
+  return getAdminReviewReplyLabel(item, replyLabels.value)
+}
+
 function applyFilters() {
   void refreshList()
 }
@@ -102,6 +118,33 @@ function hideReview(item: AdminReviewSummaryResponse) {
 
 function restoreReview(item: AdminReviewSummaryResponse) {
   void updateVisibility(item.reviewId, 'visible', moderationReason.value)
+}
+
+function replyDraft(item: AdminReviewSummaryResponse): string {
+  return replyDrafts.value[item.reviewId] ?? item.replyContent ?? ''
+}
+
+function updateReplyDraft(item: AdminReviewSummaryResponse, content: string) {
+  replyDrafts.value = {
+    ...replyDrafts.value,
+    [item.reviewId]: content,
+  }
+}
+
+async function submitReply(item: AdminReviewSummaryResponse) {
+  const succeeded = await saveReply(item.reviewId, replyDraft(item))
+  if (succeeded) {
+    const next = items.value.find((candidate) => candidate.reviewId === item.reviewId)
+    updateReplyDraft(item, next?.replyContent ?? '')
+  }
+}
+
+function hideReply(item: AdminReviewSummaryResponse) {
+  void updateReplyVisibility(item.reviewId, 'hidden')
+}
+
+function restoreReply(item: AdminReviewSummaryResponse) {
+  void updateReplyVisibility(item.reviewId, 'visible')
 }
 
 function isReviewActionPending(item: AdminReviewSummaryResponse): boolean {
@@ -249,6 +292,54 @@ function persistReviewFilters(nextFilters: AdminReviewFilterDraft) {
             <span>{{ t('reviewAdmin.reason') }} {{ item.visibilityReason ?? '--' }}</span>
             <span>{{ t('reviewAdmin.updatedAt') }} {{ formatDateTime(item.visibilityUpdatedAt) }}</span>
           </div>
+          <div class="reply-box">
+            <div class="reply-head">
+              <strong>{{ t('reviewAdmin.replyTitle') }}</strong>
+              <span class="status-pill" :class="{ hidden: item.replyVisibilityStatus === 'hidden' }">
+                {{ replyLabel(item) }}
+              </span>
+            </div>
+            <p v-if="item.replyContent" class="reply-content">{{ item.replyContent }}</p>
+            <p v-else class="reply-empty">{{ t('reviewAdmin.replyNone') }}</p>
+            <div class="review-audit">
+              <span>{{ t('reviewAdmin.operator') }} {{ item.replyOperator ?? '--' }}</span>
+              <span>{{ t('common.traceId') }} {{ item.replyTraceId ?? '--' }}</span>
+              <span>{{ t('reviewAdmin.updatedAt') }} {{ formatDateTime(item.replyUpdatedAt) }}</span>
+            </div>
+            <textarea
+              :value="replyDraft(item)"
+              maxlength="300"
+              :placeholder="t('reviewAdmin.replyPlaceholder')"
+              :disabled="isActionPending"
+              @input="updateReplyDraft(item, ($event.target as HTMLTextAreaElement).value)"
+            ></textarea>
+            <div class="reply-actions">
+              <button
+                type="button"
+                class="primary"
+                :disabled="isActionPending || !replyDraft(item).trim()"
+                @click="submitReply(item)"
+              >
+                {{ isReviewActionPending(item) ? t('reviewAdmin.updating') : (item.replyContent ? t('reviewAdmin.editReply') : t('reviewAdmin.reply')) }}
+              </button>
+              <button
+                type="button"
+                class="danger"
+                :disabled="!canHideAdminReviewReply(item) || isActionPending"
+                @click="hideReply(item)"
+              >
+                {{ t('reviewAdmin.hideReply') }}
+              </button>
+              <button
+                type="button"
+                class="secondary"
+                :disabled="!canRestoreAdminReviewReply(item) || isActionPending"
+                @click="restoreReply(item)"
+              >
+                {{ t('reviewAdmin.restoreReply') }}
+              </button>
+            </div>
+          </div>
         </div>
         <div class="row-actions">
           <button
@@ -319,6 +410,7 @@ h2 {
 .hero-actions,
 .filter-actions,
 .row-actions,
+.reply-actions,
 .pagination {
   display: flex;
   flex-wrap: wrap;
@@ -352,7 +444,8 @@ label span {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   border: 1px solid var(--border-soft);
   border-radius: 0.85rem;
@@ -360,6 +453,11 @@ select {
   color: var(--text-main);
   min-height: 2.8rem;
   padding: 0.7rem 0.85rem;
+}
+
+textarea {
+  min-height: 5.5rem;
+  resize: vertical;
 }
 
 .primary,
@@ -458,6 +556,33 @@ button:disabled {
   font-size: 0.88rem;
 }
 
+.reply-box {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.reply-head,
+.reply-actions {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.reply-content,
+.reply-empty {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.reply-empty {
+  color: var(--text-muted);
+}
+
 .status-pill {
   padding: 0.25rem 0.55rem;
   border-radius: 999px;
@@ -500,6 +625,7 @@ button:disabled {
   .hero-actions,
   .filter-actions,
   .row-actions,
+  .reply-actions,
   .pagination {
     display: grid;
     grid-template-columns: 1fr;

@@ -496,6 +496,97 @@ Good/Base/Bad cases:
 - Base: moderation history is latest-snapshot only until `oms_order_review_moderation_log` is introduced.
 - Bad: frontend hides reviews locally without calling the backend write API.
 
+### `POST /api/admin/reviews/{reviewId}/reply`
+
+Request:
+
+```json
+{
+  "content": "Thanks for the feedback. We will keep improving fulfillment.",
+  "requestId": "review-reply-20260508-0001"
+}
+```
+
+Response code: `ADMIN_REVIEW_REPLIED`.
+
+Rules:
+
+- Requires `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN`.
+- `content` is trimmed, required, and length `1..300`.
+- `requestId` is required, trimmed, and persisted as `reply_request_id`.
+- Operator is the trusted principal user id; body user fields are not accepted.
+- Writes persist latest reply snapshot fields on `oms_order_review`: content, visibility, request id, operator, trace id, and updated time.
+- Creating or editing a reply sets `reply_visibility_status = visible`.
+- Same `requestId` and same normalized content returns the current snapshot.
+- Same `requestId` with different normalized content returns `IDEMPOTENCY_CONFLICT`.
+
+### `POST /api/admin/reviews/{reviewId}/reply/visibility`
+
+Request:
+
+```json
+{
+  "visibility": "hidden",
+  "requestId": "review-reply-vis-20260508-0001"
+}
+```
+
+Response code: `ADMIN_REVIEW_REPLY_VISIBILITY_UPDATED`.
+
+Rules:
+
+- Requires `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN`.
+- `visibility` must be `visible` or `hidden`.
+- `requestId` is required, trimmed, and persisted as `reply_request_id`.
+- Reply visibility writes require an existing non-blank reply; missing reply returns `ORDER_REVIEW_REPLY_NOT_FOUND`.
+- Same `requestId` and same target reply visibility returns the current snapshot.
+- Same `requestId` with different target reply visibility returns `IDEMPOTENCY_CONFLICT`.
+- Public product review projection must omit hidden replies but keep the visible review itself.
+
+Admin response items additionally include:
+
+- nullable `replyContent`
+- `replyVisibilityStatus`
+- nullable `replyRequestId`
+- nullable `replyOperator`
+- nullable `replyTraceId`
+- nullable `replyUpdatedAt`
+
+Public product review items additionally include optional:
+
+```json
+{
+  "merchantReply": {
+    "content": "Thanks for the feedback. We will keep improving fulfillment.",
+    "repliedAt": "2026-05-08T12:00:00+08:00"
+  }
+}
+```
+
+Validation and error matrix additions:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Reply blank or content > 300 | 400 | `VALIDATION_FAILED` |
+| Reply missing or wrong shop scope | 404 | `ORDER_REVIEW_NOT_FOUND` |
+| Reply visibility update without existing reply | 404 | `ORDER_REVIEW_REPLY_NOT_FOUND` |
+| Same reply request id with conflicting content or visibility | 409 | `IDEMPOTENCY_CONFLICT` |
+
+Required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-product-service" -am "-Dtest=AdminReviewManagementServiceTest,AdminReviewControllerTest,ProductReviewQueryServiceTest,InternalOrderReviewControllerTest,OrderReviewMerchantReplyMigrationContractTest,ProductCatalogServiceTest,ProductCatalogControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: authorized review admin can create, edit, hide, and restore a reply only inside trusted `shopId`.
+- Good: visible review + visible reply appears publicly with only `content` and `repliedAt`.
+- Good: visible review + hidden reply appears publicly without `merchantReply`.
+- Good: hidden review stays excluded from public projection even if its reply is visible.
+- Base: reply state is latest-snapshot only; full reply history is deferred.
+- Bad: frontend or public API exposes reply operator, request id, or trace id.
+
 ## Database Contract
 
 Schema env and migrations:

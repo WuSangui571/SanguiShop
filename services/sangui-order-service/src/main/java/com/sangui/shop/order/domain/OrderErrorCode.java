@@ -7,6 +7,7 @@ public enum OrderErrorCode implements ErrorCode {
     ORDER_STATUS_INVALID("ORDER_STATUS_INVALID", "Order status does not allow this operation"),
     ORDER_REVIEW_ALREADY_EXISTS("ORDER_REVIEW_ALREADY_EXISTS", "Order review already exists"),
     ORDER_REVIEW_NOT_FOUND("ORDER_REVIEW_NOT_FOUND", "Order review does not exist in the current shop scope"),
+    ORDER_REVIEW_REPLY_NOT_FOUND("ORDER_REVIEW_REPLY_NOT_FOUND", "Order review reply does not exist"),
     ORDER_PAYMENT_AMOUNT_MISMATCH("ORDER_PAYMENT_AMOUNT_MISMATCH", "Payment amount does not match order total"),
     ORDER_SKU_NOT_FOUND("ORDER_SKU_NOT_FOUND", "Order contains unknown or unavailable SKU"),
     ORDER_SKU_DUPLICATED("ORDER_SKU_DUPLICATED", "Order request contains duplicate SKU"),

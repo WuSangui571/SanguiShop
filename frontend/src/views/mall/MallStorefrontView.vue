@@ -691,6 +691,8 @@ function getProductReviewLabels() {
     skuName: t('mall.catalog.reviewSkuName'),
     user: t('mall.catalog.reviewUser'),
     contentEmpty: t('mall.catalog.reviewContentEmpty'),
+    merchantReply: t('mall.catalog.merchantReply'),
+    merchantReplyAt: t('mall.catalog.merchantReplyAt'),
   }
 }
 
@@ -1203,6 +1205,11 @@ function resolveDefaultShopId(): number {
                   <div class="review-meta">
                     <span>{{ review.skuNameLabel }}</span>
                     <span>{{ review.createdAtLabel }}</span>
+                  </div>
+                  <div v-if="review.merchantReply" class="merchant-reply">
+                    <strong>{{ t('mall.catalog.merchantReply') }}</strong>
+                    <p>{{ review.merchantReply.content }}</p>
+                    <small>{{ review.merchantReply.repliedAtLabel }}</small>
                   </div>
                 </article>
                 <div class="pager">
@@ -2048,6 +2055,23 @@ h2 {
 .product-review-item p {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.merchant-reply {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.merchant-reply p {
+  margin: 0;
+}
+
+.merchant-reply small {
+  font-weight: 800;
 }
 
 .review-item-top span,

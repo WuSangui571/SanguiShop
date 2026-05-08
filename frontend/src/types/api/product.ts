@@ -29,6 +29,11 @@ export interface ProductDetailResponse {
   skus: ProductSkuResponse[]
 }
 
+export interface ProductReviewMerchantReplyResponse {
+  content: string
+  repliedAt: string
+}
+
 export interface ProductReviewItemResponse {
   reviewId: number
   rating: number
@@ -37,6 +42,7 @@ export interface ProductReviewItemResponse {
   createdAt: string
   maskedUserId: string
   skuName: string
+  merchantReply?: ProductReviewMerchantReplyResponse | null
 }
 
 export interface ProductReviewPageResponse {

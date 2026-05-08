@@ -1,11 +1,13 @@
 package com.sangui.shop.order.application;
 
 import com.sangui.shop.order.client.dto.ProductReviewItemResponse;
+import com.sangui.shop.order.client.dto.ProductReviewMerchantReplyResponse;
 import com.sangui.shop.order.client.dto.ProductReviewPageResponse;
 import com.sangui.shop.order.client.dto.ProductReviewQueryRequest;
 import com.sangui.shop.order.domain.OrderRepository;
 import com.sangui.shop.order.domain.ProductReviewListItem;
 import com.sangui.shop.order.domain.ProductReviewSummary;
+import com.sangui.shop.order.domain.ReviewVisibilityStatus;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
@@ -52,10 +54,24 @@ public class ProductReviewQueryService {
                 item.rating(),
                 item.content(),
                 item.imageUrls(),
-                OffsetDateTime.of(item.createdAt(), RESPONSE_ZONE.getRules().getOffset(item.createdAt())),
+                toOffsetDateTime(item.createdAt()),
                 maskUserId(item.userId()),
-                item.skuName()
+                item.skuName(),
+                toMerchantReply(item)
         );
+    }
+
+    private ProductReviewMerchantReplyResponse toMerchantReply(ProductReviewListItem item) {
+        if (item.replyContent() == null || item.replyContent().isBlank()
+                || item.replyVisibilityStatus() != ReviewVisibilityStatus.VISIBLE
+                || item.replyUpdatedAt() == null) {
+            return null;
+        }
+        return new ProductReviewMerchantReplyResponse(item.replyContent(), toOffsetDateTime(item.replyUpdatedAt()));
+    }
+
+    private OffsetDateTime toOffsetDateTime(java.time.LocalDateTime value) {
+        return OffsetDateTime.of(value, RESPONSE_ZONE.getRules().getOffset(value));
     }
 
     private int normalizePage(Integer page) {

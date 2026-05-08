@@ -9,6 +9,13 @@ export interface MallProductReviewLabels {
   skuName: string
   user: string
   contentEmpty: string
+  merchantReply: string
+  merchantReplyAt: string
+}
+
+export interface MallProductReviewMerchantReplyView {
+  content: string
+  repliedAtLabel: string
 }
 
 export interface MallProductReviewItemView {
@@ -18,6 +25,7 @@ export interface MallProductReviewItemView {
   createdAtLabel: string
   skuNameLabel: string
   userLabel: string
+  merchantReply: MallProductReviewMerchantReplyView | null
 }
 
 export interface MallProductReviewView {
@@ -55,6 +63,12 @@ export function createMallProductReviewView(
       createdAtLabel: labels.createdAt.replace('{time}', formatDateTime(item.createdAt)),
       skuNameLabel: labels.skuName.replace('{skuName}', item.skuName || '--'),
       userLabel: labels.user.replace('{user}', item.maskedUserId || '***'),
+      merchantReply: item.merchantReply
+        ? {
+            content: item.merchantReply.content,
+            repliedAtLabel: labels.merchantReplyAt.replace('{time}', formatDateTime(item.merchantReply.repliedAt)),
+          }
+        : null,
     })),
   }
 }

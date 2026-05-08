@@ -109,6 +109,8 @@ Frontend admin review management must use gateway routes through `services/order
 | --- | --- | --- | --- |
 | `listAdminReviews({page,size,productId,rating,userId,visibility,fromTime,toTime})` | `GET /api/admin/reviews` | `ops` | Show loading, empty, error, retry, pagination; omit `visibility` when filter is `all`; omit blank text filters. |
 | `updateAdminReviewVisibility(reviewId,{visibility,reason,requestId})` | `POST /api/admin/reviews/{reviewId}/visibility` | `ops` | Generate `requestId`; disable duplicate visibility writes while pending; preserve backend errors. |
+| `upsertAdminReviewReply(reviewId,{content,requestId})` | `POST /api/admin/reviews/{reviewId}/reply` | `ops` | Trim content; generate `requestId`; disable duplicate reply writes while pending; preserve backend errors. |
+| `updateAdminReviewReplyVisibility(reviewId,{visibility,requestId})` | `POST /api/admin/reviews/{reviewId}/reply/visibility` | `ops` | Generate `requestId`; enable only when a reply exists; disable duplicate reply visibility writes while pending. |
 
 Admin review model rules:
 
@@ -117,15 +119,18 @@ Admin review model rules:
 - Time filters from `datetime-local` inputs must be normalized to ISO-8601 values before sending.
 - API errors must preserve and display backend `code`, `message`, and `traceId`.
 - `OPS_COMPENSATION_ADMIN` alone must not show the review management workspace; require `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN`.
-- The UI must not delete or mutate user-authored review content; only visibility writes are available in phase 1.
+- The UI must not delete or mutate user-authored review content; user review visibility writes and merchant reply writes are the only review management actions in phase 2.
+- Merchant reply content is required after trim and limited to 300 characters.
+- Reply hidden state is separate from review hidden state: hiding the reply must not hide the review.
 
 Required tests:
 
 - Filter payload trimming, `all` omission, blank filter omission, product/rating normalization, and time normalization.
 - Visibility labels for `visible`, `hidden`, and unknown raw values.
 - Hide/restore payload trimming and `requestId` trimming.
+- Reply payload trimming, reply visibility payload trimming, and reply state labels.
 - Backend error `code/message/traceId` preservation.
-- Duplicate hide/restore submit guard.
+- Duplicate hide/restore/reply submit guard.
 
 ## Admin Fulfillment Management APIs
 
@@ -228,12 +233,14 @@ Mall product review display rules:
 - Product review loading has independent `loading`, `empty`, `error`, and `retry` states.
 - Product review query failure must not disable SKU selection, add-to-cart, buy-now, or existing checkout controls.
 - Empty review response displays the localized no-review empty state.
-- Review item display includes rating, content, `createdAt`, `skuName`, and backend-provided `maskedUserId`.
+- Review item display includes rating, content, `createdAt`, `skuName`, backend-provided `maskedUserId`, and optional `merchantReply`.
+- Product review item must not display backend reply audit fields such as operator, request id, or trace id.
 - Product review API errors must preserve backend `code`, `message`, and `traceId`.
 
 Required tests:
 
-- Product review summary and item formatting for rating, time, SKU name, and masked user.
+- Product review summary and item formatting for rating, time, SKU name, masked user, and optional merchant reply.
+- Optional merchant reply absence handling.
 - Product with no reviews renders empty state.
 - Product review API error preservation through the shared mall API error formatter.
 

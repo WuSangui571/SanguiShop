@@ -1,0 +1,17 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "backend layer boundaries"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "API DTO and idempotency contracts"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "admin RBAC and trusted principal boundary"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "oms_order_review reply schema migration"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "validation forbidden conflict mapping"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "trace and audit field handling"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "order review and admin review contracts"}
+{"file": ".trellis/spec/backend/product-catalog-contracts.md", "reason": "public product review projection contract"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "frontend module placement"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "admin and mall UI states"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "review management composable rules"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "optional DTO field compatibility"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "admin review and mall product review APIs"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "cross-layer API DB UI contract"}

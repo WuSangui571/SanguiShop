@@ -121,6 +121,12 @@ public class JdbcOrderRepository implements OrderRepository {
             rs.getString("visibility_operator"),
             rs.getString("visibility_trace_id"),
             rs.getTimestamp("visibility_updated_at") == null ? null : rs.getTimestamp("visibility_updated_at").toLocalDateTime(),
+            rs.getString("reply_content"),
+            ReviewVisibilityStatus.fromValue(rs.getString("reply_visibility_status")),
+            rs.getString("reply_request_id"),
+            rs.getString("reply_operator"),
+            rs.getString("reply_trace_id"),
+            rs.getTimestamp("reply_updated_at") == null ? null : rs.getTimestamp("reply_updated_at").toLocalDateTime(),
             rs.getTimestamp("created_at").toLocalDateTime(),
             rs.getTimestamp("updated_at").toLocalDateTime()
     );
@@ -248,6 +254,17 @@ public class JdbcOrderRepository implements OrderRepository {
         return jdbcTemplate.query(
                 """
                         SELECT r.id, r.rating, r.content, r.image_urls, r.created_at, r.user_id,
+                               CASE
+                                   WHEN COALESCE(r.reply_visibility_status, 'visible') = 'visible'
+                                        THEN r.reply_content
+                                   ELSE NULL
+                               END AS reply_content,
+                               COALESCE(r.reply_visibility_status, 'visible') AS reply_visibility_status,
+                               CASE
+                                   WHEN COALESCE(r.reply_visibility_status, 'visible') = 'visible'
+                                        THEN r.reply_updated_at
+                                   ELSE NULL
+                               END AS reply_updated_at,
                                (
                                    SELECT oi.sku_name
                                    FROM oms_order_item oi
@@ -285,7 +302,10 @@ public class JdbcOrderRepository implements OrderRepository {
                         fromJson(rs.getString("image_urls")),
                         rs.getTimestamp("created_at").toLocalDateTime(),
                         rs.getString("user_id"),
-                        rs.getString("sku_name")
+                        rs.getString("sku_name"),
+                        rs.getString("reply_content"),
+                        ReviewVisibilityStatus.fromValue(rs.getString("reply_visibility_status")),
+                        rs.getTimestamp("reply_updated_at") == null ? null : rs.getTimestamp("reply_updated_at").toLocalDateTime()
                 ),
                 productId,
                 shopId,
@@ -375,6 +395,68 @@ public class JdbcOrderRepository implements OrderRepository {
                 operator,
                 traceId,
                 visibilityUpdatedAt,
+                shopId,
+                reviewId
+        );
+    }
+
+    @Override
+    public void upsertReviewReply(
+            Long shopId,
+            Long reviewId,
+            String content,
+            String requestId,
+            String operator,
+            String traceId,
+            LocalDateTime replyUpdatedAt
+    ) {
+        jdbcTemplate.update(
+                """
+                        UPDATE oms_order_review
+                        SET reply_content = ?,
+                            reply_visibility_status = ?,
+                            reply_request_id = ?,
+                            reply_operator = ?,
+                            reply_trace_id = ?,
+                            reply_updated_at = ?
+                        WHERE shop_id = ? AND id = ? AND deleted = 0
+                        """,
+                content,
+                ReviewVisibilityStatus.VISIBLE.value(),
+                requestId,
+                operator,
+                traceId,
+                replyUpdatedAt,
+                shopId,
+                reviewId
+        );
+    }
+
+    @Override
+    public void updateReviewReplyVisibility(
+            Long shopId,
+            Long reviewId,
+            ReviewVisibilityStatus visibilityStatus,
+            String requestId,
+            String operator,
+            String traceId,
+            LocalDateTime replyUpdatedAt
+    ) {
+        jdbcTemplate.update(
+                """
+                        UPDATE oms_order_review
+                        SET reply_visibility_status = ?,
+                            reply_request_id = ?,
+                            reply_operator = ?,
+                            reply_trace_id = ?,
+                            reply_updated_at = ?
+                        WHERE shop_id = ? AND id = ? AND deleted = 0
+                        """,
+                visibilityStatus.value(),
+                requestId,
+                operator,
+                traceId,
+                replyUpdatedAt,
                 shopId,
                 reviewId
         );
@@ -856,6 +938,12 @@ public class JdbcOrderRepository implements OrderRepository {
                 rs.getString("visibility_operator"),
                 rs.getString("visibility_trace_id"),
                 rs.getTimestamp("visibility_updated_at") == null ? null : rs.getTimestamp("visibility_updated_at").toLocalDateTime(),
+                rs.getString("reply_content"),
+                ReviewVisibilityStatus.fromValue(rs.getString("reply_visibility_status")),
+                rs.getString("reply_request_id"),
+                rs.getString("reply_operator"),
+                rs.getString("reply_trace_id"),
+                rs.getTimestamp("reply_updated_at") == null ? null : rs.getTimestamp("reply_updated_at").toLocalDateTime(),
                 rs.getTimestamp("created_at").toLocalDateTime(),
                 rs.getTimestamp("updated_at").toLocalDateTime()
         );
@@ -877,6 +965,12 @@ public class JdbcOrderRepository implements OrderRepository {
                        r.visibility_operator,
                        r.visibility_trace_id,
                        r.visibility_updated_at,
+                       r.reply_content,
+                       COALESCE(r.reply_visibility_status, 'visible') AS reply_visibility_status,
+                       r.reply_request_id,
+                       r.reply_operator,
+                       r.reply_trace_id,
+                       r.reply_updated_at,
                        r.created_at,
                        r.updated_at,
                        (

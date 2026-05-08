@@ -19,6 +19,12 @@ public record AdminReviewSummaryResponse(
         String visibilityOperator,
         String visibilityTraceId,
         OffsetDateTime visibilityUpdatedAt,
+        String replyContent,
+        String replyVisibilityStatus,
+        String replyRequestId,
+        String replyOperator,
+        String replyTraceId,
+        OffsetDateTime replyUpdatedAt,
         OffsetDateTime createdAt
 ) {
 }

@@ -21,6 +21,12 @@ public record AdminReviewListItem(
         String visibilityOperator,
         String visibilityTraceId,
         LocalDateTime visibilityUpdatedAt,
+        String replyContent,
+        ReviewVisibilityStatus replyVisibilityStatus,
+        String replyRequestId,
+        String replyOperator,
+        String replyTraceId,
+        LocalDateTime replyUpdatedAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

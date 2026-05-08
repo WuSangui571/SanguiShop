@@ -1,6 +1,8 @@
 import { HttpClientError } from '../../services/httpClient'
 import type {
   AdminReviewQueryParams,
+  AdminReviewReplyRequest,
+  AdminReviewReplyVisibilityRequest,
   AdminReviewSummaryResponse,
   AdminReviewVisibilityFilter,
   AdminReviewVisibilityRequest,
@@ -27,6 +29,12 @@ export interface AdminReviewFilterDraft {
 export interface AdminReviewVisibilityLabels {
   visible: string
   hidden: string
+}
+
+export interface AdminReviewReplyLabels {
+  visible: string
+  hidden: string
+  none: string
 }
 
 export const ADMIN_REVIEW_FILTER_STORAGE_KEY = 'sangui.admin.review.filters.v1'
@@ -88,6 +96,23 @@ export function buildAdminReviewVisibilityRequest(
   }
 }
 
+export function buildAdminReviewReplyRequest(content: string, requestId: string): AdminReviewReplyRequest {
+  return {
+    content: content.trim(),
+    requestId: requestId.trim(),
+  }
+}
+
+export function buildAdminReviewReplyVisibilityRequest(
+  visibility: Exclude<AdminReviewVisibilityFilter, 'all'>,
+  requestId: string,
+): AdminReviewReplyVisibilityRequest {
+  return {
+    visibility: visibility.trim(),
+    requestId: requestId.trim(),
+  }
+}
+
 export function getAdminReviewVisibilityLabel(
   visibility: string,
   labels: AdminReviewVisibilityLabels,
@@ -99,6 +124,22 @@ export function getAdminReviewVisibilityLabel(
     return labels.hidden
   }
   return visibility
+}
+
+export function getAdminReviewReplyLabel(
+  item: AdminReviewSummaryResponse,
+  labels: AdminReviewReplyLabels,
+): string {
+  if (!item.replyContent?.trim()) {
+    return labels.none
+  }
+  if (item.replyVisibilityStatus === 'visible') {
+    return labels.visible
+  }
+  if (item.replyVisibilityStatus === 'hidden') {
+    return labels.hidden
+  }
+  return item.replyVisibilityStatus
 }
 
 export function replaceAdminReviewItem(
@@ -114,6 +155,14 @@ export function canHideAdminReview(item: AdminReviewSummaryResponse): boolean {
 
 export function canRestoreAdminReview(item: AdminReviewSummaryResponse): boolean {
   return item.visibilityStatus === 'hidden'
+}
+
+export function canHideAdminReviewReply(item: AdminReviewSummaryResponse): boolean {
+  return Boolean(item.replyContent?.trim()) && item.replyVisibilityStatus !== 'hidden'
+}
+
+export function canRestoreAdminReviewReply(item: AdminReviewSummaryResponse): boolean {
+  return Boolean(item.replyContent?.trim()) && item.replyVisibilityStatus === 'hidden'
 }
 
 export function toAdminReviewError(

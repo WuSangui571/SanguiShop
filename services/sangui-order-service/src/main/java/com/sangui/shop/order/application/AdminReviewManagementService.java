@@ -5,6 +5,8 @@ import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.AdminReviewPageResponse;
+import com.sangui.shop.order.api.dto.AdminReviewReplyRequest;
+import com.sangui.shop.order.api.dto.AdminReviewReplyVisibilityRequest;
 import com.sangui.shop.order.api.dto.AdminReviewSummaryResponse;
 import com.sangui.shop.order.api.dto.AdminReviewVisibilityRequest;
 import com.sangui.shop.order.domain.AdminReviewListItem;
@@ -108,6 +110,85 @@ public class AdminReviewManagementService {
                 .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_REVIEW_NOT_FOUND, 404));
     }
 
+    @Transactional
+    public AdminReviewSummaryResponse upsertReply(
+            SanguiPrincipal principal,
+            Long reviewId,
+            AdminReviewReplyRequest request,
+            String traceId
+    ) {
+        requireAdmin(principal);
+        if (reviewId == null || reviewId <= 0 || request == null) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
+        String requestId = trimToNull(request.requestId());
+        String content = trimToNull(request.content());
+        if (requestId == null || content == null || content.length() > 300) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
+        AdminReviewListItem existing = orderRepository.findAdminReviewById(principal.shopId(), reviewId)
+                .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_REVIEW_NOT_FOUND, 404));
+        if (requestId.equals(existing.replyRequestId())) {
+            if (!content.equals(existing.replyContent())) {
+                throw new SanguiException(CommonErrorCode.IDEMPOTENCY_CONFLICT, 409);
+            }
+            return toResponse(existing);
+        }
+        orderRepository.upsertReviewReply(
+                principal.shopId(),
+                reviewId,
+                content,
+                requestId,
+                principal.userId(),
+                trimToNull(traceId),
+                LocalDateTime.now()
+        );
+        return orderRepository.findAdminReviewById(principal.shopId(), reviewId)
+                .map(this::toResponse)
+                .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_REVIEW_NOT_FOUND, 404));
+    }
+
+    @Transactional
+    public AdminReviewSummaryResponse updateReplyVisibility(
+            SanguiPrincipal principal,
+            Long reviewId,
+            AdminReviewReplyVisibilityRequest request,
+            String traceId
+    ) {
+        requireAdmin(principal);
+        if (reviewId == null || reviewId <= 0 || request == null) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
+        ReviewVisibilityStatus targetStatus = parseRequiredVisibility(request.visibility());
+        String requestId = trimToNull(request.requestId());
+        if (requestId == null) {
+            throw new SanguiException(CommonErrorCode.VALIDATION_FAILED, 400);
+        }
+        AdminReviewListItem existing = orderRepository.findAdminReviewById(principal.shopId(), reviewId)
+                .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_REVIEW_NOT_FOUND, 404));
+        if (trimToNull(existing.replyContent()) == null) {
+            throw new SanguiException(OrderErrorCode.ORDER_REVIEW_REPLY_NOT_FOUND, 404);
+        }
+        if (requestId.equals(existing.replyRequestId())) {
+            if (existing.replyVisibilityStatus() != targetStatus) {
+                throw new SanguiException(CommonErrorCode.IDEMPOTENCY_CONFLICT, 409);
+            }
+            return toResponse(existing);
+        }
+        orderRepository.updateReviewReplyVisibility(
+                principal.shopId(),
+                reviewId,
+                targetStatus,
+                requestId,
+                principal.userId(),
+                trimToNull(traceId),
+                LocalDateTime.now()
+        );
+        return orderRepository.findAdminReviewById(principal.shopId(), reviewId)
+                .map(this::toResponse)
+                .orElseThrow(() -> new SanguiException(OrderErrorCode.ORDER_REVIEW_NOT_FOUND, 404));
+    }
+
     private void requireAdmin(SanguiPrincipal principal) {
         boolean hasAdminRole = principal.roles() != null && principal.roles().contains(ADMIN_ROLE);
         boolean hasReviewAdminPermission = principal.permissions() != null
@@ -163,6 +244,12 @@ public class AdminReviewManagementService {
                 item.visibilityOperator(),
                 item.visibilityTraceId(),
                 toOffsetDateTime(item.visibilityUpdatedAt()),
+                item.replyContent(),
+                item.replyVisibilityStatus().value(),
+                item.replyRequestId(),
+                item.replyOperator(),
+                item.replyTraceId(),
+                toOffsetDateTime(item.replyUpdatedAt()),
                 toOffsetDateTime(item.createdAt())
         );
     }

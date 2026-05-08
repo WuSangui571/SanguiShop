@@ -10,6 +10,8 @@ const labels = {
   skuName: 'SKU {skuName}',
   user: 'User {user}',
   contentEmpty: 'No review content was provided.',
+  merchantReply: 'Merchant reply',
+  merchantReplyAt: 'Replied at {time}',
 }
 
 describe('mall product review model', () => {
@@ -25,7 +27,10 @@ describe('mall product review model', () => {
       userLabel: 'User 10***01',
     })
     expect(view.items[0].createdAtLabel).toContain('Reviewed at')
+    expect(view.items[0].merchantReply?.content).toBe('Thanks for the feedback.')
+    expect(view.items[0].merchantReply?.repliedAtLabel).toContain('Replied at')
     expect(view.items[1].content).toBe('No review content was provided.')
+    expect(view.items[1].merchantReply).toBeNull()
   })
 
   it('shows an empty state for products without reviews', () => {
@@ -61,6 +66,10 @@ function createReviewPage(): ProductReviewPageResponse {
         createdAt: '2026-05-08T10:00:00+08:00',
         maskedUserId: '10***01',
         skuName: 'Size 42',
+        merchantReply: {
+          content: 'Thanks for the feedback.',
+          repliedAt: '2026-05-08T12:00:00+08:00',
+        },
       },
       {
         reviewId: 9002,

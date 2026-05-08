@@ -7,6 +7,8 @@ import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.common.security.SanguiPermissionConstants;
 import com.sangui.shop.common.security.SanguiPrincipal;
 import com.sangui.shop.order.api.dto.AdminReviewPageResponse;
+import com.sangui.shop.order.api.dto.AdminReviewReplyRequest;
+import com.sangui.shop.order.api.dto.AdminReviewReplyVisibilityRequest;
 import com.sangui.shop.order.api.dto.AdminReviewSummaryResponse;
 import com.sangui.shop.order.api.dto.AdminReviewVisibilityRequest;
 import com.sangui.shop.order.domain.AdminReviewListItem;
@@ -121,6 +123,89 @@ class AdminReviewManagementServiceTest {
     }
 
     @Test
+    void upsertReplyTrimsContentAndPersistsOperatorTraceSnapshot() {
+        orderRepository.seed(review(1L, 1L, 301L, 401L, "10001", 5, ReviewVisibilityStatus.VISIBLE));
+
+        AdminReviewSummaryResponse response = service.upsertReply(
+                REVIEW_ADMIN,
+                1L,
+                new AdminReviewReplyRequest(" Thanks for the feedback. ", " reply-001 "),
+                "trace-reply-001"
+        );
+
+        assertThat(response.replyContent()).isEqualTo("Thanks for the feedback.");
+        assertThat(response.replyVisibilityStatus()).isEqualTo("visible");
+        assertThat(response.replyRequestId()).isEqualTo("reply-001");
+        assertThat(response.replyOperator()).isEqualTo("90001");
+        assertThat(response.replyTraceId()).isEqualTo("trace-reply-001");
+    }
+
+    @Test
+    void duplicateReplyRequestReturnsCurrentSnapshot() {
+        AdminReviewListItem item = withReplyRequest(
+                review(1L, 1L, 301L, 401L, "10001", 5, ReviewVisibilityStatus.VISIBLE),
+                "Thanks.",
+                ReviewVisibilityStatus.VISIBLE,
+                "reply-001"
+        );
+        orderRepository.seed(item);
+
+        AdminReviewSummaryResponse response = service.upsertReply(
+                REVIEW_ADMIN,
+                1L,
+                new AdminReviewReplyRequest("Thanks.", "reply-001"),
+                "trace-replay"
+        );
+
+        assertThat(response.replyContent()).isEqualTo("Thanks.");
+        assertThat(orderRepository.replyUpdateCalls).isZero();
+    }
+
+    @Test
+    void duplicateReplyRequestWithDifferentContentConflicts() {
+        AdminReviewListItem item = withReplyRequest(
+                review(1L, 1L, 301L, 401L, "10001", 5, ReviewVisibilityStatus.VISIBLE),
+                "Thanks.",
+                ReviewVisibilityStatus.VISIBLE,
+                "reply-001"
+        );
+        orderRepository.seed(item);
+
+        assertThatThrownBy(() -> service.upsertReply(
+                REVIEW_ADMIN,
+                1L,
+                new AdminReviewReplyRequest("Changed.", "reply-001"),
+                "trace-conflict"
+        ))
+                .isInstanceOfSatisfying(SanguiException.class, exception -> {
+                    assertThat(exception.errorCode().code()).isEqualTo("IDEMPOTENCY_CONFLICT");
+                    assertThat(exception.httpStatus()).isEqualTo(409);
+                });
+    }
+
+    @Test
+    void updateReplyVisibilityHidesExistingReply() {
+        AdminReviewListItem item = withReplyRequest(
+                review(1L, 1L, 301L, 401L, "10001", 5, ReviewVisibilityStatus.VISIBLE),
+                "Thanks.",
+                ReviewVisibilityStatus.VISIBLE,
+                "reply-001"
+        );
+        orderRepository.seed(item);
+
+        AdminReviewSummaryResponse response = service.updateReplyVisibility(
+                REVIEW_ADMIN,
+                1L,
+                new AdminReviewReplyVisibilityRequest("hidden", "reply-vis-001"),
+                "trace-reply-vis"
+        );
+
+        assertThat(response.replyVisibilityStatus()).isEqualTo("hidden");
+        assertThat(response.replyRequestId()).isEqualTo("reply-vis-001");
+        assertThat(response.replyTraceId()).isEqualTo("trace-reply-vis");
+    }
+
+    @Test
     void rejectsCompensationOnlyPermission() {
         SanguiPrincipal compensationOnly = new SanguiPrincipal(
                 "90002",
@@ -177,6 +262,12 @@ class AdminReviewManagementServiceTest {
                 null,
                 null,
                 null,
+                null,
+                ReviewVisibilityStatus.VISIBLE,
+                null,
+                null,
+                null,
+                null,
                 createdAt,
                 createdAt
         );
@@ -201,6 +292,47 @@ class AdminReviewManagementServiceTest {
                 item.visibilityOperator(),
                 item.visibilityTraceId(),
                 item.visibilityUpdatedAt(),
+                item.replyContent(),
+                item.replyVisibilityStatus(),
+                item.replyRequestId(),
+                item.replyOperator(),
+                item.replyTraceId(),
+                item.replyUpdatedAt(),
+                item.createdAt(),
+                item.updatedAt()
+        );
+    }
+
+    private AdminReviewListItem withReplyRequest(
+            AdminReviewListItem item,
+            String content,
+            ReviewVisibilityStatus replyVisibilityStatus,
+            String requestId
+    ) {
+        return new AdminReviewListItem(
+                item.reviewId(),
+                item.shopId(),
+                item.orderId(),
+                item.orderNo(),
+                item.productId(),
+                item.skuId(),
+                item.skuName(),
+                item.userId(),
+                item.rating(),
+                item.content(),
+                item.imageUrls(),
+                item.visibilityStatus(),
+                item.visibilityReason(),
+                item.visibilityRequestId(),
+                item.visibilityOperator(),
+                item.visibilityTraceId(),
+                item.visibilityUpdatedAt(),
+                content,
+                replyVisibilityStatus,
+                requestId,
+                item.replyOperator(),
+                item.replyTraceId(),
+                item.replyUpdatedAt(),
                 item.createdAt(),
                 item.updatedAt()
         );
@@ -210,6 +342,7 @@ class AdminReviewManagementServiceTest {
 
         private final Map<Long, AdminReviewListItem> reviews = new LinkedHashMap<>();
         private int updateCalls;
+        private int replyUpdateCalls;
 
         private void seed(AdminReviewListItem item) {
             reviews.put(item.reviewId(), item);
@@ -277,8 +410,96 @@ class AdminReviewManagementServiceTest {
                     operator,
                     traceId,
                     visibilityUpdatedAt,
+                    item.replyContent(),
+                    item.replyVisibilityStatus(),
+                    item.replyRequestId(),
+                    item.replyOperator(),
+                    item.replyTraceId(),
+                    item.replyUpdatedAt(),
                     item.createdAt(),
                     visibilityUpdatedAt
+            ));
+        }
+
+        @Override
+        public void upsertReviewReply(
+                Long shopId,
+                Long reviewId,
+                String content,
+                String requestId,
+                String operator,
+                String traceId,
+                LocalDateTime replyUpdatedAt
+        ) {
+            replyUpdateCalls++;
+            AdminReviewListItem item = reviews.get(reviewId);
+            reviews.put(reviewId, new AdminReviewListItem(
+                    item.reviewId(),
+                    item.shopId(),
+                    item.orderId(),
+                    item.orderNo(),
+                    item.productId(),
+                    item.skuId(),
+                    item.skuName(),
+                    item.userId(),
+                    item.rating(),
+                    item.content(),
+                    item.imageUrls(),
+                    item.visibilityStatus(),
+                    item.visibilityReason(),
+                    item.visibilityRequestId(),
+                    item.visibilityOperator(),
+                    item.visibilityTraceId(),
+                    item.visibilityUpdatedAt(),
+                    content,
+                    ReviewVisibilityStatus.VISIBLE,
+                    requestId,
+                    operator,
+                    traceId,
+                    replyUpdatedAt,
+                    item.createdAt(),
+                    replyUpdatedAt
+            ));
+        }
+
+        @Override
+        public void updateReviewReplyVisibility(
+                Long shopId,
+                Long reviewId,
+                ReviewVisibilityStatus visibilityStatus,
+                String requestId,
+                String operator,
+                String traceId,
+                LocalDateTime replyUpdatedAt
+        ) {
+            replyUpdateCalls++;
+            AdminReviewListItem item = reviews.get(reviewId);
+            reviews.put(reviewId, new AdminReviewListItem(
+                    item.reviewId(),
+                    item.shopId(),
+                    item.orderId(),
+                    item.orderNo(),
+                    item.productId(),
+                    item.skuId(),
+                    item.skuName(),
+                    item.userId(),
+                    item.rating(),
+                    item.content(),
+                    item.imageUrls(),
+                    item.visibilityStatus(),
+                    item.visibilityReason(),
+                    item.visibilityRequestId(),
+                    item.visibilityOperator(),
+                    item.visibilityTraceId(),
+                    item.visibilityUpdatedAt(),
+                    item.replyContent(),
+                    visibilityStatus,
+                    requestId,
+                    operator,
+                    traceId,
+                    replyUpdatedAt,
+                    item.createdAt(),
+                    replyUpdatedAt
             ));
         }
 

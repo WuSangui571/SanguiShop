@@ -57,6 +57,30 @@ public interface OrderRepository {
         throw new UnsupportedOperationException("Admin review visibility update is not implemented");
     }
 
+    default void upsertReviewReply(
+            Long shopId,
+            Long reviewId,
+            String content,
+            String requestId,
+            String operator,
+            String traceId,
+            LocalDateTime replyUpdatedAt
+    ) {
+        throw new UnsupportedOperationException("Admin review reply update is not implemented");
+    }
+
+    default void updateReviewReplyVisibility(
+            Long shopId,
+            Long reviewId,
+            ReviewVisibilityStatus visibilityStatus,
+            String requestId,
+            String operator,
+            String traceId,
+            LocalDateTime replyUpdatedAt
+    ) {
+        throw new UnsupportedOperationException("Admin review reply visibility update is not implemented");
+    }
+
     default List<OrderSnapshot> findSnapshotsByUser(Long shopId, String userId, int offset, int limit) {
         throw new UnsupportedOperationException("Customer order list query is not implemented");
     }

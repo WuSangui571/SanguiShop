@@ -295,6 +295,50 @@ Good/Base/Bad cases:
 - Base: full append-only moderation history is deferred; latest operation snapshot remains on the review row.
 - Bad: hiding a review physically deletes the row or mutates user-authored content.
 
+## Order Review Merchant Reply Columns
+
+Merchant review reply phase 2 stores the latest one-reply snapshot on `oms_order_review`; it does not introduce a multi-round comment table.
+
+Migration:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V10__add_order_review_merchant_reply.sql`
+
+Required columns:
+
+- `reply_content VARCHAR(300) NULL`
+- `reply_visibility_status VARCHAR(16) NOT NULL DEFAULT 'visible'`
+- `reply_request_id VARCHAR(64) NULL`
+- `reply_operator VARCHAR(64) NULL`
+- `reply_trace_id VARCHAR(64) NULL`
+- `reply_updated_at DATETIME NULL`
+
+Required index:
+
+- `idx_oms_order_review_shop_reply_visibility_updated (shop_id, reply_visibility_status, reply_updated_at)`
+
+Rules:
+
+- Existing review rows have no reply and default reply visibility to `visible`.
+- Creating or editing a reply overwrites the latest reply snapshot and sets reply visibility back to `visible`.
+- `reply_request_id` is the admin write idempotency key snapshot. Same request id and same normalized content returns the current snapshot; same request id and different content returns `IDEMPOTENCY_CONFLICT`.
+- Reply visibility writes require an existing non-blank `reply_content`; missing reply returns `ORDER_REVIEW_REPLY_NOT_FOUND`.
+- Public product review queries may expose reply content only when `reply_content` is non-blank and `COALESCE(reply_visibility_status, 'visible') = 'visible'`.
+- Public product review payloads must not expose `reply_operator`, `reply_request_id`, or `reply_trace_id`.
+
+Executable validation:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=OrderReviewMerchantReplyMigrationContractTest,ProductReviewQueryServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: visible review with visible reply exposes public `merchantReply.content` and `merchantReply.repliedAt`.
+- Good: visible review with hidden reply exposes the review but omits `merchantReply`.
+- Good: hidden review remains excluded from public product review projection regardless of reply state.
+- Base: latest reply snapshot is enough until multi-round merchant/customer comments are introduced.
+- Bad: public product review payload exposes reply operator, request id, or trace id.
+
 ## Compensation Attempt History Tables
 
 Follow-up compensation operations persist immutable attempt history alongside latest row metadata.
