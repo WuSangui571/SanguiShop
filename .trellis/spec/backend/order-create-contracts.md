@@ -460,7 +460,7 @@ Request query fields:
 Response item fields:
 
 - `reviewId`, `orderId`, `orderNo`, `productId`, `skuId`, `skuName`
-- `rating`, `content`, `imageCount`, `maskedUserId`, `createdAt`
+- `rating`, `content`, `imageCount`, `imageUrls`, `maskedUserId`, `createdAt`
 - `visibilityStatus`, nullable `visibilityReason`, nullable `visibilityRequestId`, nullable `visibilityOperator`, nullable `visibilityTraceId`, nullable `visibilityUpdatedAt`
 
 Rules:
@@ -469,6 +469,8 @@ Rules:
 - order-service must enforce `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN` permission.
 - Results are scoped by trusted `shopId` and ordered by `review.created_at DESC, review.id DESC`.
 - Product filtering uses immutable `oms_order_item.product_id`; order-service must not call product-service to infer product membership.
+- `imageUrls` must contain only the same public review image URLs accepted by customer review creation, such as `/api/uploads/review-images/{fileName}`. Admin review payloads must not expose local disk paths, storage root directories, object-store credentials, or storage trace/operator metadata.
+- Hidden reviews remain visible in admin list/detail responses with their original `content`, `rating`, `imageCount`, and `imageUrls`; hiding must not mutate uploaded assets.
 
 ### `POST /api/admin/reviews/{reviewId}/visibility`
 
@@ -515,6 +517,7 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 Good/Base/Bad cases:
 
 - Good: admin list only returns current trusted shop data and supports product/rating/user/time/visibility filters.
+- Good: admin list returns original public `imageUrls` for visible and hidden reviews while exposing no storage path or storage metadata.
 - Good: hidden reviews disappear from `GET /api/products/{productId}/reviews` while admin list can still query them.
 - Good: visibility writes persist operator, trace id, request id, reason, and update time.
 - Base: moderation history is latest-snapshot only until `oms_order_review_moderation_log` is introduced.

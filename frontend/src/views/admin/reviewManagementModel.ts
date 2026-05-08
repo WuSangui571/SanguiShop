@@ -37,6 +37,18 @@ export interface AdminReviewReplyLabels {
   none: string
 }
 
+export interface AdminReviewImageView {
+  urls: string[]
+  unknownCount: number
+}
+
+export interface AdminReviewImageErrorState {
+  code: string
+  message: string
+  reviewId: number
+  url: string
+}
+
 export const ADMIN_REVIEW_FILTER_STORAGE_KEY = 'sangui.admin.review.filters.v1'
 
 export function createDefaultReviewFilters(): AdminReviewFilterDraft {
@@ -140,6 +152,26 @@ export function getAdminReviewReplyLabel(
     return labels.hidden
   }
   return item.replyVisibilityStatus
+}
+
+export function buildAdminReviewImageView(item: AdminReviewSummaryResponse): AdminReviewImageView {
+  const urls = Array.isArray(item.imageUrls)
+    ? item.imageUrls.map((url) => url.trim()).filter(Boolean)
+    : []
+  const count = Number.isFinite(item.imageCount) ? Math.max(0, Math.trunc(item.imageCount)) : 0
+  return {
+    urls,
+    unknownCount: Math.max(0, count - urls.length),
+  }
+}
+
+export function buildAdminReviewImageError(item: AdminReviewSummaryResponse, url: string): AdminReviewImageErrorState {
+  return {
+    code: 'REVIEW_IMAGE_LOAD_FAILED',
+    message: `Review ${item.reviewId} image failed to load.`,
+    reviewId: item.reviewId,
+    url,
+  }
 }
 
 export function replaceAdminReviewItem(

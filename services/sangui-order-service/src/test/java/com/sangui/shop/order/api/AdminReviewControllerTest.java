@@ -75,7 +75,11 @@ class AdminReviewControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("ADMIN_REVIEW_LIST"))
                 .andExpect(jsonPath("$.traceId").value("trace-review-list"))
-                .andExpect(jsonPath("$.data.items[0].reviewId").value(9001));
+                .andExpect(jsonPath("$.data.items[0].reviewId").value(9001))
+                .andExpect(jsonPath("$.data.items[0].imageUrls[0]").value("/api/uploads/review-images/review-a.jpg"))
+                .andExpect(jsonPath("$.data.items[0].imageUrls[1]").value("/api/uploads/review-images/review-b.webp"))
+                .andExpect(jsonPath("$.data.items[0].storageDirectory").doesNotExist())
+                .andExpect(jsonPath("$.data.items[0].localPath").doesNotExist());
 
         ArgumentCaptor<LocalDateTime> fromCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
         verify(adminReviewManagementService).listReviews(
@@ -158,6 +162,7 @@ class AdminReviewControllerTest {
                 5,
                 "Great",
                 2,
+                List.of("/api/uploads/review-images/review-a.jpg", "/api/uploads/review-images/review-b.webp"),
                 "10***01",
                 visibility,
                 "Contains sensitive content",

@@ -69,6 +69,7 @@ class AdminReviewManagementServiceTest {
         assertThat(response.items()).extracting(AdminReviewSummaryResponse::reviewId).containsExactly(1L);
         assertThat(response.items().get(0).maskedUserId()).isEqualTo("10***01");
         assertThat(response.items().get(0).imageCount()).isEqualTo(2);
+        assertThat(response.items().get(0).imageUrls()).containsExactly("https://img/1.png", "https://img/2.png");
     }
 
     @Test
@@ -87,6 +88,7 @@ class AdminReviewManagementServiceTest {
         assertThat(response.visibilityRequestId()).isEqualTo("vis-001");
         assertThat(response.visibilityOperator()).isEqualTo("90001");
         assertThat(response.visibilityTraceId()).isEqualTo("trace-vis-001");
+        assertThat(response.imageUrls()).containsExactly("https://img/1.png", "https://img/2.png");
     }
 
     @Test

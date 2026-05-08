@@ -17,6 +17,7 @@ import com.sangui.shop.order.domain.ReviewVisibilityStatus;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -237,6 +238,7 @@ public class AdminReviewManagementService {
                 item.rating(),
                 item.content(),
                 item.imageUrls() == null ? 0 : item.imageUrls().size(),
+                item.imageUrls() == null ? List.of() : item.imageUrls(),
                 maskUserId(item.userId()),
                 item.visibilityStatus().value(),
                 item.visibilityReason(),

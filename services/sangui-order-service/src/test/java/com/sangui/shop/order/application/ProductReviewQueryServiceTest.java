@@ -67,6 +67,7 @@ class ProductReviewQueryServiceTest {
         assertThat(response.items()).hasSize(2);
         assertThat(response.items().getFirst().maskedUserId()).isEqualTo("10***01");
         assertThat(response.items().get(1).maskedUserId()).isEqualTo("u***");
+        assertThat(response.items().get(1).imageUrls()).containsExactly("https://cdn.example/review.jpg");
         assertThat(response.items().getFirst().skuName()).isEqualTo("Size 43");
         assertThat(response.items().getFirst().merchantReply()).isNotNull();
         assertThat(response.items().getFirst().merchantReply().content()).isEqualTo("Thanks for the feedback.");

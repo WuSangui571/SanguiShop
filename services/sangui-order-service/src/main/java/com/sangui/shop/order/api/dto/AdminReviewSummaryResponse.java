@@ -1,6 +1,7 @@
 package com.sangui.shop.order.api.dto;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 public record AdminReviewSummaryResponse(
         Long reviewId,
@@ -12,6 +13,7 @@ public record AdminReviewSummaryResponse(
         Integer rating,
         String content,
         int imageCount,
+        List<String> imageUrls,
         String maskedUserId,
         String visibilityStatus,
         String visibilityReason,

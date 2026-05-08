@@ -120,6 +120,8 @@ Admin review model rules:
 - API errors must preserve and display backend `code`, `message`, and `traceId`.
 - `OPS_COMPENSATION_ADMIN` alone must not show the review management workspace; require `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN`.
 - The UI must not delete or mutate user-authored review content; user review visibility writes and merchant reply writes are the only review management actions in phase 2.
+- Admin review items may include `imageUrls` alongside `imageCount`. The model must render public review image URLs as thumbnails, tolerate old/partial payloads where only `imageCount` exists, and show an unknown-image fallback instead of crashing.
+- Image load failures must render a non-blocking placeholder with a stable local error code and the failed public URL/review id. Hidden/restore/reply controls must remain usable after a thumbnail fails.
 - Merchant reply content is required after trim and limited to 300 characters.
 - Reply hidden state is separate from review hidden state: hiding the reply must not hide the review.
 
@@ -129,6 +131,7 @@ Required tests:
 - Visibility labels for `visible`, `hidden`, and unknown raw values.
 - Hide/restore payload trimming and `requestId` trimming.
 - Reply payload trimming, reply visibility payload trimming, and reply state labels.
+- Admin review image model for URL list, failed-load placeholder state, and unknown count fallback.
 - Backend error `code/message/traceId` preservation.
 - Duplicate hide/restore/reply submit guard.
 

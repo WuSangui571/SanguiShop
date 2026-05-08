@@ -1,0 +1,5 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "backend quality and targeted tests"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "frontend quality and test requirements"}
+{"file": ".trellis/spec/backend/upload-storage-contracts.md", "reason": "storage contract check after spec update"}

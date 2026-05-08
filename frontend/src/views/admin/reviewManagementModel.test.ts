@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { HttpClientError } from '../../services/httpClient'
 import {
   buildAdminReviewQuery,
+  buildAdminReviewImageError,
+  buildAdminReviewImageView,
   buildAdminReviewReplyRequest,
   buildAdminReviewReplyVisibilityRequest,
   buildAdminReviewVisibilityRequest,
@@ -104,6 +106,40 @@ describe('reviewManagementModel', () => {
     expect(getAdminReviewReplyLabel(review({ replyContent: 'Thanks', replyVisibilityStatus: 'archived' }), labels)).toBe('archived')
   })
 
+  it('builds admin review image list and unknown fallback from compatible payloads', () => {
+    expect(buildAdminReviewImageView(review({
+      imageCount: 3,
+      imageUrls: [
+        ' /api/uploads/review-images/review-a.jpg ',
+        '',
+        '/api/uploads/review-images/review-b.webp',
+      ],
+    }))).toEqual({
+      urls: [
+        '/api/uploads/review-images/review-a.jpg',
+        '/api/uploads/review-images/review-b.webp',
+      ],
+      unknownCount: 1,
+    })
+
+    expect(buildAdminReviewImageView(review({ imageCount: 2, imageUrls: undefined }))).toEqual({
+      urls: [],
+      unknownCount: 2,
+    })
+  })
+
+  it('builds traceable image load error state without blocking review governance', () => {
+    expect(buildAdminReviewImageError(
+      review({ reviewId: 42 }),
+      '/api/uploads/review-images/missing.jpg',
+    )).toEqual({
+      code: 'REVIEW_IMAGE_LOAD_FAILED',
+      message: 'Review 42 image failed to load.',
+      reviewId: 42,
+      url: '/api/uploads/review-images/missing.jpg',
+    })
+  })
+
   it('detects hide and restore action availability', () => {
     expect(canHideAdminReview(review({ visibilityStatus: 'visible' }))).toBe(true)
     expect(canHideAdminReview(review({ visibilityStatus: 'hidden' }))).toBe(false)
@@ -175,6 +211,7 @@ function review(patch: Partial<AdminReviewSummaryResponse> = {}): AdminReviewSum
     rating: 5,
     content: 'Great',
     imageCount: 0,
+    imageUrls: [],
     maskedUserId: '10***01',
     visibilityStatus: 'visible',
     visibilityReason: null,

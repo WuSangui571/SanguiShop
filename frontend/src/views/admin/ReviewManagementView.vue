@@ -7,6 +7,8 @@ import type { AdminReviewSummaryResponse } from '../../types/api/order'
 import { formatDateTime } from '../../utils/format'
 import {
   ADMIN_REVIEW_FILTER_STORAGE_KEY,
+  buildAdminReviewImageError,
+  buildAdminReviewImageView,
   canHideAdminReviewReply,
   canRestoreAdminReviewReply,
   canHideAdminReview,
@@ -30,6 +32,7 @@ const sessionRef = computed(() => props.session)
 const canAccessRef = computed(() => props.canAccessReviewWorkspace)
 const moderationReason = ref('')
 const replyDrafts = ref<Record<number, string>>({})
+const imageLoadFailures = ref<Record<string, ReturnType<typeof buildAdminReviewImageError>>>({})
 
 const {
   filters,
@@ -101,6 +104,25 @@ function visibilityLabel(item: AdminReviewSummaryResponse): string {
 
 function replyLabel(item: AdminReviewSummaryResponse): string {
   return getAdminReviewReplyLabel(item, replyLabels.value)
+}
+
+function imageView(item: AdminReviewSummaryResponse) {
+  return buildAdminReviewImageView(item)
+}
+
+function imageFailureKey(item: AdminReviewSummaryResponse, url: string): string {
+  return `${item.reviewId}:${url}`
+}
+
+function imageFailure(item: AdminReviewSummaryResponse, url: string) {
+  return imageLoadFailures.value[imageFailureKey(item, url)] ?? null
+}
+
+function markImageLoadFailed(item: AdminReviewSummaryResponse, url: string) {
+  imageLoadFailures.value = {
+    ...imageLoadFailures.value,
+    [imageFailureKey(item, url)]: buildAdminReviewImageError(item, url),
+  }
 }
 
 function applyFilters() {
@@ -284,6 +306,30 @@ function persistReviewFilters(nextFilters: AdminReviewFilterDraft) {
             <span>{{ t('reviewAdmin.imageCount', { count: item.imageCount }) }}</span>
             <span>{{ t('reviewAdmin.userId') }} {{ item.maskedUserId }}</span>
             <span>{{ formatDateTime(item.createdAt) }}</span>
+          </div>
+          <div v-if="imageView(item).urls.length || imageView(item).unknownCount" class="review-images-admin">
+            <div
+              v-for="imageUrl in imageView(item).urls"
+              :key="imageUrl"
+              class="review-image-frame"
+              :class="{ failed: imageFailure(item, imageUrl) }"
+            >
+              <img
+                v-if="!imageFailure(item, imageUrl)"
+                :src="imageUrl"
+                :alt="t('reviewAdmin.imageAlt', { id: item.reviewId })"
+                loading="lazy"
+                @error="markImageLoadFailed(item, imageUrl)"
+              />
+              <div v-else class="review-image-fallback">
+                <strong>{{ t('reviewAdmin.imageLoadFailed') }}</strong>
+                <span>{{ t('common.code') }} {{ imageFailure(item, imageUrl)?.code }}</span>
+                <span>{{ t('reviewAdmin.imageUrl') }} {{ imageUrl }}</span>
+              </div>
+            </div>
+            <div v-if="imageView(item).unknownCount" class="review-image-frame unknown">
+              <span>{{ t('reviewAdmin.imageUnknown', { count: imageView(item).unknownCount }) }}</span>
+            </div>
           </div>
           <div class="review-audit">
             <span>{{ t('reviewAdmin.orderNo') }} {{ item.orderNo }}</span>
@@ -554,6 +600,49 @@ button:disabled {
   gap: 0.75rem;
   flex-wrap: wrap;
   font-size: 0.88rem;
+}
+
+.review-images-admin {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 120px));
+  gap: 0.55rem;
+}
+
+.review-image-frame {
+  min-height: 92px;
+  aspect-ratio: 1;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-subtle);
+}
+
+.review-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.review-image-frame.failed,
+.review-image-frame.unknown {
+  padding: 0.55rem;
+  display: grid;
+  align-content: center;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+}
+
+.review-image-frame.unknown {
+  color: var(--text-muted);
+  background: var(--bg-soft);
+}
+
+.review-image-fallback {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
 }
 
 .reply-box {

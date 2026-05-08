@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "admin review DTO/API contract"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "order review admin and public projection contracts"}
+{"file": ".trellis/spec/backend/upload-storage-contracts.md", "reason": "review image storage operability contract"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "admin review frontend API/model contract"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "cross-layer API/frontend/storage boundary"}

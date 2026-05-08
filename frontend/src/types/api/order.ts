@@ -152,6 +152,7 @@ export interface AdminReviewSummaryResponse {
   rating: number
   content: string | null
   imageCount: number
+  imageUrls?: string[]
   maskedUserId: string
   visibilityStatus: Exclude<AdminReviewVisibilityFilter, 'all'>
   visibilityReason: string | null
