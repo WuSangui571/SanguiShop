@@ -417,6 +417,85 @@ Good/Base/Bad cases:
 - Base: an order-level review may represent the purchased product item snapshot until per-SKU review rows exist.
 - Bad: product detail frontend calls customer order list/detail to assemble reviews.
 
+## Admin Review Management Addendum
+
+### `GET /api/admin/reviews`
+
+Response code: `ADMIN_REVIEW_LIST`.
+
+Request query fields:
+
+- `page`: optional positive integer, default `1`.
+- `size`: optional positive integer, default `20`, capped at `100`.
+- `productId`: optional positive product snapshot filter using `oms_order_item.product_id`.
+- `rating`: optional integer `1..5`.
+- `userId`: optional exact user filter inside trusted shop scope.
+- `visibility`: optional `visible`, `hidden`, or `all`; omit or `all` means no visibility filter.
+- `fromTime` / `toTime`: optional ISO-8601 timestamp filters on `oms_order_review.created_at`.
+
+Response item fields:
+
+- `reviewId`, `orderId`, `orderNo`, `productId`, `skuId`, `skuName`
+- `rating`, `content`, `imageCount`, `maskedUserId`, `createdAt`
+- `visibilityStatus`, nullable `visibilityReason`, nullable `visibilityRequestId`, nullable `visibilityOperator`, nullable `visibilityTraceId`, nullable `visibilityUpdatedAt`
+
+Rules:
+
+- Controller must use trusted `SanguiPrincipal`; request query must not carry `shopId`.
+- order-service must enforce `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN` permission.
+- Results are scoped by trusted `shopId` and ordered by `review.created_at DESC, review.id DESC`.
+- Product filtering uses immutable `oms_order_item.product_id`; order-service must not call product-service to infer product membership.
+
+### `POST /api/admin/reviews/{reviewId}/visibility`
+
+Request:
+
+```json
+{
+  "visibility": "hidden",
+  "reason": "Contains sensitive content",
+  "requestId": "review-vis-20260508-0001"
+}
+```
+
+Response code: `ADMIN_REVIEW_VISIBILITY_UPDATED`.
+
+Rules:
+
+- Requires `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN`.
+- `requestId` is required, trimmed, and persisted as `visibility_request_id`.
+- `visibility` must be `visible` or `hidden`.
+- Operator is the trusted principal user id; body user fields are not accepted.
+- Writes persist latest moderation snapshot fields on `oms_order_review`.
+- Same `requestId` and same target visibility returns the current snapshot.
+- Same `requestId` with different target visibility returns `IDEMPOTENCY_CONFLICT`.
+- Hiding keeps the original review row and content intact.
+- Public product review projection must filter hidden reviews.
+
+Validation and error matrix:
+
+| Case | HTTP | code |
+| --- | --- | --- |
+| Missing trusted principal | 401 | `AUTH_TOKEN_MISSING` |
+| Missing admin/review permission | 403 | `AUTH_FORBIDDEN` |
+| Invalid pagination, path id, rating, visibility, request body, or time range | 400 | `VALIDATION_FAILED` |
+| Review missing or wrong shop scope | 404 | `ORDER_REVIEW_NOT_FOUND` |
+| Same visibility request id with conflicting target status | 409 | `IDEMPOTENCY_CONFLICT` |
+
+Required tests:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-user-service" -am "-Dtest=AdminReviewManagementServiceTest,AdminReviewControllerTest,OrderReviewVisibilityMigrationContractTest,ProductReviewQueryServiceTest,OpsAuthServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: admin list only returns current trusted shop data and supports product/rating/user/time/visibility filters.
+- Good: hidden reviews disappear from `GET /api/products/{productId}/reviews` while admin list can still query them.
+- Good: visibility writes persist operator, trace id, request id, reason, and update time.
+- Base: moderation history is latest-snapshot only until `oms_order_review_moderation_log` is introduced.
+- Bad: frontend hides reviews locally without calling the backend write API.
+
 ## Database Contract
 
 Schema env and migrations:

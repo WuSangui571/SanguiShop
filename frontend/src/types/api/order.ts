@@ -129,6 +129,52 @@ export interface AdminCancelOrderRequest {
   requestId: string
 }
 
+export type AdminReviewVisibilityFilter = 'all' | 'visible' | 'hidden' | string
+
+export interface AdminReviewQueryParams {
+  page: number
+  size: number
+  productId?: number
+  rating?: number
+  userId?: string
+  visibility?: AdminReviewVisibilityFilter
+  fromTime?: string
+  toTime?: string
+}
+
+export interface AdminReviewSummaryResponse {
+  reviewId: number
+  orderId: number
+  orderNo: string
+  productId: number
+  skuId: number
+  skuName: string
+  rating: number
+  content: string | null
+  imageCount: number
+  maskedUserId: string
+  visibilityStatus: Exclude<AdminReviewVisibilityFilter, 'all'>
+  visibilityReason: string | null
+  visibilityRequestId: string | null
+  visibilityOperator: string | null
+  visibilityTraceId: string | null
+  visibilityUpdatedAt: string | null
+  createdAt: string | null
+}
+
+export interface AdminReviewPageResponse {
+  page: number
+  size: number
+  total: number
+  items: AdminReviewSummaryResponse[]
+}
+
+export interface AdminReviewVisibilityRequest {
+  visibility: Exclude<AdminReviewVisibilityFilter, 'all'>
+  reason?: string | null
+  requestId: string
+}
+
 export interface ConfirmOrderReceiptRequest {
   requestId: string
 }

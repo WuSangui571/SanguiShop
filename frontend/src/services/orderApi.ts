@@ -4,6 +4,10 @@ import type {
   AdminOrderDetailResponse,
   AdminOrderPageResponse,
   AdminOrderQueryParams,
+  AdminReviewPageResponse,
+  AdminReviewQueryParams,
+  AdminReviewVisibilityRequest,
+  AdminReviewSummaryResponse,
   ConfirmOrderReceiptRequest,
   CreateOrderRequest,
   CreateOrderReviewRequest,
@@ -82,6 +86,18 @@ export function getAdminOrder(orderId: number) {
 export function cancelAdminOrder(orderId: number, payload: AdminCancelOrderRequest) {
   return postJson<AdminOrderDetailResponse>(
     `/api/admin/orders/${encodeURIComponent(String(orderId))}/cancel`,
+    payload,
+    { authContext: 'ops' },
+  )
+}
+
+export function listAdminReviews(params: AdminReviewQueryParams) {
+  return getJson<AdminReviewPageResponse>('/api/admin/reviews', { ...params }, { authContext: 'ops' })
+}
+
+export function updateAdminReviewVisibility(reviewId: number, payload: AdminReviewVisibilityRequest) {
+  return postJson<AdminReviewSummaryResponse>(
+    `/api/admin/reviews/${encodeURIComponent(String(reviewId))}/visibility`,
     payload,
     { authContext: 'ops' },
   )

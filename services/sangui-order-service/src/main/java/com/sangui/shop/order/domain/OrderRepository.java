@@ -32,6 +32,31 @@ public interface OrderRepository {
         throw new UnsupportedOperationException("Product review list query is not implemented");
     }
 
+    default List<AdminReviewListItem> findAdminReviews(AdminReviewQuery query, int offset, int limit) {
+        throw new UnsupportedOperationException("Admin review list query is not implemented");
+    }
+
+    default long countAdminReviews(AdminReviewQuery query) {
+        throw new UnsupportedOperationException("Admin review count query is not implemented");
+    }
+
+    default Optional<AdminReviewListItem> findAdminReviewById(Long shopId, Long reviewId) {
+        throw new UnsupportedOperationException("Admin review detail query is not implemented");
+    }
+
+    default void updateReviewVisibility(
+            Long shopId,
+            Long reviewId,
+            ReviewVisibilityStatus visibilityStatus,
+            String reason,
+            String requestId,
+            String operator,
+            String traceId,
+            LocalDateTime visibilityUpdatedAt
+    ) {
+        throw new UnsupportedOperationException("Admin review visibility update is not implemented");
+    }
+
     default List<OrderSnapshot> findSnapshotsByUser(Long shopId, String userId, int offset, int limit) {
         throw new UnsupportedOperationException("Customer order list query is not implemented");
     }

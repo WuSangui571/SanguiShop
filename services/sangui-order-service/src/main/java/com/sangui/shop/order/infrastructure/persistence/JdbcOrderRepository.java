@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.order.domain.AdminOrderQuery;
+import com.sangui.shop.order.domain.AdminReviewListItem;
+import com.sangui.shop.order.domain.AdminReviewQuery;
 import com.sangui.shop.order.domain.FulfillmentOrderQuery;
 import com.sangui.shop.order.domain.OrderCompensationAttemptQuery;
 import com.sangui.shop.order.domain.OrderCompensationAttemptRecord;
@@ -18,6 +20,7 @@ import com.sangui.shop.order.domain.OrderSnapshot;
 import com.sangui.shop.order.domain.OrderStatus;
 import com.sangui.shop.order.domain.ProductReviewListItem;
 import com.sangui.shop.order.domain.ProductReviewSummary;
+import com.sangui.shop.order.domain.ReviewVisibilityStatus;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDateTime;
@@ -96,6 +99,28 @@ public class JdbcOrderRepository implements OrderRepository {
             rs.getString("trace_id"),
             rs.getString("trigger_type"),
             rs.getString("operator"),
+            rs.getTimestamp("created_at").toLocalDateTime(),
+            rs.getTimestamp("updated_at").toLocalDateTime()
+    );
+
+    private static final RowMapper<AdminReviewListItem> ADMIN_REVIEW_ROW_MAPPER = (rs, rowNum) -> new AdminReviewListItem(
+            rs.getLong("review_id"),
+            rs.getLong("shop_id"),
+            rs.getLong("order_id"),
+            rs.getString("order_no"),
+            rs.getLong("product_id"),
+            rs.getLong("sku_id"),
+            rs.getString("sku_name"),
+            rs.getString("user_id"),
+            rs.getInt("rating"),
+            rs.getString("content"),
+            List.of(),
+            ReviewVisibilityStatus.fromValue(rs.getString("visibility_status")),
+            rs.getString("visibility_reason"),
+            rs.getString("visibility_request_id"),
+            rs.getString("visibility_operator"),
+            rs.getString("visibility_trace_id"),
+            rs.getTimestamp("visibility_updated_at") == null ? null : rs.getTimestamp("visibility_updated_at").toLocalDateTime(),
             rs.getTimestamp("created_at").toLocalDateTime(),
             rs.getTimestamp("updated_at").toLocalDateTime()
     );
@@ -197,6 +222,7 @@ public class JdbcOrderRepository implements OrderRepository {
                          AND o.deleted = 0
                         WHERE r.shop_id = ?
                           AND r.deleted = 0
+                          AND COALESCE(r.visibility_status, 'visible') = 'visible'
                           AND o.status = ?
                           AND EXISTS (
                               SELECT 1
@@ -239,6 +265,7 @@ public class JdbcOrderRepository implements OrderRepository {
                          AND o.deleted = 0
                         WHERE r.shop_id = ?
                           AND r.deleted = 0
+                          AND COALESCE(r.visibility_status, 'visible') = 'visible'
                           AND o.status = ?
                           AND EXISTS (
                               SELECT 1
@@ -266,6 +293,90 @@ public class JdbcOrderRepository implements OrderRepository {
                 productId,
                 limit,
                 offset
+        );
+    }
+
+    @Override
+    public List<AdminReviewListItem> findAdminReviews(AdminReviewQuery query, int offset, int limit) {
+        QueryParts queryParts = buildAdminReviewWhereClause(query);
+        List<Object> args = new ArrayList<>(queryParts.args());
+        args.add(limit);
+        args.add(offset);
+        return jdbcTemplate.query(
+                adminReviewSelectSql()
+                        + queryParts.sql()
+                        + """
+                        ORDER BY r.created_at DESC, r.id DESC
+                        LIMIT ? OFFSET ?
+                        """,
+                this::mapAdminReview,
+                args.toArray()
+        );
+    }
+
+    @Override
+    public long countAdminReviews(AdminReviewQuery query) {
+        QueryParts queryParts = buildAdminReviewWhereClause(query);
+        Long count = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(DISTINCT r.id)
+                        FROM oms_order_review r
+                        JOIN oms_order o
+                          ON o.shop_id = r.shop_id
+                         AND o.id = r.order_id
+                         AND o.deleted = 0
+                        """
+                        + queryParts.sql(),
+                Long.class,
+                queryParts.args().toArray()
+        );
+        return count == null ? 0L : count;
+    }
+
+    @Override
+    public Optional<AdminReviewListItem> findAdminReviewById(Long shopId, Long reviewId) {
+        return jdbcTemplate.query(
+                adminReviewSelectSql()
+                        + """
+                        WHERE r.shop_id = ? AND r.id = ? AND r.deleted = 0
+                        LIMIT 1
+                        """,
+                this::mapAdminReview,
+                shopId,
+                reviewId
+        ).stream().findFirst();
+    }
+
+    @Override
+    public void updateReviewVisibility(
+            Long shopId,
+            Long reviewId,
+            ReviewVisibilityStatus visibilityStatus,
+            String reason,
+            String requestId,
+            String operator,
+            String traceId,
+            LocalDateTime visibilityUpdatedAt
+    ) {
+        jdbcTemplate.update(
+                """
+                        UPDATE oms_order_review
+                        SET visibility_status = ?,
+                            visibility_reason = ?,
+                            visibility_request_id = ?,
+                            visibility_operator = ?,
+                            visibility_trace_id = ?,
+                            visibility_updated_at = ?
+                        WHERE shop_id = ? AND id = ? AND deleted = 0
+                        """,
+                visibilityStatus.value(),
+                reason,
+                requestId,
+                operator,
+                traceId,
+                visibilityUpdatedAt,
+                shopId,
+                reviewId
         );
     }
 
@@ -726,6 +837,83 @@ public class JdbcOrderRepository implements OrderRepository {
         );
     }
 
+    private AdminReviewListItem mapAdminReview(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new AdminReviewListItem(
+                rs.getLong("review_id"),
+                rs.getLong("shop_id"),
+                rs.getLong("order_id"),
+                rs.getString("order_no"),
+                rs.getLong("product_id"),
+                rs.getLong("sku_id"),
+                rs.getString("sku_name"),
+                rs.getString("user_id"),
+                rs.getInt("rating"),
+                rs.getString("content"),
+                fromJson(rs.getString("image_urls")),
+                ReviewVisibilityStatus.fromValue(rs.getString("visibility_status")),
+                rs.getString("visibility_reason"),
+                rs.getString("visibility_request_id"),
+                rs.getString("visibility_operator"),
+                rs.getString("visibility_trace_id"),
+                rs.getTimestamp("visibility_updated_at") == null ? null : rs.getTimestamp("visibility_updated_at").toLocalDateTime(),
+                rs.getTimestamp("created_at").toLocalDateTime(),
+                rs.getTimestamp("updated_at").toLocalDateTime()
+        );
+    }
+
+    private String adminReviewSelectSql() {
+        return """
+                SELECT r.id AS review_id,
+                       r.shop_id,
+                       r.order_id,
+                       r.order_no,
+                       r.user_id,
+                       r.rating,
+                       r.content,
+                       r.image_urls,
+                       COALESCE(r.visibility_status, 'visible') AS visibility_status,
+                       r.visibility_reason,
+                       r.visibility_request_id,
+                       r.visibility_operator,
+                       r.visibility_trace_id,
+                       r.visibility_updated_at,
+                       r.created_at,
+                       r.updated_at,
+                       (
+                           SELECT oi.product_id
+                           FROM oms_order_item oi
+                           WHERE oi.shop_id = r.shop_id
+                             AND oi.order_id = r.order_id
+                             AND oi.deleted = 0
+                           ORDER BY oi.id ASC
+                           LIMIT 1
+                       ) AS product_id,
+                       (
+                           SELECT oi.sku_id
+                           FROM oms_order_item oi
+                           WHERE oi.shop_id = r.shop_id
+                             AND oi.order_id = r.order_id
+                             AND oi.deleted = 0
+                           ORDER BY oi.id ASC
+                           LIMIT 1
+                       ) AS sku_id,
+                       (
+                           SELECT oi.sku_name
+                           FROM oms_order_item oi
+                           WHERE oi.shop_id = r.shop_id
+                             AND oi.order_id = r.order_id
+                             AND oi.deleted = 0
+                           ORDER BY oi.id ASC
+                           LIMIT 1
+                       ) AS sku_name
+                FROM oms_order_review r
+                JOIN oms_order o
+                  ON o.shop_id = r.shop_id
+                 AND o.id = r.order_id
+                 AND o.deleted = 0
+                """;
+    }
+
     private String toJson(List<String> values) {
         try {
             return objectMapper.writeValueAsString(values == null ? List.of() : values);
@@ -824,6 +1012,46 @@ public class JdbcOrderRepository implements OrderRepository {
         }
         if (query.toTime() != null) {
             sql.append(" AND created_at <= ?");
+            args.add(query.toTime());
+        }
+        return new QueryParts(sql.toString(), args);
+    }
+
+    private QueryParts buildAdminReviewWhereClause(AdminReviewQuery query) {
+        StringBuilder sql = new StringBuilder("WHERE r.shop_id = ? AND r.deleted = 0");
+        List<Object> args = new ArrayList<>();
+        args.add(query.shopId());
+        if (query.productId() != null) {
+            sql.append("""
+                     AND EXISTS (
+                         SELECT 1
+                         FROM oms_order_item oi
+                         WHERE oi.shop_id = r.shop_id
+                           AND oi.order_id = r.order_id
+                           AND oi.product_id = ?
+                           AND oi.deleted = 0
+                     )
+                    """);
+            args.add(query.productId());
+        }
+        if (query.rating() != null) {
+            sql.append(" AND r.rating = ?");
+            args.add(query.rating());
+        }
+        if (query.userId() != null) {
+            sql.append(" AND r.user_id = ?");
+            args.add(query.userId());
+        }
+        if (query.visibilityStatus() != null) {
+            sql.append(" AND COALESCE(r.visibility_status, 'visible') = ?");
+            args.add(query.visibilityStatus().value());
+        }
+        if (query.fromTime() != null) {
+            sql.append(" AND r.created_at >= ?");
+            args.add(query.fromTime());
+        }
+        if (query.toTime() != null) {
+            sql.append(" AND r.created_at <= ?");
             args.add(query.toTime());
         }
         return new QueryParts(sql.toString(), args);

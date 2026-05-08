@@ -10,6 +10,7 @@ import FulfillmentManagementView from './views/admin/FulfillmentManagementView.v
 import OrderManagementView from './views/admin/OrderManagementView.vue'
 import { readAdminOrderIdFromSearch } from './views/admin/orderManagementModel'
 import ProductManagementView from './views/admin/ProductManagementView.vue'
+import ReviewManagementView from './views/admin/ReviewManagementView.vue'
 import MallStorefrontView from './views/mall/MallStorefrontView.vue'
 
 const { t } = useAppPreferences()
@@ -28,9 +29,10 @@ const {
 
 const PRODUCT_CATALOG_ADMIN_PERMISSION = 'PRODUCT_CATALOG_ADMIN'
 const ORDER_MANAGEMENT_ADMIN_PERMISSION = 'ORDER_MANAGEMENT_ADMIN'
+const REVIEW_MANAGEMENT_ADMIN_PERMISSION = 'REVIEW_MANAGEMENT_ADMIN'
 const LOGISTICS_FULFILLMENT_ADMIN_PERMISSION = 'LOGISTICS_FULFILLMENT_ADMIN'
 const OPS_COMPENSATION_ADMIN_PERMISSION = 'OPS_COMPENSATION_ADMIN'
-type AdminWorkspace = 'product' | 'order' | 'fulfillment' | 'compensation'
+type AdminWorkspace = 'product' | 'order' | 'review' | 'fulfillment' | 'compensation'
 
 const activeAdminWorkspace = ref<AdminWorkspace>(readAdminWorkspaceFromLocation() ?? 'product')
 const initialAdminOrderId = readInitialAdminOrderId()
@@ -67,6 +69,14 @@ const canAccessOrderWorkspace = computed(() => {
   return session.roles.includes('ADMIN') || session.permissions.includes(ORDER_MANAGEMENT_ADMIN_PERMISSION)
 })
 
+const canAccessReviewWorkspace = computed(() => {
+  const session = state.session
+  if (!session) {
+    return false
+  }
+  return session.roles.includes('ADMIN') || session.permissions.includes(REVIEW_MANAGEMENT_ADMIN_PERMISSION)
+})
+
 const canAccessFulfillmentWorkspace = computed(() => {
   const session = state.session
   if (!session) {
@@ -82,6 +92,9 @@ const availableAdminWorkspaces = computed(() => {
   }
   if (canAccessOrderWorkspace.value) {
     workspaces.push('order')
+  }
+  if (canAccessReviewWorkspace.value) {
+    workspaces.push('review')
   }
   if (canAccessFulfillmentWorkspace.value) {
     workspaces.push('fulfillment')
@@ -124,6 +137,7 @@ function readAdminWorkspaceFromLocation(): AdminWorkspace | null {
   const workspace = new URLSearchParams(window.location.search).get('workspace')
   return workspace === 'product'
     || workspace === 'order'
+    || workspace === 'review'
     || workspace === 'fulfillment'
     || workspace === 'compensation'
     ? workspace
@@ -216,6 +230,16 @@ onMounted(() => {
           {{ t('admin.orderWorkspace') }}
         </button>
         <button
+          v-if="canAccessReviewWorkspace"
+          type="button"
+          class="workspace-tab"
+          :class="{ active: activeAdminWorkspace === 'review' }"
+          :aria-pressed="activeAdminWorkspace === 'review'"
+          @click="selectWorkspace('review')"
+        >
+          {{ t('admin.reviewWorkspace') }}
+        </button>
+        <button
           v-if="canAccessFulfillmentWorkspace"
           type="button"
           class="workspace-tab"
@@ -252,6 +276,11 @@ onMounted(() => {
         :session="state.session"
         :can-access-order-workspace="canAccessOrderWorkspace"
         :initial-order-id="initialAdminOrderId"
+      />
+      <ReviewManagementView
+        v-else-if="activeAdminWorkspace === 'review' && canAccessReviewWorkspace"
+        :session="state.session"
+        :can-access-review-workspace="canAccessReviewWorkspace"
       />
       <FulfillmentManagementView
         v-else-if="activeAdminWorkspace === 'fulfillment' && canAccessFulfillmentWorkspace"

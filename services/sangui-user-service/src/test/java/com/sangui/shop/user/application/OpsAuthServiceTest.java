@@ -66,6 +66,7 @@ class OpsAuthServiceTest {
                 SanguiPermissionConstants.OPS_COMPENSATION_ADMIN,
                 SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN,
                 SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN,
+                SanguiPermissionConstants.REVIEW_MANAGEMENT_ADMIN,
                 SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN
         );
     }
@@ -151,6 +152,17 @@ class OpsAuthServiceTest {
 
         assertThat(response.permissions()).containsExactly(SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN);
         assertThat(tokenIssuer.lastPermissions).containsExactly(SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN);
+    }
+
+    @Test
+    void loginAllowsReviewManagementAdminPermission() {
+        accessRegistry.setBindings(List.of(accessBinding(1L, "review-admin", SanguiPermissionConstants.REVIEW_MANAGEMENT_ADMIN)));
+        userRepository.save(1L, "review-admin", "13800000003", passwordHasher.hash("Passw0rd!"));
+
+        OpsSessionResponse response = opsAuthService.login(new LoginUserRequest(1L, "review-admin", "Passw0rd!"));
+
+        assertThat(response.permissions()).containsExactly(SanguiPermissionConstants.REVIEW_MANAGEMENT_ADMIN);
+        assertThat(tokenIssuer.lastPermissions).containsExactly(SanguiPermissionConstants.REVIEW_MANAGEMENT_ADMIN);
     }
 
     private OpsAccessRegistry.OpsAccessBinding accessBinding(Long shopId, String username, String... permissions) {

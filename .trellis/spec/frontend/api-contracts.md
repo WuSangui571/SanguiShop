@@ -101,6 +101,32 @@ Required tests:
 - Cancel confirmation must prevent accidental cancellation before the request is sent.
 - Cancel request `requestId` generation and trimming.
 
+## Admin Review Management APIs
+
+Frontend admin review management must use gateway routes through `services/orderApi.ts` with `authContext: 'ops'`.
+
+| Function | Route | Auth Context | Required UI Handling |
+| --- | --- | --- | --- |
+| `listAdminReviews({page,size,productId,rating,userId,visibility,fromTime,toTime})` | `GET /api/admin/reviews` | `ops` | Show loading, empty, error, retry, pagination; omit `visibility` when filter is `all`; omit blank text filters. |
+| `updateAdminReviewVisibility(reviewId,{visibility,reason,requestId})` | `POST /api/admin/reviews/{reviewId}/visibility` | `ops` | Generate `requestId`; disable duplicate visibility writes while pending; preserve backend errors. |
+
+Admin review model rules:
+
+- Page copy must use `useAppPreferences().t()` and new colors must rely on semantic CSS variables.
+- Visibility values display `visible` and `hidden`, with raw fallback for unknown backend values.
+- Time filters from `datetime-local` inputs must be normalized to ISO-8601 values before sending.
+- API errors must preserve and display backend `code`, `message`, and `traceId`.
+- `OPS_COMPENSATION_ADMIN` alone must not show the review management workspace; require `ADMIN` role or `REVIEW_MANAGEMENT_ADMIN`.
+- The UI must not delete or mutate user-authored review content; only visibility writes are available in phase 1.
+
+Required tests:
+
+- Filter payload trimming, `all` omission, blank filter omission, product/rating normalization, and time normalization.
+- Visibility labels for `visible`, `hidden`, and unknown raw values.
+- Hide/restore payload trimming and `requestId` trimming.
+- Backend error `code/message/traceId` preservation.
+- Duplicate hide/restore submit guard.
+
 ## Admin Fulfillment Management APIs
 
 Frontend admin fulfillment management must use gateway routes through `services/fulfillmentApi.ts` with `authContext: 'ops'`.

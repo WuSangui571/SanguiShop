@@ -254,6 +254,47 @@ Good/Base/Bad cases:
 - Base: `image_urls` stores validated JSON text until a dedicated upload/storage contract exists.
 - Bad: review rows omit `shop_id`, `request_id`, or `trace_id`.
 
+## Order Review Visibility Moderation Columns
+
+Merchant review management phase 1 stores the latest visibility moderation snapshot on `oms_order_review`.
+
+Migration:
+
+- `services/sangui-order-service/src/main/resources/db/migration/V9__add_order_review_visibility_moderation.sql`
+
+Required columns:
+
+- `visibility_status VARCHAR(16) NOT NULL DEFAULT 'visible'`
+- `visibility_reason VARCHAR(200) NULL`
+- `visibility_request_id VARCHAR(64) NULL`
+- `visibility_operator VARCHAR(64) NULL`
+- `visibility_trace_id VARCHAR(64) NULL`
+- `visibility_updated_at DATETIME NULL`
+
+Required index:
+
+- `idx_oms_order_review_shop_visibility_created (shop_id, visibility_status, created_at)`
+
+Rules:
+
+- Existing review rows default to `visible`.
+- Hiding a review must not delete or overwrite the original `rating`, `content`, `image_urls`, `request_id`, or `trace_id`.
+- `visibility_request_id` is the admin write idempotency key snapshot; same request id and same target status returns the current snapshot, same request id and different target status returns `IDEMPOTENCY_CONFLICT`.
+- Public product review queries must include `COALESCE(r.visibility_status, 'visible') = 'visible'`.
+
+Executable validation:
+
+```powershell
+mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=OrderReviewVisibilityMigrationContractTest,ProductReviewQueryServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: hidden reviews stay queryable by admins but are excluded from public product detail reviews.
+- Good: latest moderation fields include operator, trace id, request id, reason, and update time.
+- Base: full append-only moderation history is deferred; latest operation snapshot remains on the review row.
+- Bad: hiding a review physically deletes the row or mutates user-authored content.
+
 ## Compensation Attempt History Tables
 
 Follow-up compensation operations persist immutable attempt history alongside latest row metadata.
