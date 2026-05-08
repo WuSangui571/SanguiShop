@@ -761,3 +761,94 @@ The buyer order experience now continues cleanly after payment success: users ca
 ### Next Steps
 
 - None - task complete
+
+
+## Session 54: 用户侧订单评价与已完成订单反馈体验
+
+**Date**: 2026-05-08
+**Task**: 用户侧订单评价与已完成订单反馈体验
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Backend review API | Added customer order review endpoints `POST /api/orders/{orderId}/reviews` and `GET /api/orders/{orderId}/review` in order-service, scoped by trusted `SanguiPrincipal`. |
+| Review state machine | Reviews are allowed only for owned `completed` orders; created, paid/unshipped, shipped, cancelled, and unknown states reject review with stable business errors. |
+| Idempotency | Added `requestId` replay handling: same payload returns the original review, changed payload returns `IDEMPOTENCY_CONFLICT`, and same order with a different request id returns `ORDER_REVIEW_ALREADY_EXISTS`. |
+| Persistence | Added `oms_order_review` migration with `(shop_id, order_id)` one-review uniqueness and `(shop_id, user_id, request_id)` idempotency uniqueness. |
+| Order response snapshot | Extended customer order detail/list responses with `reviewed` and nullable `review` snapshot fields for deep-link and list synchronization. |
+| Frontend UX | Completed unreviewed orders now show a review form; reviewed orders show the review snapshot; completed list items display pending/reviewed state without leaving the completed filter. |
+| Frontend request guards | Review submission ignores duplicate pending clicks, preserves completed detail on backend failure, and keeps backend `code/message/traceId` visible. |
+| Spec sync | Updated backend order/database contracts and frontend mall order API contracts with concrete fields, validation matrix, required tests, and Good/Base/Bad cases. |
+
+**Updated Files**:
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/OrderController.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/dto/CreateOrderReviewRequest.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/dto/OrderReviewResponse.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/dto/OrderResponse.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderReviewService.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderResponseMapper.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderReviewRecord.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderRepository.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderSnapshot.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderErrorCode.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/persistence/JdbcOrderRepository.java`
+- `services/sangui-order-service/src/main/resources/db/migration/V8__create_order_review_tables.sql`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/application/OrderReviewServiceTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/OrderControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/infrastructure/persistence/OrderReviewMigrationContractTest.java`
+- `frontend/src/types/api/order.ts`
+- `frontend/src/services/orderApi.ts`
+- `frontend/src/composables/useMallOrderStatus.ts`
+- `frontend/src/views/mall/MallStorefrontView.vue`
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/src/views/mall/mallCheckoutModel.ts`
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+- `frontend/tests/mallCheckoutModel.spec.ts`
+- `.trellis/spec/backend/order-create-contracts.md`
+- `.trellis/spec/backend/database-guidelines.md`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-08-user-order-review-feedback/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human tests: passed.
+- Human commit: `be00e95 feat(mall):???????????`.
+- AI backend targeted Maven tests passed:
+  - `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=OrderReviewServiceTest,OrderControllerTest,OrderQueryServiceTest,OrderReviewMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- AI frontend checks passed:
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+- AI: `git diff --check` passed with Windows line-ending warnings only.
+- AI targeted Vitest was blocked in sandbox by Vite/esbuild `spawn EPERM`; escalation request was rejected by the automatic approval service, and human local testing passed.
+
+### Result
+
+The buyer order lifecycle now continues naturally after completion: users can review completed orders exactly once, replay safe duplicate submits by `requestId`, see reviewed state in detail/list/deep-link restores, and keep completed order snapshots intact on review failures. This also establishes a concrete order-review table and response contract for future product detail review display and merchant review management.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `be00e95` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
