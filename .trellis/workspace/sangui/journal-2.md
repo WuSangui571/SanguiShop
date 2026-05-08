@@ -939,3 +939,88 @@ Product reviews are now visible as product detail assets without changing review
 ### Next Steps
 
 - None - task complete
+
+
+## Session 56: 商家侧评价管理一期
+
+**Date**: 2026-05-08
+**Task**: 商家侧评价管理一期
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Backend admin API | Added merchant review management endpoints `GET /api/admin/reviews` and `POST /api/admin/reviews/{reviewId}/visibility` in order-service with trusted `SanguiPrincipal` shop scope. |
+| Permission model | Added `REVIEW_MANAGEMENT_ADMIN`; ops auth can issue it, and review management rejects compensation-only sessions with `AUTH_FORBIDDEN`. |
+| Review governance | Added latest visibility moderation snapshot fields on `oms_order_review`: status, reason, request id, operator, trace id, and updated time. |
+| Public display boundary | Product detail review projection now filters hidden reviews while preserving original review content and rows for admin visibility. |
+| Frontend admin workspace | Added admin Review Management workspace with permission-gated navigation, filters, pagination, loading/empty/error/retry states, hide/restore actions, and duplicate pending guard. |
+| Error handling | Frontend review management preserves backend `code/message/traceId` for list and action failures. |
+| Spec sync | Updated backend DB/order contracts and frontend API contracts with concrete fields, validation/error matrix, tests, and Good/Base/Bad cases. |
+
+**Updated Files**:
+- `common/sangui-common-security/src/main/java/com/sangui/shop/common/security/SanguiPermissionConstants.java`
+- `services/sangui-user-service/src/main/java/com/sangui/shop/user/application/OpsAccessRegistry.java`
+- `services/sangui-user-service/src/main/java/com/sangui/shop/user/application/OpsAuthService.java`
+- `services/sangui-order-service/src/main/resources/db/migration/V9__add_order_review_visibility_moderation.sql`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/AdminReviewController.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/AdminReviewManagementService.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/AdminReviewListItem.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/AdminReviewQuery.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/ReviewVisibilityStatus.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderRepository.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderErrorCode.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/persistence/JdbcOrderRepository.java`
+- `frontend/src/App.vue`
+- `frontend/src/composables/useReviewManagement.ts`
+- `frontend/src/views/admin/ReviewManagementView.vue`
+- `frontend/src/views/admin/reviewManagementModel.ts`
+- `frontend/src/views/admin/reviewManagementModel.test.ts`
+- `frontend/src/services/orderApi.ts`
+- `frontend/src/types/api/order.ts`
+- `frontend/src/composables/useAppPreferences.ts`
+- `.trellis/spec/backend/database-guidelines.md`
+- `.trellis/spec/backend/order-create-contracts.md`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-08-merchant-review-management-phase1/prd.md`
+
+### Verification
+
+- Human manual testing: passed.
+- Human commit: `2739897 feat(mall): ?????????`.
+- AI backend targeted Maven tests passed:
+  - `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service,services/sangui-user-service" -am "-Dtest=AdminReviewManagementServiceTest,AdminReviewControllerTest,OrderReviewVisibilityMigrationContractTest,ProductReviewQueryServiceTest,OpsAuthServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- AI frontend checks passed:
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test -- reviewManagementModel`
+- AI: `git diff --check` passed with Windows line-ending warnings only.
+
+### Result
+
+The review chain now has an operational governance loop: users can create reviews, product detail can display only visible reviews, and authorized merchant admins can query, hide, restore, and trace moderation operations without touching order/payment/inventory state machines.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2739897` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
