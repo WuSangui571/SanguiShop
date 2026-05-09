@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useAppPreferences } from '../../composables/useAppPreferences'
 import { useReviewManagement } from '../../composables/useReviewManagement'
 import type { PersistedOpsSession } from '../../types/api/auth'
@@ -17,6 +17,7 @@ import {
   deserializeAdminReviewFilters,
   getAdminReviewReplyLabel,
   getAdminReviewVisibilityLabel,
+  isAdminReviewImagePreviewable,
   serializeAdminReviewFilters,
   type AdminReviewFilterDraft,
 } from './reviewManagementModel'
@@ -33,6 +34,44 @@ const canAccessRef = computed(() => props.canAccessReviewWorkspace)
 const moderationReason = ref('')
 const replyDrafts = ref<Record<number, string>>({})
 const imageLoadFailures = ref<Record<string, ReturnType<typeof buildAdminReviewImageError>>>({})
+const previewUrl = ref<string | null>(null)
+const previewReviewId = ref<number | null>(null)
+const previewImageFailed = ref(false)
+
+const isPreviewOpen = computed(() => previewUrl.value !== null && previewReviewId.value !== null)
+
+function openPreview(item: AdminReviewSummaryResponse, url: string) {
+  const view = buildAdminReviewImageView(item)
+  if (isAdminReviewImagePreviewable(view, imageLoadFailures.value, item.reviewId, url)) {
+    previewUrl.value = url
+    previewReviewId.value = item.reviewId
+    previewImageFailed.value = false
+  }
+}
+
+function closePreview() {
+  previewUrl.value = null
+  previewReviewId.value = null
+  previewImageFailed.value = false
+}
+
+function markPreviewImageFailed() {
+  previewImageFailed.value = true
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && isPreviewOpen.value) {
+    closePreview()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 
 const {
   filters,
@@ -55,6 +94,25 @@ const {
 } = useReviewManagement(sessionRef, canAccessRef, {
   initialFilters: readInitialReviewFilters(),
 })
+
+watch(
+  items,
+  (nextItems) => {
+    if (!previewUrl.value || previewReviewId.value === null) {
+      return
+    }
+    const currentItem = nextItems.find((item) => item.reviewId === previewReviewId.value)
+    if (!currentItem) {
+      closePreview()
+      return
+    }
+    const view = buildAdminReviewImageView(currentItem)
+    if (!isAdminReviewImagePreviewable(view, imageLoadFailures.value, currentItem.reviewId, previewUrl.value)) {
+      closePreview()
+    }
+  },
+  { deep: true },
+)
 
 const visibilityOptions = computed(() => [
   { label: t('reviewAdmin.visibilityAll'), value: 'all' },
@@ -122,6 +180,9 @@ function markImageLoadFailed(item: AdminReviewSummaryResponse, url: string) {
   imageLoadFailures.value = {
     ...imageLoadFailures.value,
     [imageFailureKey(item, url)]: buildAdminReviewImageError(item, url),
+  }
+  if (previewReviewId.value === item.reviewId && previewUrl.value === url) {
+    closePreview()
   }
 }
 
@@ -319,7 +380,9 @@ function persistReviewFilters(nextFilters: AdminReviewFilterDraft) {
                 :src="imageUrl"
                 :alt="t('reviewAdmin.imageAlt', { id: item.reviewId })"
                 loading="lazy"
+                class="previewable-thumb"
                 @error="markImageLoadFailed(item, imageUrl)"
+                @click="openPreview(item, imageUrl)"
               />
               <div v-else class="review-image-fallback">
                 <strong>{{ t('reviewAdmin.imageLoadFailed') }}</strong>
@@ -417,6 +480,38 @@ function persistReviewFilters(nextFilters: AdminReviewFilterDraft) {
         {{ t('common.next') }}
       </button>
     </section>
+
+    <teleport to="body">
+      <div
+        v-if="isPreviewOpen"
+        class="preview-overlay"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('reviewAdmin.previewLabel', { id: previewReviewId ?? '' })"
+        @click.self="closePreview"
+      >
+        <div class="preview-container">
+          <button
+            type="button"
+            class="preview-close"
+            :aria-label="t('reviewAdmin.closePreview')"
+            @click="closePreview"
+          >
+            &times;
+          </button>
+          <img
+            v-if="previewUrl && !previewImageFailed"
+            :src="previewUrl"
+            :alt="t('reviewAdmin.imageAlt', { id: previewReviewId ?? '' })"
+            class="preview-image"
+            @error="markPreviewImageFailed"
+          />
+          <div v-else class="preview-fallback">
+            {{ t('reviewAdmin.imageLoadFailed') }}
+          </div>
+        </div>
+      </div>
+    </teleport>
   </main>
 </template>
 
@@ -725,5 +820,65 @@ button:disabled {
   .danger {
     width: 100%;
   }
+}
+
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: var(--overlay-bg);
+  padding: 1rem;
+}
+
+.preview-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: grid;
+  place-items: center;
+}
+
+.preview-close {
+  position: absolute;
+  top: -2.5rem;
+  right: 0;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-panel);
+  color: var(--text-main);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+
+.preview-close:hover {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.preview-image {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
+}
+
+.preview-fallback {
+  padding: 2rem;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  color: var(--danger-text);
+}
+
+.previewable-thumb {
+  cursor: pointer;
 }
 </style>

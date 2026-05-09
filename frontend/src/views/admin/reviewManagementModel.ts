@@ -174,6 +174,15 @@ export function buildAdminReviewImageError(item: AdminReviewSummaryResponse, url
   }
 }
 
+export function isAdminReviewImagePreviewable(
+  imageView: AdminReviewImageView,
+  failures: Record<string, AdminReviewImageErrorState>,
+  reviewId: number,
+  url: string,
+): boolean {
+  return imageView.urls.includes(url) && !(`${reviewId}:${url}` in failures)
+}
+
 export function replaceAdminReviewItem(
   items: AdminReviewSummaryResponse[],
   nextItem: AdminReviewSummaryResponse,

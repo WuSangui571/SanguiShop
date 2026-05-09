@@ -16,6 +16,7 @@ import {
   deserializeAdminReviewFilters,
   getAdminReviewReplyLabel,
   getAdminReviewVisibilityLabel,
+  isAdminReviewImagePreviewable,
   replaceAdminReviewItem,
   serializeAdminReviewFilters,
   toAdminReviewError,
@@ -126,6 +127,25 @@ describe('reviewManagementModel', () => {
       urls: [],
       unknownCount: 2,
     })
+  })
+
+  it('detects previewable image and rejects failed or unknown fallback images', () => {
+    const view = buildAdminReviewImageView(review({
+      reviewId: 42,
+      imageCount: 3,
+      imageUrls: ['/img/a.jpg', '/img/b.jpg'],
+    }))
+    const failures: Record<string, ReturnType<typeof buildAdminReviewImageError>> = {}
+
+    expect(isAdminReviewImagePreviewable(view, failures, 42, '/img/a.jpg')).toBe(true)
+    expect(isAdminReviewImagePreviewable(view, failures, 42, '/img/b.jpg')).toBe(true)
+
+    failures['42:/img/b.jpg'] = buildAdminReviewImageError(review({ reviewId: 42 }), '/img/b.jpg')
+    expect(isAdminReviewImagePreviewable(view, failures, 42, '/img/b.jpg')).toBe(false)
+    expect(isAdminReviewImagePreviewable(view, failures, 42, '/img/a.jpg')).toBe(true)
+
+    const unknownView = buildAdminReviewImageView(review({ imageCount: 2, imageUrls: undefined }))
+    expect(isAdminReviewImagePreviewable(unknownView, {}, 99, '')).toBe(false)
   })
 
   it('builds traceable image load error state without blocking review governance', () => {

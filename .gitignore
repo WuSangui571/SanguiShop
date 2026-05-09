@@ -9,6 +9,7 @@ target/
 
 .idea/
 .vscode/
+.claude/
 *.iml
 
 node_modules/
