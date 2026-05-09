@@ -1,0 +1,14 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/05-09-admin-review-image-preview/prd.md", "reason": "Check implementation against explicit requirements and non-goals."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Verify component boundaries, props/state handling, and UI states."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify no global store is introduced and translation/color rules are followed."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify optional imageUrls/unknown fallback remain safe and typed."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify existing admin review API behavior and image governance constraints are preserved."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality gate for typecheck, lint, build, tests, a11y, and layout."}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Verify no new misplaced shared components or services are introduced."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Check scope remains local and avoids unnecessary abstraction."}
+{"file": "frontend/src/views/admin/reviewManagementModel.ts", "reason": "Review image model behavior for failed/unknown/non-previewable boundaries."}
+{"file": "frontend/src/views/admin/reviewManagementModel.test.ts", "reason": "Verify test coverage for previewable, failed, and unknown fallback states."}
+{"file": "frontend/src/views/admin/ReviewManagementView.vue", "reason": "Check preview overlay, close controls, Esc handling, and no interference with moderation actions."}
+{"file": "frontend/src/composables/useAppPreferences.ts", "reason": "Verify new user-facing copy exists across supported locales."}

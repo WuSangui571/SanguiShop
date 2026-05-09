@@ -1250,3 +1250,76 @@ SanguiShop now has a complete user-generated photo review loop: buyers can uploa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 60: 商家评价图片治理与存储可运维加固
+
+**Date**: 2026-05-08
+**Task**: 商家评价图片治理与存储可运维加固
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Admin review API | Added public `imageUrls` to admin review response while keeping storage paths, storage directories, object keys, and storage metadata out of the payload. |
+| Admin review UI | Admin Review Management now renders review image thumbnails for visible and hidden reviews, with compatible fallback when only `imageCount` is available. |
+| Image failure handling | Thumbnail load failures show a non-blocking placeholder with local error code, review id context, and failed public URL; hide/restore/reply operations remain usable. |
+| Public boundary regression | Added/kept tests around public product review projection so hidden reviews stay out of public list, `withImages=true`, and rating distribution, while hidden replies do not hide visible review images. |
+| Storage operability | Updated upload storage contracts with local directory configuration, capacity and backup/migration boundaries, upload/read failure recovery, 404 handling, and a dry-run-first orphan cleanup design. |
+| Specs | Updated backend order review contracts, backend upload storage contracts, and frontend API contracts with concrete image governance payload and UI error behavior. |
+
+**Updated Files**:
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/api/dto/AdminReviewSummaryResponse.java`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/application/AdminReviewManagementService.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminReviewControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/application/AdminReviewManagementServiceTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/application/ProductReviewQueryServiceTest.java`
+- `frontend/src/types/api/order.ts`
+- `frontend/src/views/admin/ReviewManagementView.vue`
+- `frontend/src/views/admin/reviewManagementModel.ts`
+- `frontend/src/views/admin/reviewManagementModel.test.ts`
+- `frontend/src/composables/useAppPreferences.ts`
+- `.trellis/spec/backend/order-create-contracts.md`
+- `.trellis/spec/backend/upload-storage-contracts.md`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-08-admin-review-image-governance-storage-hardening/prd.md`
+
+### Verification
+
+- Human commit: `6eb3245 feat(mall): ???????????????`.
+- AI backend targeted Maven tests passed:
+  - `.mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=AdminReviewManagementServiceTest,AdminReviewControllerTest,ProductReviewQueryServiceTest,OrderReviewVisibilityMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- AI frontend checks passed:
+  - `cd frontend; cmd /c npm run test -- reviewManagementModel`
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+- AI: `git diff --check` passed with Windows line-ending warnings only.
+
+### Result
+
+Merchant-side review management now treats review photos as governable assets: operators can inspect thumbnails even for hidden reviews, image load failures are visible and traceable without blocking moderation actions, and storage operations have documented recovery and cleanup boundaries before introducing higher-risk automated deletion or AI summary inputs.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6eb3245` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

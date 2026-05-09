@@ -1,0 +1,14 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/tasks/05-09-admin-review-image-preview/prd.md", "reason": "Task requirements, acceptance criteria, boundaries, and required tests."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Admin Review Management is a Vue page component with UI state and accessibility requirements."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Preview open state must remain local page state and new copy must use typed translations."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Image model changes should use explicit TypeScript types and tolerate optional API fields."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin Review Management API and image UI contract define imageUrls, imageCount, failures, and required tests."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Required frontend checks, accessibility, and layout quality for the change."}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Keep admin page/model/test changes within existing frontend admin module structure."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Prefer existing local model/page patterns over introducing new abstractions."}
+{"file": "frontend/src/views/admin/reviewManagementModel.ts", "reason": "Existing admin review image model; likely place to add previewable state."}
+{"file": "frontend/src/views/admin/reviewManagementModel.test.ts", "reason": "Existing focused unit tests for admin review model; add previewability cases here."}
+{"file": "frontend/src/views/admin/ReviewManagementView.vue", "reason": "Admin review page currently renders thumbnails and local image load failures; likely UI implementation target."}
+{"file": "frontend/src/composables/useAppPreferences.ts", "reason": "Typed translation keys for any new preview/close labels."}
