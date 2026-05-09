@@ -1390,3 +1390,73 @@ Admin Review Management now supports simple, bounded large-image preview for rev
 ### Next Steps
 
 - None - task complete
+
+
+## Session 62: 管理端评价图片预览组件测试补齐
+
+**Date**: 2026-05-09
+**Task**: 管理端评价图片预览组件测试补齐
+**Branch**: `main`
+
+### Summary
+
+补齐管理端评价图片大图预览的 Vue 组件交互测试，覆盖打开、关闭按钮、遮罩、Escape、失败图片和 unknown fallback 边界。
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Frontend component tests | Added DOM-based Vue component coverage for Admin Review Management image preview overlay interactions. |
+| Test infrastructure | Added `@vue/test-utils` and `happy-dom` so Vitest can exercise Teleport, native click events, and `window` keydown behavior. |
+| Admin review image boundaries | Verified previewable thumbnails open overlay, close button/backdrop/Escape close it, failed thumbnails do not preview, and unknown image-count fallback does not preview. |
+| Repository hygiene | Added `memory/` to `.gitignore` so local agent memory files are not captured by `git add .`. |
+| Trellis | Archived completed task `05-09-admin-review-image-preview-component-tests`. |
+
+**Updated Files**:
+- `.gitignore`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+- `frontend/src/views/admin/ReviewManagementView.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-image-preview-component-tests/prd.md`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-image-preview-component-tests/research.md`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-image-preview-component-tests/implement.jsonl`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-image-preview-component-tests/check.jsonl`
+
+**Verification**:
+- Human manual testing: passed.
+- Human commit: `1f901eb test(mall):???????????????`.
+- AI checks passed:
+  - `cd frontend; cmd /c npm run test -- reviewManagement` (20 tests passed)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test` (128 tests passed)
+  - `git diff --check` (line-ending warnings only)
+  - searched frontend source/tests for `console.log`, `debugger`, `TODO`, `any`, and non-null assertion patterns; no issues found.
+
+**Result**:
+Admin Review Management image preview now has automated component coverage for the interaction gap left after the feature shipped: thumbnail open, close button, backdrop click, Escape close, failed-image boundary, and unknown fallback boundary.
+
+**Boundaries**:
+- No backend, Gateway, database, storage, API payload, route, permission, or business implementation change was introduced.
+- `ReviewManagementView.vue` behavior was not modified.
+- The new DOM test dependency is scoped to frontend devDependencies.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1f901eb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
