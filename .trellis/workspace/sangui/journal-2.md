@@ -1460,3 +1460,69 @@ Admin Review Management image preview now has automated component coverage for t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 63: 管理端评价治理动作组件测试补齐
+
+**Date**: 2026-05-09
+**Task**: 管理端评价治理动作组件测试补齐
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Admin review component tests | Added component-level coverage for high-risk admin review governance write actions in `ReviewManagementView.spec.ts`. |
+| Review visibility actions | Verified visible reviews enable hide and disable restore, hidden reviews enable restore and disable hide, hide/restore payloads include trimmed reason and deterministic `requestId`, and pending duplicate clicks do not send a second request. |
+| Merchant reply actions | Verified empty and whitespace-only reply drafts disable submit, reply submit trims content and carries `requestId`, failed backend validation displays `code/message/traceId`, and failed saves preserve textarea input. |
+| Reply visibility actions | Verified no-reply rows disable reply visibility controls, visible/hidden replies enable the correct hide/restore action, payloads carry target visibility and `requestId`, and pending duplicate clicks are guarded. |
+| Quality check | Codex removed non-essential non-null assertions from the new tests, added whitespace-only reply coverage, and added duplicate pending coverage for reply submit and reply visibility. |
+
+**Updated Files**:
+- `frontend/src/views/admin/ReviewManagementView.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-moderation-action-component-tests/prd.md`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-moderation-action-component-tests/research.md`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-moderation-action-component-tests/implement.jsonl`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-moderation-action-component-tests/check.jsonl`
+
+**Verification**:
+- Human manual testing: passed.
+- Human commit: `6907107 test(mall):???????????????`.
+- AI checks passed:
+  - `cd frontend; cmd /c npm run test -- reviewManagement` (35 tests passed)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `git diff --check` before commit (line-ending warning only)
+  - searched `ReviewManagementView.spec.ts` for `console.log`, `debugger`, `TODO`, `any`, and non-essential non-null assertion patterns; no issues found.
+
+**Result**:
+Admin Review Management now has component-level regression coverage for its main governance write paths: review hide/restore, merchant reply save, and reply hide/restore. The coverage complements the existing model-layer payload/guard tests and the previously added image preview component tests.
+
+**Boundaries**:
+- No production implementation file was changed.
+- No backend, Gateway, database, storage, API payload, route, permission, dependency, or business workflow change was introduced.
+- No Trellis spec update was required because this work implemented existing Admin Review Management frontend testing requirements rather than introducing a new convention or cross-layer contract.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6907107` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
