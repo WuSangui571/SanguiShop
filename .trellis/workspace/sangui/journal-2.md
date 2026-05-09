@@ -1323,3 +1323,70 @@ Merchant-side review management now treats review photos as governable assets: o
 ### Next Steps
 
 - None - task complete
+
+
+## Session 61: 管理端评价图片缩略图支持大图预览
+
+**Date**: 2026-05-09
+**Task**: 管理端评价图片缩略图支持大图预览
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Admin review image preview | Added a page-local image preview overlay for clickable, successfully loaded admin review thumbnails. |
+| Preview controls | Supported close button, backdrop click, and Esc close without introducing a global store or new route. |
+| Failure boundaries | Failed thumbnail placeholders and unknown fallback image counts are not previewable; preview image failures render a local fallback and do not block hide, restore, reply, or reply visibility actions. |
+| State safety | Preview state is cleared when the referenced review/image disappears from the refreshed list or when the thumbnail fails. |
+| Accessibility and i18n | Added explicit preview close/dialog labels through typed app preference translations for zh-Hans, zh-Hant, and en. |
+| Repository hygiene | Ignored local `.claude/` configuration so Claude Code permissions do not get committed by `git add .`. |
+
+**Updated Files**:
+- `.gitignore`
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/views/admin/ReviewManagementView.vue`
+- `frontend/src/views/admin/reviewManagementModel.ts`
+- `frontend/src/views/admin/reviewManagementModel.test.ts`
+
+**Verification**:
+- Human manual testing: passed.
+- Human commit: `cf90e80 feat(mall):?????????????`.
+- AI checks passed:
+  - `cd frontend; cmd /c npm run test -- reviewManagementModel` (14 tests passed)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `git diff --check` (line-ending warnings only)
+  - searched touched files for `console.log`, `debugger`, `TODO`, `any`, and non-null assertion patterns; no issues found.
+
+**Result**:
+Admin Review Management now supports simple, bounded large-image preview for review thumbnails while preserving existing moderation workflows. The change is frontend-only: no backend API, storage, database, route, permission, or cross-layer contract was changed.
+
+**Boundaries**:
+- No carousel, multi-image navigation, download, delete, audit history, or storage changes were introduced.
+- Preview state remains local to `ReviewManagementView.vue`.
+- Existing hide/restore/reply/reply-visibility API behavior is unchanged.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cf90e80` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

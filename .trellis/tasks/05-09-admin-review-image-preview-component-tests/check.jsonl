@@ -1,0 +1,19 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\tasks\\05-09-admin-review-image-preview-component-tests\\research.md", "reason": "Verify test coverage follows researched patterns and boundaries"}
+{"file": ".trellis\\tasks\\05-09-admin-review-image-preview-component-tests\\prd.md", "reason": "Check implementation against requirements and boundaries"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Review component state and interaction boundaries"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Verify required component coverage and quality gates"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Verify admin review image/fallback/error boundary remains unchanged"}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Verify no global store or translation/style regression"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Verify typed DTO-compatible tests without any"}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "Verify composable/service boundaries remain mocked and unchanged"}
+{"file": ".trellis\\spec\\frontend\\directory-structure.md", "reason": "Verify tests are placed in existing frontend structure"}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Verify existing fixtures/patterns are reused appropriately"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-09-admin-review-image-preview\\prd.md", "reason": "Check previous feature acceptance criteria still hold"}
+{"file": "frontend\\src\\views\\admin\\ReviewManagementView.vue", "reason": "Review target component behavior if touched"}
+{"file": "frontend\\src\\views\\admin\\reviewManagementModel.test.ts", "reason": "Review existing model coverage and avoid duplication"}
+{"file": "frontend\\src\\composables\\useReviewManagement.ts", "reason": "Review mocked data-fetching boundary if touched"}
+{"file": "frontend\\tests\\auditQueryTemplateCard.spec.ts", "reason": "Compare with existing component test style"}
+{"file": "frontend\\package.json", "reason": "Review dependency/script changes if any"}
+{"file": "frontend\\vite.config.ts", "reason": "Review test environment config changes if any"}

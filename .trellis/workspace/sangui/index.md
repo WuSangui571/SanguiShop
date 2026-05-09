@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 60
-- **Last Active**: 2026-05-08
+- **Total Sessions**: 61
+- **Last Active**: 2026-05-09
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1325 | Active |
+| `journal-2.md` | ~1392 | Active |
 | `journal-1.md` | ~1960 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 61 | 2026-05-09 | 管理端评价图片缩略图支持大图预览 | `cf90e80` | `main` |
 | 60 | 2026-05-08 | 商家评价图片治理与存储可运维加固 | `6eb3245` | `main` |
 | 59 | 2026-05-08 | 用户评价图片上传与有图评价闭环 | `2022959` | `main` |
 | 58 | 2026-05-08 | 商品详情评价摘要增强 | `8ea53e9` | `main` |
