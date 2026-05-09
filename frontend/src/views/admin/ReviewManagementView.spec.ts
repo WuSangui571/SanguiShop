@@ -16,7 +16,8 @@ vi.mock('../../services/orderApi', () => ({
   updateAdminReviewReplyVisibility: vi.fn(),
 }))
 
-import { listAdminReviews } from '../../services/orderApi'
+import { listAdminReviews, updateAdminReviewVisibility, upsertAdminReviewReply, updateAdminReviewReplyVisibility } from '../../services/orderApi'
+import { HttpClientError } from '../../services/httpClient'
 
 vi.mock('../../composables/useAppPreferences', () => ({
   useAppPreferences: () => ({
@@ -349,5 +350,297 @@ describe('ReviewManagementView image preview interaction', () => {
 
     // Verify the fallback text is rendered
     expect(unknownFrames[0].text()).toContain('2')
+  })
+})
+
+describe('ReviewManagementView governance actions', () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue('00000000-0000-0000-0000-000000000001')
+    vi.mocked(listAdminReviews).mockResolvedValue({
+      data: {
+        items: [
+          createReview({
+            reviewId: 1,
+            visibilityStatus: 'visible',
+            replyContent: null,
+            content: 'Visible no-reply review',
+          }),
+          createReview({
+            reviewId: 2,
+            visibilityStatus: 'hidden',
+            replyContent: null,
+            visibilityReason: 'inappropriate',
+            content: 'Hidden no-reply review',
+          }),
+          createReview({
+            reviewId: 3,
+            visibilityStatus: 'visible',
+            replyContent: 'Thank you!',
+            replyVisibilityStatus: 'visible',
+            content: 'Review with visible reply',
+          }),
+          createReview({
+            reviewId: 4,
+            visibilityStatus: 'visible',
+            replyContent: 'Hidden reply content',
+            replyVisibilityStatus: 'hidden',
+            content: 'Review with hidden reply',
+          }),
+        ],
+        total: 4,
+        page: 1,
+        size: 20,
+      },
+      meta: mockMeta,
+    })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+    vi.restoreAllMocks()
+  })
+
+  function mountedWrapper(): VueWrapper {
+    if (!wrapper) {
+      throw new Error('Expected ReviewManagementView to be mounted')
+    }
+    return wrapper
+  }
+
+  function rowActions(index: number) {
+    return mountedWrapper().findAll('.review-row')[index].find('.row-actions').findAll('button')
+  }
+
+  function replyActions(index: number) {
+    return mountedWrapper().findAll('.review-row')[index].find('.reply-actions').findAll('button')
+  }
+
+  function createControlledApiResponse() {
+    let resolveResponse: (value: unknown) => void = () => {
+      throw new Error('Expected controlled promise resolver to be initialized')
+    }
+    const promise = new Promise<unknown>((resolve) => {
+      resolveResponse = resolve
+    })
+    return { promise, resolve: resolveResponse }
+  }
+
+  describe('review visibility', () => {
+    it('visible review enables hide and disables restore', async () => {
+      await mountView()
+      const btns = rowActions(0)
+      expect(btns[0].attributes('disabled')).toBeUndefined()
+      expect(btns[1].attributes('disabled')).toBeDefined()
+    })
+
+    it('hidden review enables restore and disables hide', async () => {
+      await mountView()
+      const btns = rowActions(1)
+      expect(btns[0].attributes('disabled')).toBeDefined()
+      expect(btns[1].attributes('disabled')).toBeUndefined()
+    })
+
+    it('hide click calls updateAdminReviewVisibility with trimmed reason and requestId', async () => {
+      await mountView()
+      // Set moderation reason with surrounding spaces
+      const reasonInput = mountedWrapper().find('input[placeholder="隐藏或恢复原因"]')
+      await reasonInput.setValue('  inappropriate  ')
+
+      // Click hide button on visible review (row 0, button 0 = hide)
+      const btns = rowActions(0)
+      await btns[0].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewVisibility)).toHaveBeenCalledWith(
+        1,
+        { visibility: 'hidden', reason: 'inappropriate', requestId: '00000000-0000-0000-0000-000000000001' },
+      )
+    })
+
+    it('restore click calls updateAdminReviewVisibility with target visibility and requestId', async () => {
+      await mountView()
+
+      // Click restore button on hidden review (row 1, button 1 = restore)
+      const btns = rowActions(1)
+      await btns[1].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewVisibility)).toHaveBeenCalledWith(
+        2,
+        { visibility: 'visible', reason: null, requestId: '00000000-0000-0000-0000-000000000001' },
+      )
+    })
+
+    it('duplicate hide click while pending does not call API twice', async () => {
+      const controlled = createControlledApiResponse()
+      vi.mocked(updateAdminReviewVisibility).mockReturnValue(controlled.promise as ReturnType<typeof updateAdminReviewVisibility>)
+
+      await mountView()
+      const btns = rowActions(0)
+
+      // First click
+      await btns[0].trigger('click')
+      await nextTick()
+
+      // Second click while pending
+      await btns[0].trigger('click')
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewVisibility)).toHaveBeenCalledTimes(1)
+
+      // Resolve so test can complete cleanly
+      controlled.resolve({ data: createReview({ reviewId: 1, visibilityStatus: 'hidden' }), meta: mockMeta })
+      await flushPromises()
+    })
+  })
+
+  describe('reply submit', () => {
+    it('empty and whitespace-only reply draft disable submit button', async () => {
+      await mountView()
+      const rlAct = replyActions(0) // review 1 has no reply
+      expect(rlAct[0].attributes('disabled')).toBeDefined()
+
+      const row = mountedWrapper().findAll('.review-row')[0]
+      const textarea = row.find('textarea')
+      await textarea.setValue('   ')
+      expect(replyActions(0)[0].attributes('disabled')).toBeDefined()
+    })
+
+    it('entered reply content calls upsertAdminReviewReply with trimmed content and requestId', async () => {
+      await mountView()
+      const row = mountedWrapper().findAll('.review-row')[0]
+      const textarea = row.find('textarea')
+      await textarea.setValue('  Great product!  ')
+
+      const rlAct = replyActions(0)
+      expect(rlAct[0].attributes('disabled')).toBeUndefined()
+
+      await rlAct[0].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(upsertAdminReviewReply)).toHaveBeenCalledWith(
+        1,
+        { content: 'Great product!', requestId: '00000000-0000-0000-0000-000000000001' },
+      )
+    })
+
+    it('duplicate reply submit while pending does not call API twice', async () => {
+      const controlled = createControlledApiResponse()
+      vi.mocked(upsertAdminReviewReply).mockReturnValue(controlled.promise as ReturnType<typeof upsertAdminReviewReply>)
+
+      await mountView()
+      const row = mountedWrapper().findAll('.review-row')[0]
+      const textarea = row.find('textarea')
+      await textarea.setValue('Pending reply')
+      const rlAct = replyActions(0)
+
+      await rlAct[0].trigger('click')
+      await nextTick()
+      await rlAct[0].trigger('click')
+      await nextTick()
+
+      expect(vi.mocked(upsertAdminReviewReply)).toHaveBeenCalledTimes(1)
+
+      controlled.resolve({ data: createReview({ reviewId: 1, replyContent: 'Pending reply' }), meta: mockMeta })
+      await flushPromises()
+    })
+
+    it('reply save failure displays backend error and preserves textarea content', async () => {
+      vi.mocked(upsertAdminReviewReply).mockRejectedValue(
+        new HttpClientError('Reply too long', { code: 'VALIDATION_FAILED', status: 400, traceId: 'trace-reply-err' }),
+      )
+
+      await mountView()
+      const row = mountedWrapper().findAll('.review-row')[0]
+      const textarea = row.find('textarea')
+      await textarea.setValue('Draft content to preserve')
+
+      const rlAct = replyActions(0)
+      await rlAct[0].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      // Error banner displays backend code, message, traceId
+      const errorBanner = mountedWrapper().find('.banner.error')
+      expect(errorBanner.exists()).toBe(true)
+      expect(errorBanner.text()).toContain('VALIDATION_FAILED')
+      expect(errorBanner.text()).toContain('Reply too long')
+      expect(errorBanner.text()).toContain('Trace ID')
+      expect(errorBanner.text()).toContain('trace-reply-err')
+
+      // Textarea still contains user draft
+      expect((textarea.element as HTMLTextAreaElement).value).toBe('Draft content to preserve')
+    })
+  })
+
+  describe('reply visibility', () => {
+    it('no reply disables both hide reply and restore reply buttons', async () => {
+      await mountView()
+      const rlAct = replyActions(0) // review 1 has no reply
+      expect(rlAct[1].attributes('disabled')).toBeDefined()
+      expect(rlAct[2].attributes('disabled')).toBeDefined()
+    })
+
+    it('existing visible reply enables hide reply and disables restore reply', async () => {
+      await mountView()
+      const rlAct = replyActions(2) // review 3 has visible reply
+      expect(rlAct[1].attributes('disabled')).toBeUndefined()
+      expect(rlAct[2].attributes('disabled')).toBeDefined()
+    })
+
+    it('existing hidden reply enables restore reply and disables hide reply', async () => {
+      await mountView()
+      const rlAct = replyActions(3) // review 4 has hidden reply
+      expect(rlAct[1].attributes('disabled')).toBeDefined()
+      expect(rlAct[2].attributes('disabled')).toBeUndefined()
+    })
+
+    it('hide reply click calls updateAdminReviewReplyVisibility with hidden and requestId', async () => {
+      await mountView()
+      const rlAct = replyActions(2) // review 3 has visible reply
+      await rlAct[1].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewReplyVisibility)).toHaveBeenCalledWith(
+        3,
+        { visibility: 'hidden', requestId: '00000000-0000-0000-0000-000000000001' },
+      )
+    })
+
+    it('duplicate reply visibility click while pending does not call API twice', async () => {
+      const controlled = createControlledApiResponse()
+      vi.mocked(updateAdminReviewReplyVisibility).mockReturnValue(controlled.promise as ReturnType<typeof updateAdminReviewReplyVisibility>)
+
+      await mountView()
+      const rlAct = replyActions(2) // review 3 has visible reply
+      await rlAct[1].trigger('click')
+      await nextTick()
+      await rlAct[1].trigger('click')
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewReplyVisibility)).toHaveBeenCalledTimes(1)
+
+      controlled.resolve({ data: createReview({ reviewId: 3, replyContent: 'Thank you!', replyVisibilityStatus: 'hidden' }), meta: mockMeta })
+      await flushPromises()
+    })
+
+    it('restore reply click calls updateAdminReviewReplyVisibility with visible and requestId', async () => {
+      await mountView()
+      const rlAct = replyActions(3) // review 4 has hidden reply
+      await rlAct[2].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewReplyVisibility)).toHaveBeenCalledWith(
+        4,
+        { visibility: 'visible', requestId: '00000000-0000-0000-0000-000000000001' },
+      )
+    })
   })
 })

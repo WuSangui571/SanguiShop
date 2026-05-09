@@ -1,0 +1,16 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\tasks\\05-09-admin-review-moderation-action-component-tests\\research.md", "reason": "Check coverage against focused research, expected files, and known boundaries."}
+{"file": ".trellis\\tasks\\05-09-admin-review-moderation-action-component-tests\\prd.md", "reason": "Check implementation against task requirements, acceptance criteria, and out-of-scope boundaries."}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Check Admin Review API contract assertions: requestId, payload trim, duplicate guards, backend code/message/traceId preservation."}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Check component-level async UI states and disabled button behavior."}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Check frontend quality gates and core interaction coverage."}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Check tests use typed DTO-compatible fixtures without bypassing API types."}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Check backend error details and app preference boundaries are preserved."}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Check helper reuse and avoid over-abstracting one-off tests."}
+{"file": "frontend\\src\\views\\admin\\ReviewManagementView.spec.ts", "reason": "Check final component tests are scoped, stable, and reuse existing helpers."}
+{"file": "frontend\\src\\views\\admin\\reviewManagementModel.test.ts", "reason": "Check component tests align with existing model-layer contract coverage."}
+{"file": "frontend\\src\\views\\admin\\ReviewManagementView.vue", "reason": "Check tests assert current component behavior without unintended production changes."}
+{"file": "frontend\\src\\composables\\useReviewManagement.ts", "reason": "Check duplicate guard, requestId, pending, and error behavior are covered through component interactions."}
+{"file": "frontend\\src\\services\\orderApi.ts", "reason": "Check API mock assertions match existing admin review function signatures."}
+{"file": "frontend\\src\\types\\api\\order.ts", "reason": "Check fixtures and assertions remain DTO-compatible."}

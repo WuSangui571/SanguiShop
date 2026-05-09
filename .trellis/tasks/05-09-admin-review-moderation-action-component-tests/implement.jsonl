@@ -1,0 +1,16 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\tasks\\05-09-admin-review-moderation-action-component-tests\\prd.md", "reason": "Task requirements, API payload fields, validation matrix, acceptance criteria, and out-of-scope boundaries."}
+{"file": ".trellis\\tasks\\05-09-admin-review-moderation-action-component-tests\\research.md", "reason": "Focused code research with existing helpers, selectors, risks, and required tests."}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin Review API contract: requestId, payload trim, duplicate guards, backend code/message/traceId preservation."}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Component async UI states and button/disabled behavior expectations."}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend quality gates and required core interaction tests."}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Typed API DTO and status fallback rules."}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Backend error details and app preference state boundaries."}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Reuse existing helpers and avoid unnecessary test abstractions."}
+{"file": "frontend\\src\\views\\admin\\ReviewManagementView.spec.ts", "reason": "Primary file to modify; existing mount helper, mocks, fixtures, and image preview component test patterns."}
+{"file": "frontend\\src\\views\\admin\\reviewManagementModel.test.ts", "reason": "Existing model-layer assertions for payload trimming, guards, and error preservation; component tests should complement, not duplicate too heavily."}
+{"file": "frontend\\src\\views\\admin\\ReviewManagementView.vue", "reason": "Template and behavior under test: action buttons, error banner, moderation reason input, reply textarea."}
+{"file": "frontend\\src\\composables\\useReviewManagement.ts", "reason": "Existing write-action flow, requestId generation, action gate, pendingReviewId, and error handling under component tests."}
+{"file": "frontend\\src\\services\\orderApi.ts", "reason": "Mocked API functions and admin review write function signatures."}
+{"file": "frontend\\src\\types\\api\\order.ts", "reason": "Typed admin review DTO and payload shapes for fixtures and assertions."}
