@@ -125,3 +125,41 @@ describe('App fulfillment workspace permission gating', () => {
     expect(wrapper.text()).not.toContain('admin.fulfillmentWorkspace')
   })
 })
+
+describe('App order workspace permission gating', () => {
+  let wrapper: VueWrapper | null = null
+
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/admin?workspace=order')
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    mockSessionRef.current = null
+  })
+
+  it('renders order workspace for ADMIN role', async () => {
+    mockSessionRef.current = adminSession(['ADMIN'], [])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.orderWorkspace')
+  })
+
+  it('renders order workspace for ORDER_MANAGEMENT_ADMIN permission', async () => {
+    mockSessionRef.current = adminSession([], ['ORDER_MANAGEMENT_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.orderWorkspace')
+  })
+
+  it('does not render order workspace for OPS_COMPENSATION_ADMIN alone', async () => {
+    mockSessionRef.current = adminSession([], ['OPS_COMPENSATION_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).not.toContain('admin.orderWorkspace')
+  })
+})

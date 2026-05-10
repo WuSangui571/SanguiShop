@@ -1,0 +1,20 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin Order Management API/UI contract, permission boundary, query/deep-link/payment/cancel required tests"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Async component states: loading, empty, error, retry, pending"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable/service API boundaries and retry/loading state ownership"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Server-owned order/payment state and raw backend error detail preservation"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Typed API fixtures, money/time/status fallback rules"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend test/typecheck/lint/build and duplicate-submit quality gates"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Admin Order Management backend fields, cancel matrix, permission contract"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Admin payment-by-order contract and PAYMENT_NOT_FOUND behavior"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Admin RBAC and AUTH_FORBIDDEN boundary"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Backend code/message/traceId preservation contract"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Order/payment transaction-chain retry and idempotency risk checklist"}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.spec.ts", "reason": "Closest admin component test pattern for list states, filters, action failure, duplicate guard"}
+{"file": "frontend/src/views/admin/ReviewManagementView.spec.ts", "reason": "Broader admin write-action failure/retry and backend error preservation pattern"}
+{"file": "frontend/src/App.spec.ts", "reason": "Existing admin workspace permission gating test pattern"}
+{"file": "frontend/src/views/admin/OrderManagementView.vue", "reason": "Target component selectors, confirmation dialog, banners, filter controls"}
+{"file": "frontend/src/composables/useOrderManagement.ts", "reason": "Target composable gates, list/detail/payment/cancel behavior"}
+{"file": "frontend/src/views/admin/orderManagementModel.ts", "reason": "Existing query/deep-link/error/payment helper contract"}
+{"file": "frontend/src/views/admin/orderManagementModel.test.ts", "reason": "Existing pure model coverage to avoid duplicating helper-only assertions"}
