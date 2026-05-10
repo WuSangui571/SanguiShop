@@ -1700,3 +1700,81 @@ Admin Fulfillment Management now has component-level regression coverage for its
 ### Next Steps
 
 - None - task complete
+
+
+## Session 66: 管理端订单管理失败态与权限边界组件测试补齐
+
+**Date**: 2026-05-10
+**Task**: 管理端订单管理失败态与权限边界组件测试补齐
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+### Summary
+
+????????????????????????? Codex check/finish-work????????????? admin order workspace ????????
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Order management component tests | ?? `OrderManagementView.spec.ts`??? no-access prop gate?missing session gate?????/??/???filter query ??? datetime-local ????reset ?? query?deep link detail load? |
+| Cancel action boundary | ??????????????????backend `code/message/traceId` ?????? retry?pending duplicate click ????????? |
+| Payment refresh boundary | ????????? `PAYMENT_NOT_FOUND` ??????????????????? detail/list snapshot??????? `paymentNo`/paid ??? |
+| Admin workspace permission tests | ?? `App.spec.ts`??? `ADMIN` ? `ORDER_MANAGEMENT_ADMIN` ?? order workspace?`OPS_COMPENSATION_ADMIN` alone ???? |
+| Codex check fixes | ???????????????? URL/sessionStorage teardown ????????????????????? |
+| Trellis | ?? task `05-10-admin-order-failure-permission-component-tests`????? PRD/research/context? |
+
+**Updated Files**:
+- `frontend/src/views/admin/OrderManagementView.spec.ts`
+- `frontend/src/App.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-10-admin-order-failure-permission-component-tests/prd.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-order-failure-permission-component-tests/research.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-order-failure-permission-component-tests/implement.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-order-failure-permission-component-tests/check.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-order-failure-permission-component-tests/debug.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-order-failure-permission-component-tests/task.json`
+
+**Verification**:
+- Human manual testing: passed.
+- Human commit: `ec435cd test(mall):?????????????????`.
+- Codex checks passed:
+  - `cd frontend; cmd /c npm run test -- orderManagement` (29 tests passed)
+  - `cd frontend; cmd /c npm run test -- App` (12 tests passed)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test` (193 tests passed)
+  - `git diff --check` (line-ending warning only; no whitespace errors)
+  - searched changed frontend tests for `console.log`, `debugger`, `TODO`, `any`, and non-essential non-null assertion patterns; no issues found.
+
+**Result**:
+Admin Order Management now has component-level regression coverage for its highest-risk UI boundaries: permission gating, list error/retry/empty states, filter/deep-link behavior, cancel failure recovery with duplicate-submit protection, and payment refresh edge cases. Together with prior review and fulfillment work, the admin transaction workspace now has a stronger component-level safety net across order, review, and fulfillment flows.
+
+**Boundaries**:
+- No production implementation file was changed.
+- No backend, Gateway, database, storage, Redis, MQ, API payload, DTO, route, permission implementation, dependency, or business workflow change was introduced.
+- No Trellis spec update was required because this work added tests for existing frontend API and permission contracts rather than introducing a new convention or cross-layer contract.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ec435cd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
