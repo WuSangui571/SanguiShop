@@ -1622,3 +1622,81 @@ Admin Review Management now has component-level regression coverage for its rema
 ### Next Steps
 
 - None - task complete
+
+
+## Session 65: 管理端履约失败态与权限边界组件测试补齐
+
+**Date**: 2026-05-10
+**Task**: 管理端履约失败态与权限边界组件测试补齐
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+### Summary
+
+?????????????????????????????????????`71b57b4 test(mall):?????????????????`?
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Fulfillment management component tests | ?? `FulfillmentManagementView.spec.ts`???????? no-access prop gate?????/??/???filter query ????reset ?? query??????????? pending duplicate guard? |
+| Admin workspace permission tests | ?? `App.spec.ts`??? `ADMIN` ? `LOGISTICS_FULFILLMENT_ADMIN` ????????`OPS_COMPENSATION_ADMIN` alone ????????? |
+| Backend error preservation | ?????? `listAdminFulfillments` / `shipAdminFulfillment` ???????? backend `code/message/traceId`? |
+| Codex check fix | ????????? mock ops session ??/????????? `ADMIN` / `LOGISTICS_FULFILLMENT_ADMIN`????????? spec? |
+| Trellis | ????? task `05-10-admin-fulfillment-failure-permission-component-tests`??? PRD?research?implement/check/debug context? |
+
+**Updated Files**:
+- `frontend/src/views/admin/FulfillmentManagementView.spec.ts`
+- `frontend/src/App.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/prd.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/research.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/implement.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/check.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/debug.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/task.json`
+
+**Verification**:
+- Human manual testing: passed.
+- Human commit: `71b57b4 test(mall):?????????????????`.
+- AI checks passed:
+  - `cd frontend; cmd /c npm run test -- fulfillmentManagement` (17 tests passed)
+  - `cd frontend; cmd /c npm run test -- App` (9 tests passed)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test` (172 tests passed)
+  - `python ./.trellis/scripts/task.py validate .trellis/tasks/05-10-admin-fulfillment-failure-permission-component-tests`
+  - `git diff --check` (line-ending warning only; no whitespace errors)
+  - searched changed frontend tests for `console.log`, `debugger`, `TODO`, `any`, and non-essential non-null assertion patterns; no issues found.
+
+**Result**:
+Admin Fulfillment Management now has component-level regression coverage for its highest-risk UI boundaries: permission gating, list error/retry/empty states, filter query behavior, and failed ship write recovery with duplicate-submit protection.
+
+**Boundaries**:
+- No production implementation file was changed.
+- No backend, Gateway, database, storage, Redis, MQ, API payload, DTO, route, permission implementation, dependency, or business workflow change was introduced.
+- No Trellis spec update was required because this work added tests for existing frontend API and permission contracts rather than introducing a new convention or cross-layer contract.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `71b57b4` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
