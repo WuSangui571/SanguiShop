@@ -1778,3 +1778,109 @@ Admin Order Management now has component-level regression coverage for its highe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 67: 管理端产品管理失败态与权限边界组件测试补齐
+
+**Date**: 2026-05-10
+**Task**: 管理端产品管理失败态与权限边界组件测试补齐
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+### Summary
+
+?????????????????????????????????????? `bf50d2d test(mall):???????????????????`?
+
+??? admin workspace ?????????????????????????????? catalog/source-of-truth??????????SKU ???????????????
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Product management component tests | ?? `ProductManagementView.spec.ts`?????/session gate?????/??/??????? query???? SKU ?????/??/???????requestId???????????? fallback ? SKU ????? |
+| Admin workspace permission tests | ?? `App.spec.ts`??? `ADMIN` ? `PRODUCT_CATALOG_ADMIN` ???? workspace?`OPS_COMPENSATION_ADMIN` alone ????? workspace? |
+| Product detail rendering fix | ?? `ProductManagementView.vue` ? detail panel ???? `<template>` ??????????? template ???????/SKU ?????????? |
+| Pending state reactivity | `createSubmissionGate` ?? Vue `ref` ?? pending ????? `isSaving`/disabled ?????????????????? begin/end/isPending API? |
+| Session gate hardening | `useProductManagement` ? `bootstrap`?`refreshList`?`selectProduct` ?? session gate???? session ???????/?????? |
+| Spec sync | ?? `frontend/component-guidelines.md`??? Vue ? `<template>` ??????? pending gate ???????? |
+| Trellis | ????? task `05-10-admin-product-failure-permission-component-tests`??? PRD?research?implement/check/debug context? |
+
+**Updated Files**:
+- `frontend/src/views/admin/ProductManagementView.spec.ts`
+- `frontend/src/App.spec.ts`
+- `frontend/src/views/admin/ProductManagementView.vue`
+- `frontend/src/views/admin/productManagementModel.ts`
+- `frontend/src/composables/useProductManagement.ts`
+- `.trellis/spec/frontend/component-guidelines.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/prd.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/research.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/implement.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/check.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/debug.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/task.json`
+
+**Verification**:
+- Human manual testing: passed.
+- Human commit: `bf50d2d test(mall):???????????????????`.
+- Codex checks passed:
+  - `cd frontend; cmd /c npm run test -- ProductManagementView` (21 tests passed)
+  - `cd frontend; cmd /c npm run test -- App` (15 tests passed; includes App and appPreferences matches)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test` (217 tests passed across 19 files)
+  - `git diff --check` (line-ending warning only; no whitespace errors)
+  - searched changed frontend files for `console.log`, `debugger`, `TODO`, `any`, and non-essential non-null assertion patterns; no issues found.
+
+**Result**:
+Admin Product Management now has component-level regression coverage for the same high-risk boundaries already covered in admin order/review/fulfillment: permission visibility, no-session/no-access gates, list error/retry/empty states, default filters, detail/SKU loading, failed write recovery, requestId payloads, and duplicate pending-action guards. The admin workspace regression net now covers the catalog source-of-truth through order, fulfillment, and review flows.
+
+**Boundaries**:
+- No backend, Gateway, database, storage, Redis, MQ, API route, DTO, dependency, permission implementation, or unrelated business workflow change was introduced.
+- Production changes were narrowly limited to product management frontend rendering/reactivity/session-gate fixes needed to satisfy the existing PRD/spec.
+- Spec update was limited to frontend component regression guidance discovered during this task.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bf50d2d` | `test(mall):???????????????????` |
+
+### Testing
+
+- [OK] Human manual testing passed.
+- [OK] ProductManagementView targeted tests passed.
+- [OK] App permission tests passed.
+- [OK] Frontend typecheck, lint, build, and full test suite passed.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Continue with admin compensation operation failure-state and permission-boundary coverage, or start a focused admin seckill/product-upstream coverage task depending on desired risk reduction.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bf50d2d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
