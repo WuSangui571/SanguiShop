@@ -1,5 +1,10 @@
 # Component Guidelines
 
+## Vue Component Regression Notes
+
+- Do not use a bare `<template>` tag as a visual/layout wrapper inside rendered DOM. Use a real element, a component root fragment, or a directive-bearing `<template v-if>` / `<template v-for>` only when Vue is meant to compile it away. A native HTML `<template>` makes its children inert and can hide controls from component tests and browser interaction.
+- If a local pending/submission gate drives a Vue `computed`, `disabled` binding, or loading state, the pending flag must be reactive (`ref` / `reactive`) or be represented by an existing reactive source. A plain closure variable can block duplicate calls internally but will not re-render buttons or recompute UI state.
+
 ## Component Boundaries
 
 - 页面组件负责路由参数、页面级布局、调用 composable。

@@ -163,3 +163,41 @@ describe('App order workspace permission gating', () => {
     expect(wrapper.text()).not.toContain('admin.orderWorkspace')
   })
 })
+
+describe('App product workspace permission gating', () => {
+  let wrapper: VueWrapper | null = null
+
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/admin?workspace=product')
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    mockSessionRef.current = null
+  })
+
+  it('renders product workspace for ADMIN role', async () => {
+    mockSessionRef.current = adminSession(['ADMIN'], [])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.productWorkspace')
+  })
+
+  it('renders product workspace for PRODUCT_CATALOG_ADMIN permission', async () => {
+    mockSessionRef.current = adminSession([], ['PRODUCT_CATALOG_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.productWorkspace')
+  })
+
+  it('does not render product workspace for OPS_COMPENSATION_ADMIN alone', async () => {
+    mockSessionRef.current = adminSession([], ['OPS_COMPENSATION_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).not.toContain('admin.productWorkspace')
+  })
+})

@@ -184,7 +184,6 @@ function statusLabel(status: string): string {
       </aside>
 
       <section class="detail-panel">
-        <template>
           <div class="panel-head">
             <div>
               <h3>{{ draft.productName || t('productAdmin.newProduct') }}</h3>
@@ -273,7 +272,6 @@ function statusLabel(status: string): string {
               </div>
             </div>
           </div>
-        </template>
       </section>
     </section>
 

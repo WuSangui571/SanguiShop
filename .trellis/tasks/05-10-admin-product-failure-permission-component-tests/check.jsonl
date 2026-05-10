@@ -1,0 +1,22 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/05-10-admin-product-failure-permission-component-tests/prd.md", "reason": "Acceptance checklist and out-of-scope boundaries for Codex check"}
+{"file": ".trellis/tasks/05-10-admin-product-failure-permission-component-tests/research.md", "reason": "Research findings and risk notes for review"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify product API contract, payloads, status fallback, requestId, and error assertions"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review loading/error/empty/retry/pending UI state coverage"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Verify composable/service boundary and retry behavior"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Review server-state preservation after failed writes"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review typed fixtures, no any, money/stock/status boundaries"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality checklist for frontend tests, lint/typecheck/build expectations"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Verify test files stay in expected admin view boundary"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Check product tests preserve envelope/error/requestId semantics without backend contract changes"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Confirm no backend contract/schema/security changes are introduced"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Review workspace permission tests against admin RBAC boundary"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review frontend tests do not hide cross-layer retry/idempotency risks"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Check new tests do not add broad unnecessary utilities"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Review no accidental API/security/DB boundary expansion"}
+{"file": "frontend/src/views/admin/ProductManagementView.vue", "reason": "Review tests against product component DOM, props, and banners"}
+{"file": "frontend/src/App.vue", "reason": "Review product workspace permission gate and no unrelated permission exposure"}
+{"file": "frontend/src/views/admin/productManagementModel.ts", "reason": "Review validation/request/error helper coverage and avoid duplicated gaps"}
+{"file": "frontend/src/composables/useProductManagement.ts", "reason": "Review component tests against composable gates and failure recovery"}
+{"file": "frontend/src/App.spec.ts", "reason": "Review App permission test additions follow existing pattern"}

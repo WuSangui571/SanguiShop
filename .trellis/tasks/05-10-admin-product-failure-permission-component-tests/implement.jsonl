@@ -1,0 +1,28 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/tasks/05-10-admin-product-failure-permission-component-tests/prd.md", "reason": "Product admin test PRD, scope, acceptance criteria, API payload matrix, and boundaries"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin Product Management API routes, auth context, error/detail preservation, and required tests"}
+{"file": ".trellis/tasks/05-10-admin-product-failure-permission-component-tests/research.md", "reason": "Focused product management code research and expected test assertions"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Async component UI states and prop boundary expectations"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable loading/error/retry and service API call boundaries"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Server-owned price/stock/status facts and backend error detail preservation"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Typed DTO fixtures, integer cents, non-negative stock, and unknown status fallback"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Admin view test location and service/type module boundaries"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend DoD, critical interaction tests, disabled duplicate-submit behavior, traceId errors"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "REST envelope, requestId idempotency, and API error matrix for product write mocks"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Good/Base/Bad testing expectations and no backend forbidden-pattern changes"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer risk checklist for catalog/source-of-truth and idempotent writes"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse existing admin component-test patterns instead of new abstractions"}
+{"file": "frontend/src/views/admin/ProductManagementView.vue", "reason": "Product management DOM, props, error banners, list/detail/action controls"}
+{"file": "frontend/src/composables/useProductManagement.ts", "reason": "Product management access gates, list/detail/write flows, retry, and requestId generation"}
+{"file": "frontend/src/services/productApi.ts", "reason": "Admin product service function names, route payloads, and status=all query omission"}
+{"file": "frontend/src/views/admin/productManagementModel.ts", "reason": "Product draft validation, payload builders, error conversion, and submission gate"}
+{"file": "frontend/src/views/admin/productManagementModel.test.ts", "reason": "Existing model-level coverage to avoid duplicating pure helper assertions unnecessarily"}
+{"file": "frontend/src/types/api/product.ts", "reason": "Typed product fixtures for admin list/detail and write payloads"}
+{"file": "frontend/src/App.spec.ts", "reason": "Existing App permission test pattern to extend for product workspace"}
+{"file": "frontend/src/App.vue", "reason": "Product workspace App-level permission and render gate"}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.spec.ts", "reason": "Compact admin component test pattern for list failure/retry/empty/filter/write guards"}
+{"file": "frontend/src/views/admin/ReviewManagementView.spec.ts", "reason": "Multiple write-action component pattern for draft preservation and backend errors"}
+{"file": "frontend/src/views/admin/OrderManagementView.spec.ts", "reason": "Detailed admin component pattern for snapshot preservation and controlled promises"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Admin route RBAC and AUTH_FORBIDDEN permission boundary reference"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Keep task bounded to frontend test coverage and existing contracts"}

@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { HttpClientError } from '../../services/httpClient'
 import { formatMoney } from '../../utils/format'
 import type {
@@ -233,22 +234,22 @@ export function summarizeAdminProduct(item: ProductAdminSummaryResponse) {
 }
 
 export function createSubmissionGate() {
-  let pending = false
+  const pending = ref(false)
 
   function begin(): boolean {
-    if (pending) {
+    if (pending.value) {
       return false
     }
-    pending = true
+    pending.value = true
     return true
   }
 
   function end() {
-    pending = false
+    pending.value = false
   }
 
   function isPending() {
-    return pending
+    return pending.value
   }
 
   return {

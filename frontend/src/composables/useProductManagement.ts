@@ -55,14 +55,14 @@ export function useProductManagement(session: Ref<PersistedOpsSession | null>, c
   const selectedItem = computed(() => items.value.find((item) => item.productId === detail.value?.productId) ?? null)
 
   async function bootstrap() {
-    if (!canAccessWorkspace.value) {
+    if (!canAccessWorkspace.value || !session.value) {
       return
     }
     await refreshList()
   }
 
   async function refreshList(selectFirst = false) {
-    if (!canAccessWorkspace.value || !listGate.begin()) {
+    if (!canAccessWorkspace.value || !session.value || !listGate.begin()) {
       return
     }
     isLoadingList.value = true
@@ -91,7 +91,7 @@ export function useProductManagement(session: Ref<PersistedOpsSession | null>, c
   }
 
   async function selectProduct(productId: number) {
-    if (!canAccessWorkspace.value) {
+    if (!canAccessWorkspace.value || !session.value) {
       return
     }
     isLoadingDetail.value = true
