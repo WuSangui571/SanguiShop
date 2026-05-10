@@ -1,0 +1,22 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\tasks\\05-10-admin-fulfillment-failure-permission-component-tests\\prd.md", "reason": "Check implementation against agreed scope and acceptance criteria"}
+{"file": ".trellis\\tasks\\05-10-admin-fulfillment-failure-permission-component-tests\\research.md", "reason": "Review against researched patterns and risk notes"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Verify tests assert fulfillment API and permission contract"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Check UI state coverage and component boundaries"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Check no any bypass and DTO-compatible test data"}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Check backend error details remain visible and untranslated"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Check lint/type/build and test coverage expectations"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Check backend envelope and requestId assertions"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Check App permission gating assertions"}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "Check error detail preservation assertions"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Check no retry/idempotency boundary missed"}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Check no unnecessary abstractions or duplicated brittle helpers"}
+{"file": "frontend\\src\\views\\admin\\ReviewManagementView.spec.ts", "reason": "Compare new tests to proven review management patterns"}
+{"file": "frontend\\src\\App.spec.ts", "reason": "Check fulfillment permission tests are added consistently"}
+{"file": "frontend\\src\\views\\admin\\FulfillmentManagementView.vue", "reason": "Check tests cover target component behavior without unnecessary implementation changes"}
+{"file": "frontend\\src\\composables\\useFulfillmentManagement.ts", "reason": "Check tests reflect actual async behavior and guards"}
+{"file": "frontend\\src\\views\\admin\\fulfillmentManagementModel.ts", "reason": "Check component tests complement existing model tests"}
+{"file": "frontend\\src\\views\\admin\\fulfillmentManagementModel.test.ts", "reason": "Check no regression to existing model contract tests"}
+{"file": "frontend\\src\\services\\fulfillmentApi.ts", "reason": "Check tests mock correct client functions"}
+{"file": "frontend\\src\\types\\api\\order.ts", "reason": "Check mock data conforms to DTO shapes"}

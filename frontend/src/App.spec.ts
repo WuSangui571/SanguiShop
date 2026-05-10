@@ -87,3 +87,41 @@ describe('App review workspace permission gating', () => {
     expect(wrapper.text()).not.toContain('admin.reviewWorkspace')
   })
 })
+
+describe('App fulfillment workspace permission gating', () => {
+  let wrapper: VueWrapper | null = null
+
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/admin?workspace=fulfillment')
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    mockSessionRef.current = null
+  })
+
+  it('renders fulfillment workspace for ADMIN role', async () => {
+    mockSessionRef.current = adminSession(['ADMIN'], [])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.fulfillmentWorkspace')
+  })
+
+  it('renders fulfillment workspace for LOGISTICS_FULFILLMENT_ADMIN permission', async () => {
+    mockSessionRef.current = adminSession([], ['LOGISTICS_FULFILLMENT_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.fulfillmentWorkspace')
+  })
+
+  it('does not render fulfillment workspace for OPS_COMPENSATION_ADMIN alone', async () => {
+    mockSessionRef.current = adminSession([], ['OPS_COMPENSATION_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).not.toContain('admin.fulfillmentWorkspace')
+  })
+})
