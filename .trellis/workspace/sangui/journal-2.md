@@ -1526,3 +1526,99 @@ Admin Review Management now has component-level regression coverage for its main
 ### Next Steps
 
 - None - task complete
+
+
+## Session 64: 管理端评价治理失败态与权限边界组件测试补齐
+
+**Date**: 2026-05-10
+**Task**: 管理端评价治理失败态与权限边界组件测试补齐
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+### Summary
+
+???????????????????????? ReviewManagementView ????? UI ?????? App ? review workspace ?????????????????????? `84b448a test(mall):?????????????????`?
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Review management component tests | Added coverage for no-access prop gating, list failure/error banner, retry, empty success, search/reset query payloads, and old image payload compatibility. |
+| Governance failure recovery | Added component coverage proving failed hide/reply/reply-visibility actions restore button availability and allow later retry without optimistic row mutation. |
+| Admin workspace permission tests | Added App-level tests for review workspace visibility: `ADMIN` and `REVIEW_MANAGEMENT_ADMIN` can see review workspace, while `OPS_COMPENSATION_ADMIN` alone cannot. |
+| Codex check fixes | Replaced `window.location.href` mutation in `App.spec.ts` with `history.replaceState`, added wrapper teardown, and typed the mocked ops session as `PersistedOpsSession`. |
+| Trellis | Archived completed task `05-09-admin-review-failure-permission-component-tests`. |
+
+**Updated Files**:
+- `frontend/src/views/admin/ReviewManagementView.spec.ts`
+- `frontend/src/App.spec.ts`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-failure-permission-component-tests/prd.md`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-failure-permission-component-tests/research.md`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-failure-permission-component-tests/implement.jsonl`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-failure-permission-component-tests/check.jsonl`
+
+**Verification**:
+- Human manual testing: passed.
+- Human commit: `84b448a test(mall):?????????????????`.
+- AI checks passed:
+  - `cd frontend; cmd /c npm run test -- reviewManagement` (46 tests passed)
+  - `cd frontend; cmd /c npm run test -- App` (6 tests passed)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test` (157 tests passed)
+  - `git diff --check` (line-ending warning only, no whitespace errors)
+  - searched changed frontend tests for `console.log`, `debugger`, `TODO`, `any`, and non-essential non-null assertion patterns; no issues found.
+
+**Result**:
+Admin Review Management now has component-level regression coverage for its remaining high-risk UI boundaries: permission gating, list error/retry/empty states, filter query behavior, old image payload fallback, and failed governance write recovery.
+
+**Boundaries**:
+- No production implementation file was changed.
+- No backend, Gateway, database, storage, API payload, route, permission implementation, dependency, or business workflow change was introduced.
+- No Trellis spec update was required because this work added tests for existing frontend API and permission contracts rather than introducing a new convention or cross-layer contract.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `84b448a` | test(mall):????????????????? |
+
+### Testing
+
+- [OK] Human manual testing passed.
+- [OK] Frontend targeted review management tests passed.
+- [OK] App permission tests passed.
+- [OK] Frontend typecheck, lint, build, and full test suite passed.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Consider continuing in the admin review area with a documentation-light polish task around selector resilience and test maintainability, or switch to the next highest-risk admin workflow after review management is now well covered.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `84b448a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
