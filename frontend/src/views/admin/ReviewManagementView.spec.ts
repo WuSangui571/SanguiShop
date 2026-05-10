@@ -181,11 +181,11 @@ function requireElement(selector: string): HTMLElement {
 
 let wrapper: VueWrapper | null = null
 
-async function mountView() {
+async function mountView(overrides: { canAccessReviewWorkspace?: boolean; session?: PersistedOpsSession } = {}) {
   const w = mount(ReviewManagementView, {
     props: {
-      session: mockSession,
-      canAccessReviewWorkspace: true,
+      session: overrides.session ?? mockSession,
+      canAccessReviewWorkspace: overrides.canAccessReviewWorkspace ?? true,
     },
   })
   wrapper = w
@@ -353,6 +353,175 @@ describe('ReviewManagementView image preview interaction', () => {
   })
 })
 
+describe('ReviewManagementView no-access prop gating', () => {
+  beforeEach(() => {
+    vi.mocked(listAdminReviews).mockResolvedValue({
+      data: { items: [createReview()], total: 1, page: 1, size: 20 },
+      meta: mockMeta,
+    })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+  })
+
+  it('does not call listAdminReviews when canAccessReviewWorkspace is false', async () => {
+    await mountView({ canAccessReviewWorkspace: false })
+    expect(vi.mocked(listAdminReviews)).not.toHaveBeenCalled()
+  })
+
+  it('calls listAdminReviews when canAccessReviewWorkspace is true', async () => {
+    await mountView()
+    expect(vi.mocked(listAdminReviews)).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ReviewManagementView list failure and retry', () => {
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+  })
+
+  it('renders error banner with backend code/message/traceId on list failure', async () => {
+    vi.mocked(listAdminReviews).mockRejectedValue(
+      new HttpClientError('Review list failed', { code: 'AUTH_FORBIDDEN', status: 403, traceId: 'trace-list-err' }),
+    )
+
+    const w = await mountView()
+
+    const errorBanner = w.find('.banner.error')
+    expect(errorBanner.exists()).toBe(true)
+    expect(errorBanner.text()).toContain('Review list failed')
+    expect(errorBanner.text()).toContain('AUTH_FORBIDDEN')
+    expect(errorBanner.text()).toContain('trace-list-err')
+  })
+
+  it('does not render empty banner when list error is present', async () => {
+    vi.mocked(listAdminReviews).mockRejectedValue(
+      new HttpClientError('Review list failed', { code: 'AUTH_FORBIDDEN', status: 403, traceId: 'trace-list-err' }),
+    )
+
+    const w = await mountView()
+
+    expect(w.find('.banner.empty').exists()).toBe(false)
+  })
+
+  it('retry calls listAdminReviews again and renders second result', async () => {
+    vi.mocked(listAdminReviews)
+      .mockRejectedValueOnce(new HttpClientError('First failure', { code: 'ERROR', status: 500, traceId: 'trace-1' }))
+      .mockResolvedValueOnce({
+        data: { items: [createReview({ reviewId: 1, content: 'Retry success' })], total: 1, page: 1, size: 20 },
+        meta: mockMeta,
+      })
+
+    const w = await mountView()
+    expect(vi.mocked(listAdminReviews)).toHaveBeenCalledTimes(1)
+
+    const retryBtn = w.find('.banner.error button')
+    await retryBtn.trigger('click')
+    await flushPromises()
+    await nextTick()
+
+    expect(vi.mocked(listAdminReviews)).toHaveBeenCalledTimes(2)
+    expect(w.find('.banner.error').exists()).toBe(false)
+    expect(w.findAll('.review-row').length).toBe(1)
+  })
+})
+
+describe('ReviewManagementView empty list success', () => {
+  beforeEach(() => {
+    vi.mocked(listAdminReviews).mockResolvedValue({
+      data: { items: [], total: 0, page: 1, size: 20 },
+      meta: mockMeta,
+    })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+  })
+
+  it('renders empty banner when items is empty and no error', async () => {
+    const w = await mountView()
+    expect(w.find('.banner.empty').exists()).toBe(true)
+    expect(w.find('.banner.error').exists()).toBe(false)
+  })
+})
+
+describe('ReviewManagementView search and reset filters', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    vi.mocked(listAdminReviews).mockResolvedValue({
+      data: { items: [createReview()], total: 1, page: 1, size: 20 },
+      meta: mockMeta,
+    })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+  })
+
+  it('search calls listAdminReviews with normalized query params', async () => {
+    const w = await mountView()
+    vi.mocked(listAdminReviews).mockClear()
+
+    const filterSection = w.find('.filters')
+    const inputs = filterSection.findAll('input')
+    const selects = filterSection.findAll('select')
+
+    await inputs[0].setValue('301')
+    await selects[0].setValue('5')
+    await inputs[1].setValue('10001')
+    await selects[1].setValue('visible')
+    await inputs[2].setValue('2026-05-08T10:00')
+    await inputs[3].setValue('2026-05-09T10:00')
+
+    const searchBtn = filterSection.find('.filter-actions .primary')
+    await searchBtn.trigger('click')
+    await flushPromises()
+    await nextTick()
+
+    expect(vi.mocked(listAdminReviews)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(listAdminReviews)).toHaveBeenCalledWith({
+      page: 1,
+      size: 20,
+      productId: 301,
+      rating: 5,
+      userId: '10001',
+      visibility: 'visible',
+      fromTime: '2026-05-08T10:00:00+08:00',
+      toTime: '2026-05-09T10:00:00+08:00',
+    })
+  })
+
+  it('reset calls listAdminReviews with default filters', async () => {
+    const w = await mountView()
+    vi.mocked(listAdminReviews).mockClear()
+
+    const filterSection = w.find('.filters')
+    const inputs = filterSection.findAll('input')
+
+    await inputs[0].setValue('301')
+
+    const resetBtn = filterSection.find('.filter-actions .secondary')
+    await resetBtn.trigger('click')
+    await flushPromises()
+    await nextTick()
+
+    expect(vi.mocked(listAdminReviews)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(listAdminReviews)).toHaveBeenCalledWith({
+      page: 1,
+      size: 20,
+    })
+  })
+})
+
 describe('ReviewManagementView governance actions', () => {
   beforeEach(() => {
     vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue('00000000-0000-0000-0000-000000000001')
@@ -496,6 +665,38 @@ describe('ReviewManagementView governance actions', () => {
       controlled.resolve({ data: createReview({ reviewId: 1, visibilityStatus: 'hidden' }), meta: mockMeta })
       await flushPromises()
     })
+
+    it('visibility failure restores button availability and allows retry', async () => {
+      vi.mocked(updateAdminReviewVisibility)
+        .mockRejectedValueOnce(new HttpClientError('Hide failed', { code: 'ERROR', status: 500, traceId: 'trace-vis-err' }))
+        .mockResolvedValueOnce({ data: createReview({ reviewId: 1, visibilityStatus: 'hidden' }), meta: mockMeta })
+
+      await mountView()
+      const btns = rowActions(0)
+
+      // Click hide - fails
+      await btns[0].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewVisibility)).toHaveBeenCalledTimes(1)
+
+      // Buttons return to state-based availability
+      expect(btns[0].attributes('disabled')).toBeUndefined()
+      expect(btns[1].attributes('disabled')).toBeDefined()
+
+      // Action error banner shows backend details
+      const actionBanner = mountedWrapper().find('.banner.error')
+      expect(actionBanner.text()).toContain('Hide failed')
+      expect(actionBanner.text()).toContain('ERROR')
+
+      // Retry click - succeeds
+      await btns[0].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewVisibility)).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('reply submit', () => {
@@ -576,6 +777,33 @@ describe('ReviewManagementView governance actions', () => {
       // Textarea still contains user draft
       expect((textarea.element as HTMLTextAreaElement).value).toBe('Draft content to preserve')
     })
+
+    it('reply save failure allows retry with second API call', async () => {
+      vi.mocked(upsertAdminReviewReply)
+        .mockRejectedValueOnce(new HttpClientError('First failure', { code: 'ERROR', status: 500, traceId: 'trace-reply-fail' }))
+        .mockResolvedValueOnce({ data: createReview({ reviewId: 1, replyContent: 'Retry success' }), meta: mockMeta })
+
+      await mountView()
+      const row = mountedWrapper().findAll('.review-row')[0]
+      const textarea = row.find('textarea')
+      await textarea.setValue('Retry content')
+
+      const rlAct = replyActions(0)
+
+      // First submit - fails
+      await rlAct[0].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(upsertAdminReviewReply)).toHaveBeenCalledTimes(1)
+
+      // Second submit - succeeds
+      await rlAct[0].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(upsertAdminReviewReply)).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('reply visibility', () => {
@@ -641,6 +869,33 @@ describe('ReviewManagementView governance actions', () => {
         4,
         { visibility: 'visible', requestId: '00000000-0000-0000-0000-000000000001' },
       )
+    })
+
+    it('reply visibility failure preserves row state and allows retry', async () => {
+      vi.mocked(updateAdminReviewReplyVisibility)
+        .mockRejectedValueOnce(new HttpClientError('Visibility failed', { code: 'ERROR', status: 500, traceId: 'trace-rv-err' }))
+        .mockResolvedValueOnce({ data: createReview({ reviewId: 3, replyContent: 'Thank you!', replyVisibilityStatus: 'hidden' }), meta: mockMeta })
+
+      await mountView()
+      const rlAct = replyActions(2) // review 3 has visible reply
+
+      // Click hide reply - fails
+      await rlAct[1].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewReplyVisibility)).toHaveBeenCalledTimes(1)
+
+      // Reply label/state unchanged - still visible
+      expect(rlAct[1].attributes('disabled')).toBeUndefined()
+      expect(rlAct[2].attributes('disabled')).toBeDefined()
+
+      // Retry - succeeds
+      await rlAct[1].trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(vi.mocked(updateAdminReviewReplyVisibility)).toHaveBeenCalledTimes(2)
     })
   })
 })

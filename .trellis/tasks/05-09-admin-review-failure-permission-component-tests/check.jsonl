@@ -1,0 +1,21 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/05-09-admin-review-failure-permission-component-tests/prd.md", "reason": "Task requirements, scope boundaries, API payload fields, validation/error matrix, Good/Base/Bad cases, and acceptance criteria."}
+{"file": ".trellis/tasks/05-09-admin-review-failure-permission-component-tests/research.md", "reason": "Focused code research with relevant specs, code patterns, likely files, risk notes, and required tests."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec index and pre-development checklist."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component async UI states, empty/error/retry handling, and button disabled state expectations."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin Review API contract: permissions, query payloads, requestId, duplicate guards, backend code/message/traceId preservation, image payload compatibility."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Typed DTO fixtures and unknown fallback requirements."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Backend error data and app preference boundaries."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality gates and required component interaction coverage."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared thinking guide index."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Confirms this is test-only and no API/DTO/DB/MQ/config contract change is allowed."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse existing helpers and avoid unnecessary abstractions."}
+{"file": "frontend/src/views/admin/ReviewManagementView.spec.ts", "reason": "Primary test file with existing mocks, fixtures, and component interaction patterns."}
+{"file": "frontend/src/views/admin/reviewManagementModel.test.ts", "reason": "Existing model-layer query/payload/error/guard assertions to complement rather than duplicate heavily."}
+{"file": "frontend/src/views/admin/ReviewManagementView.vue", "reason": "Template and behavior under test: list banners, filter controls, image fallback, action buttons, reply controls."}
+{"file": "frontend/src/views/admin/reviewManagementModel.ts", "reason": "Existing query normalization, payload builders, image compatibility helpers, action availability helpers, and error mapping."}
+{"file": "frontend/src/composables/useReviewManagement.ts", "reason": "Existing access gate, refresh/retry flow, write action gate, pending state, requestId generation, and error handling."}
+{"file": "frontend/src/services/orderApi.ts", "reason": "Mocked admin review API function signatures."}
+{"file": "frontend/src/types/api/order.ts", "reason": "Admin review DTO and request payload types for fixtures and assertions."}
+{"file": "frontend/src/App.vue", "reason": "App-level review workspace permission gate for ADMIN/REVIEW_MANAGEMENT_ADMIN vs OPS_COMPENSATION_ADMIN."}
