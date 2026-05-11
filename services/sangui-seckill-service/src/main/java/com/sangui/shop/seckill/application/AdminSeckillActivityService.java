@@ -21,7 +21,6 @@ import com.sangui.shop.seckill.domain.SeckillActivityStatus;
 import com.sangui.shop.seckill.domain.SeckillErrorCode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -306,8 +305,8 @@ public class AdminSeckillActivityService {
                                      OffsetDateTime startsAt, OffsetDateTime endsAt) {
         return Objects.equals(existing.activityName(), activityName)
                 && Objects.equals(existing.description(), trimToNull(request.description()))
-                && Objects.equals(toOffsetDateTime(existing.startsAt()), startsAt)
-                && Objects.equals(toOffsetDateTime(existing.endsAt()), endsAt)
+                && Objects.equals(existing.startsAt(), startsAt.toLocalDateTime())
+                && Objects.equals(existing.endsAt(), endsAt.toLocalDateTime())
                 && sameSkuItems(existing.skus(), request.skus());
     }
 
@@ -328,13 +327,6 @@ public class AdminSeckillActivityService {
             }
         }
         return true;
-    }
-
-    private OffsetDateTime toOffsetDateTime(LocalDateTime value) {
-        if (value == null) {
-            return null;
-        }
-        return value.atZone(ZoneId.systemDefault()).toOffsetDateTime();
     }
 
     private String requireText(String value) {

@@ -21,13 +21,13 @@ import com.sangui.shop.seckill.domain.SeckillActivitySku;
 import com.sangui.shop.seckill.domain.SeckillActivityStatus;
 import com.sangui.shop.seckill.domain.SeckillErrorCode;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
@@ -157,6 +157,27 @@ class AdminSeckillActivityServiceTest {
 
         assertThat(second.activityId()).isEqualTo(first.activityId());
         assertThat(second.activityName()).isEqualTo("Idempotent");
+    }
+
+    @Test
+    void createReplayIsIdempotentWhenJvmDefaultZoneIsUtc() {
+        TimeZone previous = TimeZone.getDefault();
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+            AdminSeckillActivityDraftRequest req = draftRequest(
+                    "UTC idem",
+                    "2026-05-12T10:00:00+08:00",
+                    "2026-05-12T12:00:00+08:00",
+                    "req-utc-idem"
+            );
+            AdminSeckillActivityDetailResponse first = service.createActivity(adminPrincipal, req, "trace-first");
+            AdminSeckillActivityDetailResponse second = service.createActivity(adminPrincipal, req, "trace-second");
+
+            assertThat(second.activityId()).isEqualTo(first.activityId());
+            assertThat(second.activityName()).isEqualTo("UTC idem");
+        } finally {
+            TimeZone.setDefault(previous);
+        }
     }
 
     @Test
