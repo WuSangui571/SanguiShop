@@ -1884,3 +1884,98 @@ Admin Product Management now has component-level regression coverage for the sam
 ### Next Steps
 
 - None - task complete
+
+
+## Session 68: 管理端秒杀活动失败态与权限边界测试
+
+**Date**: 2026-05-11
+**Task**: 管理端秒杀活动失败态与权限边界测试
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+### Summary
+
+?????????????/???????????????????DeepSeek ?? Trellis PRD ???????Codex ???? check / finish-work??? frontend API contract spec???/???????????????????????????????????????
+
+### Main Changes
+
+| Area | Summary |
+| --- | --- |
+| Admin seckill workspace | ? `App.vue` ?? `seckill` admin workspace??? `SECKILL_ACTIVITY_ADMIN` ????`ADMIN` ???????`OPS_COMPENSATION_ADMIN` alone ???? |
+| Seckill activity frontend API/types | ?? `types/api/seckill.ts` ? `services/seckillApi.ts`??? admin ???????????????????SKU ?????? contract????? `/api/admin/seckill/activities` + `authContext: 'ops'`? |
+| Activity management UI/composable | ?? `useSeckillActivityManagement.ts`?`SeckillActivityManagementView.vue`?`seckillActivityManagementModel.ts`?????/??/??/??/??/SKU ????????pending guard?????? requestId? |
+| Component tests | ?? `SeckillActivityManagementView.spec.ts` 23 ???????? prop/session gate?????/??/????? fallback?serverTime ???????????duplicate guard?SKU ???????? |
+| App permission tests | `App.spec.ts` ?? 3 ? seckill workspace ????? |
+| Translations | `useAppPreferences.ts` ?? seckill admin ????? Codex ?? `zh-Hant` / `en` ????? |
+| Spec sync | Codex ? `.trellis/spec/frontend/api-contracts.md` ?? Admin Seckill Activity Management APIs??? route?payload?validation/error matrix?required tests?Good/Base/Bad cases? |
+| Trellis | ????? task `05-10-admin-seckill-activity-failure-permission-component-tests`??? PRD/research/implement/check/debug context? |
+
+**Updated Files**:
+- `frontend/src/App.vue`
+- `frontend/src/App.spec.ts`
+- `frontend/src/composables/useAppPreferences.ts`
+- `frontend/src/composables/useSeckillActivityManagement.ts`
+- `frontend/src/services/seckillApi.ts`
+- `frontend/src/types/api/seckill.ts`
+- `frontend/src/views/admin/SeckillActivityManagementView.vue`
+- `frontend/src/views/admin/SeckillActivityManagementView.spec.ts`
+- `frontend/src/views/admin/seckillActivityManagementModel.ts`
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-seckill-activity-failure-permission-component-tests/prd.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-seckill-activity-failure-permission-component-tests/research.md`
+- `.trellis/tasks/archive/2026-05/05-10-admin-seckill-activity-failure-permission-component-tests/implement.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-seckill-activity-failure-permission-component-tests/check.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-seckill-activity-failure-permission-component-tests/debug.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-seckill-activity-failure-permission-component-tests/task.json`
+
+**Verification**:
+- Human manual testing: passed.
+- Human commit: `930e74b test(mall):???????????????????`.
+- DeepSeek checks passed before Codex handoff:
+  - `cd frontend; cmd /c npm run test -- SeckillActivityManagementView` (23 tests passed)
+  - `cd frontend; cmd /c npm run test -- App` (18 tests passed)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test` (243 tests passed)
+- Codex finish-work checks passed after fixes:
+  - `cd frontend; cmd /c npm run test -- SeckillActivityManagementView` (23 tests passed)
+  - `cd frontend; cmd /c npm run test -- App` (18 tests passed)
+  - `cd frontend; cmd /c npm run typecheck`
+  - `cd frontend; cmd /c npm run lint`
+  - `cd frontend; cmd /c npm run build`
+  - `cd frontend; cmd /c npm run test` (243 tests passed across 20 files)
+  - `git diff --check` (line-ending warning only; no whitespace errors)
+  - searched touched files for `console.log`, `debugger`, `TODO`, TypeScript `any`, and non-essential non-null assertions; no task-related issues found.
+
+**Result**:
+Admin Seckill Activity Management now has the same component-level regression safety net established for product, order, fulfillment, and review workspaces. The coverage protects the activity management entry point around permission visibility, list failure/retry/empty behavior, backend trace preservation, status/time fallback, failed writes, duplicate-submit prevention, requestId payloads, and SKU activity stock boundaries.
+
+**Boundaries**:
+- No backend service, database migration, Redis key, MQ event, Gateway route, or backend permission implementation was changed.
+- The admin seckill API is a frontend-side contract for `/api/admin/seckill/activities`; backend implementation may later require field/route alignment, now documented in frontend API contracts.
+- No `$record-session` was run before human testing and commit; this record was created after user-reported manual testing and commit.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `930e74b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
