@@ -7,6 +7,7 @@ public final class SanguiPermissionConstants {
     public static final String ORDER_MANAGEMENT_ADMIN = "ORDER_MANAGEMENT_ADMIN";
     public static final String REVIEW_MANAGEMENT_ADMIN = "REVIEW_MANAGEMENT_ADMIN";
     public static final String LOGISTICS_FULFILLMENT_ADMIN = "LOGISTICS_FULFILLMENT_ADMIN";
+    public static final String SECKILL_ACTIVITY_ADMIN = "SECKILL_ACTIVITY_ADMIN";
 
     private SanguiPermissionConstants() {
     }

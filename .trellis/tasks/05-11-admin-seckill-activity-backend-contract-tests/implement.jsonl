@@ -1,0 +1,29 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Layering and service ownership for new seckill admin API"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "REST envelope, DTO, shopId and idempotency contract"}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Admin RBAC, principal scope and AUTH_FORBIDDEN rules"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "sk_ table and idempotency index guidance if persistence is added"}
+{"file": ".trellis/spec/backend/messaging-cache-guidelines.md", "reason": "Seckill Redis/MQ boundaries to keep runtime path out of scope"}
+{"file": ".trellis/spec/backend/seckill-contracts.md", "reason": "Primary spec to update with admin seckill activity API contract"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Exception to HTTP/envelope mapping"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "traceId and safe business logging rules"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required WebMvc/service/contract tests and Maven selector rules"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Existing frontend admin seckill route/payload contract to align"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer API/shopId/idempotency risk checklist"}
+{"file": ".trellis/spec/guides/seckill-thinking-guide.md", "reason": "Seckill activity/status/stock risk checklist"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Service boundary and security review checklist"}
+{"file": ".trellis/tasks/05-11-admin-seckill-activity-backend-contract-tests/prd.md", "reason": "Task PRD with API payloads validation errors tests and scope"}
+{"file": ".trellis/tasks/05-11-admin-seckill-activity-backend-contract-tests/research.md", "reason": "Focused code research and implementation handoff notes"}
+{"file": "common/sangui-common-core/src/main/java/com/sangui/shop/common/core/api/ApiResult.java", "reason": "Envelope implementation pattern"}
+{"file": "common/sangui-common-core/src/main/java/com/sangui/shop/common/core/error/CommonErrorCode.java", "reason": "Shared error code baseline"}
+{"file": "common/sangui-common-security/src/main/java/com/sangui/shop/common/security/SanguiPermissionConstants.java", "reason": "Admin permission constants requiring SECKILL_ACTIVITY_ADMIN"}
+{"file": "common/sangui-common-security/src/main/java/com/sangui/shop/common/security/SanguiPrincipal.java", "reason": "Trusted principal scope fields"}
+{"file": "common/sangui-common-web/src/main/java/com/sangui/shop/common/web/GlobalApiExceptionHandler.java", "reason": "Global error envelope mapping"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/api/AdminOrderController.java", "reason": "Admin controller route and trace pattern"}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminOrderControllerTest.java", "reason": "WebMvc contract test pattern"}
+{"file": "services/sangui-logistics-service/src/main/java/com/sangui/shop/logistics/application/AdminFulfillmentService.java", "reason": "Permission and idempotency service pattern"}
+{"file": "services/sangui-logistics-service/src/test/java/com/sangui/shop/logistics/application/AdminFulfillmentServiceTest.java", "reason": "In-memory service tests for idempotency and permission denial"}
+{"file": "services/sangui-product-service/src/main/java/com/sangui/shop/product/application/ProductInventoryService.java", "reason": "Product SKU stock authority and error pattern"}
+{"file": "frontend/src/types/api/seckill.ts", "reason": "Frontend DTO shape for backend alignment"}
+{"file": "frontend/src/services/seckillApi.ts", "reason": "Frontend route contract for backend alignment"}

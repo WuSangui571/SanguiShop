@@ -71,8 +71,8 @@ Frontend admin seckill activity management must use gateway routes through `serv
 | --- | --- | --- | --- |
 | `listAdminSeckillActivities({page,size,status})` | `GET /api/admin/seckill/activities` | `ops` | Show loading, empty, error, retry; omit `status` when filter is `all`. |
 | `getAdminSeckillActivity(activityId)` | `GET /api/admin/seckill/activities/{activityId}` | `ops` | Load activity detail and bound SKU snapshot; preserve current detail when a later detail/SKU snapshot load fails. |
-| `createAdminSeckillActivity(payload)` | `POST /api/admin/seckill/activities` | `ops` | Build payload from a validated draft; trim text/time fields; preserve draft and backend errors on failure; disable duplicate submit while pending. |
-| `updateAdminSeckillActivity(activityId,payload)` | `PUT /api/admin/seckill/activities/{activityId}` | `ops` | Keep `activityId` in the path; preserve detail/draft and backend errors on failure; disable duplicate submit while pending. |
+| `createAdminSeckillActivity(payload)` | `POST /api/admin/seckill/activities` | `ops` | Build payload from a validated draft; include `requestId`; trim text/time fields; preserve draft and backend errors on failure; disable duplicate submit while pending. |
+| `updateAdminSeckillActivity(activityId,payload)` | `PUT /api/admin/seckill/activities/{activityId}` | `ops` | Keep `activityId` in the path; include `requestId`; preserve detail/draft and backend errors on failure; disable duplicate submit while pending. |
 | `updateAdminSeckillActivityStatus(activityId,{status,requestId})` | `POST /api/admin/seckill/activities/{activityId}/status` | `ops` | Generate `requestId`; preserve detail and backend errors on failure; disable duplicate status writes while pending. |
 | `bindAdminSeckillActivitySku(activityId,{productId,skuId,activityStock,seckillPriceCent,requestId})` | `POST /api/admin/seckill/activities/{activityId}/skus` | `ops` | Generate `requestId`; validate non-negative `activityStock` and `activityStock <= availableStock`; preserve detail and backend errors on failure; disable duplicate SKU writes while pending. |
 
@@ -84,6 +84,7 @@ Admin seckill activity model rules:
 - Activity API errors must preserve and display backend `code`, `message`, and `traceId`.
 - `OPS_COMPENSATION_ADMIN` alone must not show the seckill activity workspace; require `ADMIN` role or `SECKILL_ACTIVITY_ADMIN`.
 - `shopId` and `userId` draft fields are populated from the persisted ops/admin session for compatibility, but backend principal scope is authoritative; frontend must not hardcode a merchant magic value.
+- `requestId` is required for all write payloads including create and update (`AdminSeckillActivityDraftRequest` must include `requestId` field).
 - Money is integer cents. `priceCent` and `seckillPriceCent` are display or submitted cents values; final price and stock validity remain backend facts.
 - Activity stock inputs are non-negative integers and must not exceed the current SKU `availableStock` snapshot in the UI. Backend `STOCK_NOT_ENOUGH` or `PRODUCT_STOCK_NOT_ENOUGH` still remains authoritative.
 - `status=all` must be omitted from list query payloads.
