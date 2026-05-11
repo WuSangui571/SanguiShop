@@ -164,6 +164,44 @@ describe('App order workspace permission gating', () => {
   })
 })
 
+describe('App seckill workspace permission gating', () => {
+  let wrapper: VueWrapper | null = null
+
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/admin?workspace=seckill')
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    mockSessionRef.current = null
+  })
+
+  it('renders seckill workspace for ADMIN role', async () => {
+    mockSessionRef.current = adminSession(['ADMIN'], [])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.seckillWorkspace')
+  })
+
+  it('renders seckill workspace for SECKILL_ACTIVITY_ADMIN permission', async () => {
+    mockSessionRef.current = adminSession([], ['SECKILL_ACTIVITY_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.seckillWorkspace')
+  })
+
+  it('does not render seckill workspace for OPS_COMPENSATION_ADMIN alone', async () => {
+    mockSessionRef.current = adminSession([], ['OPS_COMPENSATION_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).not.toContain('admin.seckillWorkspace')
+  })
+})
+
 describe('App product workspace permission gating', () => {
   let wrapper: VueWrapper | null = null
 

@@ -1,0 +1,27 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\spec\\frontend\\directory-structure.md", "reason": "Frontend file placement for admin views, services, and API types"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Async UI states, reactive pending gates, unknown-safe component behavior"}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "Composable/service data-fetching and retry boundaries"}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Server facts, session boundaries, and backend error detail preservation"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "DTO typing, ISO time fields, and unknown status fallback"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin workspace API patterns, requestId, status all omission, trace preservation"}
+{"file": ".trellis\\spec\\frontend\\seckill-ui-guidelines.md", "reason": "Seckill-specific server time and duplicate submit expectations"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend verification and forbidden patterns"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Envelope, idempotency, shopId, and cross-service contract rules for PRD alignment"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Admin RBAC and permission boundary rules"}
+{"file": ".trellis\\spec\\backend\\seckill-contracts.md", "reason": "Seckill activity/order domain risks and known error codes"}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "Backend error code and traceId preservation rules"}
+{"file": ".trellis\\spec\\backend\\inventory-reserve-contracts.md", "reason": "SKU available/reserved stock ownership and activity stock boundary context"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Cross-layer risk checklist for API/time/idempotency boundaries"}
+{"file": ".trellis\\spec\\guides\\seckill-thinking-guide.md", "reason": "Seckill-specific risk checklist"}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Reuse existing admin patterns before abstractions"}
+{"file": ".trellis\\spec\\guides\\architecture-review-checklist.md", "reason": "Good/Base/Bad and boundary review checklist"}
+{"file": "frontend\\src\\App.vue", "reason": "Existing admin workspace permission gates and URL parsing pattern"}
+{"file": "frontend\\src\\App.spec.ts", "reason": "Existing admin workspace permission component tests"}
+{"file": "frontend\\src\\views\\admin\\ProductManagementView.spec.ts", "reason": "Closest product/source-of-truth failure, requestId, stock, and duplicate guard test pattern"}
+{"file": "frontend\\src\\views\\admin\\OrderManagementView.spec.ts", "reason": "Closest list error/retry/empty, filter, time, and duplicate guard test pattern"}
+{"file": "frontend\\src\\services\\productApi.ts", "reason": "Existing admin service authContext ops and status all omission pattern"}
+{"file": "frontend\\src\\types\\api\\product.ts", "reason": "Admin DTO and status unknown fallback type pattern"}
+{"file": ".trellis\\tasks\\05-10-admin-seckill-activity-failure-permission-component-tests\\prd.md", "reason": "Task PRD and acceptance criteria"}
+{"file": ".trellis\\tasks\\05-10-admin-seckill-activity-failure-permission-component-tests\\research.md", "reason": "Focused code research and expected write set"}

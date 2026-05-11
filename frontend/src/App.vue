@@ -11,6 +11,7 @@ import OrderManagementView from './views/admin/OrderManagementView.vue'
 import { readAdminOrderIdFromSearch } from './views/admin/orderManagementModel'
 import ProductManagementView from './views/admin/ProductManagementView.vue'
 import ReviewManagementView from './views/admin/ReviewManagementView.vue'
+import SeckillActivityManagementView from './views/admin/SeckillActivityManagementView.vue'
 import MallStorefrontView from './views/mall/MallStorefrontView.vue'
 
 const { t } = useAppPreferences()
@@ -31,8 +32,9 @@ const PRODUCT_CATALOG_ADMIN_PERMISSION = 'PRODUCT_CATALOG_ADMIN'
 const ORDER_MANAGEMENT_ADMIN_PERMISSION = 'ORDER_MANAGEMENT_ADMIN'
 const REVIEW_MANAGEMENT_ADMIN_PERMISSION = 'REVIEW_MANAGEMENT_ADMIN'
 const LOGISTICS_FULFILLMENT_ADMIN_PERMISSION = 'LOGISTICS_FULFILLMENT_ADMIN'
+const SECKILL_ACTIVITY_ADMIN_PERMISSION = 'SECKILL_ACTIVITY_ADMIN'
 const OPS_COMPENSATION_ADMIN_PERMISSION = 'OPS_COMPENSATION_ADMIN'
-type AdminWorkspace = 'product' | 'order' | 'review' | 'fulfillment' | 'compensation'
+type AdminWorkspace = 'product' | 'order' | 'review' | 'fulfillment' | 'seckill' | 'compensation'
 
 const activeAdminWorkspace = ref<AdminWorkspace>(readAdminWorkspaceFromLocation() ?? 'product')
 const initialAdminOrderId = readInitialAdminOrderId()
@@ -85,6 +87,14 @@ const canAccessFulfillmentWorkspace = computed(() => {
   return session.roles.includes('ADMIN') || session.permissions.includes(LOGISTICS_FULFILLMENT_ADMIN_PERMISSION)
 })
 
+const canAccessSeckillWorkspace = computed(() => {
+  const session = state.session
+  if (!session) {
+    return false
+  }
+  return session.roles.includes('ADMIN') || session.permissions.includes(SECKILL_ACTIVITY_ADMIN_PERMISSION)
+})
+
 const availableAdminWorkspaces = computed(() => {
   const workspaces: AdminWorkspace[] = []
   if (canAccessProductWorkspace.value) {
@@ -98,6 +108,9 @@ const availableAdminWorkspaces = computed(() => {
   }
   if (canAccessFulfillmentWorkspace.value) {
     workspaces.push('fulfillment')
+  }
+  if (canAccessSeckillWorkspace.value) {
+    workspaces.push('seckill')
   }
   if (canAccessCompensationWorkspace.value) {
     workspaces.push('compensation')
@@ -139,6 +152,7 @@ function readAdminWorkspaceFromLocation(): AdminWorkspace | null {
     || workspace === 'order'
     || workspace === 'review'
     || workspace === 'fulfillment'
+    || workspace === 'seckill'
     || workspace === 'compensation'
     ? workspace
     : null
@@ -250,6 +264,16 @@ onMounted(() => {
           {{ t('admin.fulfillmentWorkspace') }}
         </button>
         <button
+          v-if="canAccessSeckillWorkspace"
+          type="button"
+          class="workspace-tab"
+          :class="{ active: activeAdminWorkspace === 'seckill' }"
+          :aria-pressed="activeAdminWorkspace === 'seckill'"
+          @click="selectWorkspace('seckill')"
+        >
+          {{ t('admin.seckillWorkspace') }}
+        </button>
+        <button
           v-if="canAccessCompensationWorkspace"
           type="button"
           class="workspace-tab"
@@ -286,6 +310,11 @@ onMounted(() => {
         v-else-if="activeAdminWorkspace === 'fulfillment' && canAccessFulfillmentWorkspace"
         :session="state.session"
         :can-access-fulfillment-workspace="canAccessFulfillmentWorkspace"
+      />
+      <SeckillActivityManagementView
+        v-else-if="activeAdminWorkspace === 'seckill' && canAccessSeckillWorkspace"
+        :session="state.session"
+        :can-access-seckill-workspace="canAccessSeckillWorkspace"
       />
       <CompensationDashboardView
         v-else-if="activeAdminWorkspace === 'compensation' && canAccessCompensationWorkspace"

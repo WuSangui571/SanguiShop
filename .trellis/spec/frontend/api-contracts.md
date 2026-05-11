@@ -63,6 +63,66 @@ Required tests:
 - Backend error `code/message/traceId` preservation.
 - Duplicate submit guard for save/status/stock write actions.
 
+## Admin Seckill Activity Management APIs
+
+Frontend admin seckill activity management must use gateway routes through `services/seckillApi.ts` with `authContext: 'ops'`. This is a frontend-side contract for the admin activity workspace until the backend admin seckill API is implemented.
+
+| Function | Route | Auth Context | Required UI Handling |
+| --- | --- | --- | --- |
+| `listAdminSeckillActivities({page,size,status})` | `GET /api/admin/seckill/activities` | `ops` | Show loading, empty, error, retry; omit `status` when filter is `all`. |
+| `getAdminSeckillActivity(activityId)` | `GET /api/admin/seckill/activities/{activityId}` | `ops` | Load activity detail and bound SKU snapshot; preserve current detail when a later detail/SKU snapshot load fails. |
+| `createAdminSeckillActivity(payload)` | `POST /api/admin/seckill/activities` | `ops` | Build payload from a validated draft; trim text/time fields; preserve draft and backend errors on failure; disable duplicate submit while pending. |
+| `updateAdminSeckillActivity(activityId,payload)` | `PUT /api/admin/seckill/activities/{activityId}` | `ops` | Keep `activityId` in the path; preserve detail/draft and backend errors on failure; disable duplicate submit while pending. |
+| `updateAdminSeckillActivityStatus(activityId,{status,requestId})` | `POST /api/admin/seckill/activities/{activityId}/status` | `ops` | Generate `requestId`; preserve detail and backend errors on failure; disable duplicate status writes while pending. |
+| `bindAdminSeckillActivitySku(activityId,{productId,skuId,activityStock,seckillPriceCent,requestId})` | `POST /api/admin/seckill/activities/{activityId}/skus` | `ops` | Generate `requestId`; validate non-negative `activityStock` and `activityStock <= availableStock`; preserve detail and backend errors on failure; disable duplicate SKU writes while pending. |
+
+Admin seckill activity model rules:
+
+- Page copy must use `useAppPreferences().t()` and new colors must rely on semantic CSS variables.
+- Activity status must display `draft`, `scheduled`, `active`, and `ended` labels and fall back to the raw unknown backend value.
+- Activity status and time display must use backend-provided `status`, `serverTime`, `startsAt`, and `endsAt`; the admin UI must not infer authoritative status from the local clock.
+- Activity API errors must preserve and display backend `code`, `message`, and `traceId`.
+- `OPS_COMPENSATION_ADMIN` alone must not show the seckill activity workspace; require `ADMIN` role or `SECKILL_ACTIVITY_ADMIN`.
+- `shopId` and `userId` draft fields are populated from the persisted ops/admin session for compatibility, but backend principal scope is authoritative; frontend must not hardcode a merchant magic value.
+- Money is integer cents. `priceCent` and `seckillPriceCent` are display or submitted cents values; final price and stock validity remain backend facts.
+- Activity stock inputs are non-negative integers and must not exceed the current SKU `availableStock` snapshot in the UI. Backend `STOCK_NOT_ENOUGH` or `PRODUCT_STOCK_NOT_ENOUGH` still remains authoritative.
+- `status=all` must be omitted from list query payloads.
+
+Validation and error matrix:
+
+| Case | Frontend behavior |
+| --- | --- |
+| No admin session or no seckill access prop | Do not call activity list or write APIs. |
+| `OPS_COMPENSATION_ADMIN` only | Do not render the seckill workspace tab or view. |
+| List query failure | Show backend `message`, `code`, and `traceId`; do not show empty state. |
+| Successful empty list | Show the localized empty state. |
+| Unknown status | Render the raw backend status without crashing. |
+| Create/update/status/SKU write failure | Preserve draft/detail, restore buttons, and display backend `code/message/traceId`. |
+| Duplicate pending write | Do not send a second request. |
+| Negative activity stock | Block locally with validation error and do not call API. |
+| Activity stock above available stock | Block locally with validation error and do not call API. |
+
+Required tests:
+
+- App workspace permission tests for `ADMIN`, `SECKILL_ACTIVITY_ADMIN`, and `OPS_COMPENSATION_ADMIN` alone.
+- Prop gate and missing session prevent list loading.
+- List failure, retry, empty success, and `status=all` omission.
+- Status labels for `draft`, `scheduled`, `active`, `ended`, and unknown raw values.
+- Server time/ISO display uses response fields.
+- Create/update/status/SKU failure recovery preserves draft/detail and backend `traceId`.
+- Duplicate pending create/update/status/SKU writes send one request.
+- Request `requestId` generation for status and SKU write payloads.
+- Activity stock validation blocks negative and over-available values.
+
+Good/Base/Bad cases:
+
+- Good: an admin with `SECKILL_ACTIVITY_ADMIN` can use the workspace, failed writes preserve current activity/SKU snapshots, and list failures keep backend trace details visible.
+- Good: `status=all` is omitted from list query payloads and unknown status values render as raw text.
+- Base: the frontend API contract may be mocked until the backend admin seckill API exists, but the route, payload field names, and required tests stay documented here.
+- Bad: `OPS_COMPENSATION_ADMIN` sees the seckill activity workspace.
+- Bad: frontend local time is treated as authoritative for activity status.
+- Bad: duplicate pending writes send multiple requests or activity stock above available stock reaches the API.
+
 ## Admin Order Management APIs
 
 Frontend admin order management must use gateway routes through `services/orderApi.ts` and `services/paymentApi.ts` with `authContext: 'ops'`.
