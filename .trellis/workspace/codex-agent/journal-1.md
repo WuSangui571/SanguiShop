@@ -198,3 +198,71 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: 完善后台 Ops 权限登录白名单
+
+**Date**: 2026-05-12
+**Task**: 完善后台 Ops 权限登录白名单
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Details |
+| --- | --- |
+| Commit | `d8714fe fix:??Ops?????????` |
+| Task | `05-12-ops-auth-permission-login-whitelist` archived after human manual testing passed. |
+| Main modules | `services/sangui-user-service` ops auth admission; `frontend/src/App.spec.ts` admin workspace permission isolation; Trellis backend auth/security specs. |
+| Backend change | `OpsAuthService.ADMIN_SESSION_PERMISSIONS` now accepts `LOGISTICS_FULFILLMENT_ADMIN` and `SECKILL_ACTIVITY_ADMIN`, so pure fulfillment/seckill ops users can obtain an admin session without temporary `PRODUCT_CATALOG_ADMIN`. |
+| Legacy admin alignment | `OpsAccessRegistry.LEGACY_ADMIN_PERMISSIONS` now includes `SECKILL_ACTIVITY_ADMIN`, keeping legacy rollback admins aligned with all current admin workspace permissions. |
+| Backend tests | `OpsAuthServiceTest` covers pure fulfillment login, pure seckill login, fulfillment refresh, legacy permission list, and rejection for bindings without any admin-session permission. |
+| Frontend tests | `App.spec.ts` adds fulfillment-only and seckill-only isolation assertions so each permission sees only its own workspace and no unrelated admin workspace tabs. |
+| Spec updates | `.trellis/spec/backend/authentication-contracts.md` and `gateway-security.md` now describe admin-session permission allowlist behavior instead of the old compensation-only ops wording. |
+| Codex check fixes | Renamed stale test wording from compensation-only to admin-session permission; corrected PRD sample payload/response to real `POST /api/users/ops/login` contract; validated task context. |
+| Manual acceptance | Human removed/validated temporary permission pollution and confirmed `bob` and `mall_demo_user` can login and reach their intended workspaces with real fulfillment/seckill permissions. |
+| Boundary | No generic RBAC redesign, no DB schema change, no gateway route redesign, and no business API change. `deploy/rocketmq/broker-store/config/timercheck` remains an unrelated local runtime modification. |
+
+**Updated Files**:
+- `.trellis/spec/backend/authentication-contracts.md`
+- `.trellis/spec/backend/gateway-security.md`
+- `.trellis/tasks/archive/2026-05/05-12-ops-auth-permission-login-whitelist/`
+- `frontend/src/App.spec.ts`
+- `services/sangui-user-service/src/main/java/com/sangui/shop/user/application/OpsAccessRegistry.java`
+- `services/sangui-user-service/src/main/java/com/sangui/shop/user/application/OpsAuthService.java`
+- `services/sangui-user-service/src/test/java/com/sangui/shop/user/application/OpsAuthServiceTest.java`
+
+**Verification Commands / Results**:
+- `[OK]` `.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-user-service" -am "-Dtest=OpsAuthServiceTest,OpsAuthControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- `[OK]` Surefire confirmed `OpsAuthServiceTest`: 12 tests, 0 failures/errors/skipped.
+- `[OK]` Surefire confirmed `OpsAuthControllerTest`: 4 tests, 0 failures/errors/skipped.
+- `[OK]` `cmd /c npm --prefix frontend run test -- App.spec.ts` passed: 17 tests.
+- `[OK]` `cmd /c npm --prefix frontend run typecheck`
+- `[OK]` `cmd /c npm --prefix frontend run build`
+- `[OK]` `python .\.trellis\scripts\task.py validate .trellis\tasks\05-12-ops-auth-permission-login-whitelist`
+
+**Not Run**:
+- Full Maven reactor test was not run because the task touched only user-service auth admission and frontend App permission tests, and the working tree still contains unrelated manual-test/runtime changes.
+- Browser automation was not run by Codex; human manual testing passed after the commit.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d8714fe` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
