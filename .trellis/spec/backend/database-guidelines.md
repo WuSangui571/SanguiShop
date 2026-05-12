@@ -408,3 +408,100 @@ Good/Base/Bad cases:
 - Good: `(shop_id, request_id)` prevents duplicate operator submits from creating multiple shipments.
 - Base: shipment status is `shipped` until delivered tracking is introduced.
 - Bad: fulfillment records omit `shop_id`, `request_id`, or `trace_id`.
+
+## Seckill Activity Persistence Tables
+
+Seckill service owns `sk_activity`, `sk_activity_sku`, and `sk_activity_status_request`.
+
+Migration:
+
+- `services/sangui-seckill-service/src/main/resources/db/migration/V1__create_seckill_activity_tables.sql`
+
+### `sk_activity`
+
+Required columns:
+
+- `id BIGINT PRIMARY KEY AUTO_INCREMENT`
+- `shop_id BIGINT NOT NULL DEFAULT 1`
+- `activity_name VARCHAR(200) NOT NULL`
+- `description VARCHAR(1000) NULL`
+- `status VARCHAR(32) NOT NULL`
+- `starts_at DATETIME NOT NULL`
+- `ends_at DATETIME NOT NULL`
+- `request_id VARCHAR(64) NOT NULL`
+- `trace_id VARCHAR(64) NULL`
+- `created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`
+- `updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`
+- `deleted TINYINT NOT NULL DEFAULT 0`
+- `version INT NOT NULL DEFAULT 0`
+
+Required indexes:
+
+- `uk_sk_activity_shop_request (shop_id, request_id, deleted)` — create/update idempotency
+- `idx_sk_activity_shop_status_created (shop_id, status, created_at, id)` — status/page query
+
+### `sk_activity_sku`
+
+Required columns:
+
+- `id BIGINT PRIMARY KEY AUTO_INCREMENT`
+- `shop_id BIGINT NOT NULL DEFAULT 1`
+- `activity_id BIGINT NOT NULL`
+- `product_id BIGINT NOT NULL`
+- `product_name VARCHAR(200) NOT NULL`
+- `sku_id BIGINT NOT NULL`
+- `sku_code VARCHAR(100) NOT NULL`
+- `sku_name VARCHAR(200) NOT NULL`
+- `price_cent BIGINT NOT NULL`
+- `seckill_price_cent BIGINT NOT NULL`
+- `available_stock BIGINT NOT NULL`
+- `activity_stock BIGINT NOT NULL`
+- `sold_count BIGINT NOT NULL DEFAULT 0`
+- `request_id VARCHAR(64) NULL`
+- `trace_id VARCHAR(64) NULL`
+- `created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`
+- `updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`
+- `deleted TINYINT NOT NULL DEFAULT 0`
+- `version INT NOT NULL DEFAULT 0`
+
+Required indexes:
+
+- `uk_sk_activity_sku_binding (shop_id, activity_id, sku_id)` — unique SKU binding
+- `idx_sk_activity_sku_shop_activity (shop_id, activity_id, deleted)` — query by activity
+- `idx_sk_activity_sku_request (shop_id, activity_id, request_id)` — SKU bind idempotency
+
+### `sk_activity_status_request`
+
+Required columns:
+
+- `id BIGINT PRIMARY KEY AUTO_INCREMENT`
+- `shop_id BIGINT NOT NULL DEFAULT 1`
+- `activity_id BIGINT NOT NULL`
+- `request_id VARCHAR(64) NOT NULL`
+- `target_status VARCHAR(32) NOT NULL`
+- `trace_id VARCHAR(64) NULL`
+- `created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`
+- `updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`
+- `deleted TINYINT NOT NULL DEFAULT 0`
+- `version INT NOT NULL DEFAULT 0`
+
+Required indexes:
+
+- `uk_sk_activity_status_request (shop_id, activity_id, request_id)` — status transition idempotency
+
+### Executable validation
+
+```powershell
+.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-seckill-service" -am "-Dtest=SeckillActivityMigrationContractTest,JdbcActivityRepositoryTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Good/Base/Bad cases:
+
+- Good: creating an activity with SKU inserts one `sk_activity` row and one `sk_activity_sku` row.
+- Good: `(shop_id, request_id)` on `sk_activity` rejects duplicate create/update requests.
+- Good: `(shop_id, activity_id, sku_id)` on `sk_activity_sku` prevents duplicate SKU binding.
+- Good: `(shop_id, activity_id, request_id)` on `sk_activity_status_request` prevents conflicting status replays.
+- Good: `JdbcActivityRepository.findSkuByRequestId(shopId, activityId, requestId)` scopes by `shop_id`, and `saveStatusRequest(..., traceId)` writes `trace_id`.
+- Good: cross-shop queries scope by `shop_id` and return empty for other shops.
+- Base: migration contract test validates SQL structure without live MySQL.
+- Bad: seckill service reads `pms_*` tables directly.

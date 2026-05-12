@@ -162,6 +162,7 @@ class ProductInventoryServiceTest {
             skusById.put(skuId, new ProductSkuRecord(
                     sku.id(),
                     sku.productId(),
+                    sku.productName(),
                     sku.skuCode(),
                     sku.skuName(),
                     sku.priceCent(),
@@ -180,6 +181,7 @@ class ProductInventoryServiceTest {
             skusById.put(skuId, new ProductSkuRecord(
                     sku.id(),
                     sku.productId(),
+                    sku.productName(),
                     sku.skuCode(),
                     sku.skuName(),
                     sku.priceCent(),
@@ -198,6 +200,7 @@ class ProductInventoryServiceTest {
             skusById.put(skuId, new ProductSkuRecord(
                     sku.id(),
                     sku.productId(),
+                    sku.productName(),
                     sku.skuCode(),
                     sku.skuName(),
                     sku.priceCent(),
@@ -257,6 +260,7 @@ class ProductInventoryServiceTest {
                 skusById.put(skuId, new ProductSkuRecord(
                         skuId,
                         productId,
+                        draft.productName(),
                         sku.skuCode(),
                         sku.skuName(),
                         sku.priceCent(),

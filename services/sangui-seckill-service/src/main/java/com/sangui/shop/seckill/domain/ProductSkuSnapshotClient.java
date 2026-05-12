@@ -4,7 +4,7 @@ import java.util.Optional;
 
 public interface ProductSkuSnapshotClient {
 
-    Optional<ProductSkuSnapshot> findBySkuId(Long shopId, Long skuId);
+    Optional<ProductSkuSnapshot> findBySkuId(Long shopId, Long skuId, String traceId);
 
     record ProductSkuSnapshot(
             Long productId,

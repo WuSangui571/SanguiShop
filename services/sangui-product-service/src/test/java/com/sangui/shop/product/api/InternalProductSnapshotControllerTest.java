@@ -38,7 +38,7 @@ class InternalProductSnapshotControllerTest {
     void listSkuSnapshotsReturnsStableEnvelope() throws Exception {
         org.mockito.Mockito.when(productCatalogService.listActiveSkuSnapshots(eq(1L), any()))
                 .thenReturn(List.of(
-                        new ProductSkuRecord(401L, 301L, "shoe-42", "Sneaker 42", 59900L, 20L, 1L)
+                        new ProductSkuRecord(401L, 301L, "Running Shoe", "shoe-42", "Sneaker 42", 59900L, 20L, 1L)
                 ));
 
         mockMvc.perform(post("/internal/products/skus/snapshot")
@@ -52,8 +52,12 @@ class InternalProductSnapshotControllerTest {
                 .andExpect(jsonPath("$.code").value("PRODUCT_SKU_SNAPSHOTS_FETCHED"))
                 .andExpect(jsonPath("$.traceId").value("trace-product-snapshot"))
                 .andExpect(jsonPath("$.data.items[0].productId").value(301))
+                .andExpect(jsonPath("$.data.items[0].productName").value("Running Shoe"))
                 .andExpect(jsonPath("$.data.items[0].skuId").value(401))
-                .andExpect(jsonPath("$.data.items[0].priceCent").value(59900));
+                .andExpect(jsonPath("$.data.items[0].skuCode").value("shoe-42"))
+                .andExpect(jsonPath("$.data.items[0].skuName").value("Sneaker 42"))
+                .andExpect(jsonPath("$.data.items[0].priceCent").value(59900))
+                .andExpect(jsonPath("$.data.items[0].availableStock").value(20));
     }
 
     @Test

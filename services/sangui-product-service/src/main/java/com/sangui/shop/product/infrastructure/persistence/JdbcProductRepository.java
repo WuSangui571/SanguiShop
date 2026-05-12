@@ -40,6 +40,7 @@ public class JdbcProductRepository implements ProductRepository {
     private static final RowMapper<ProductSkuRecord> SKU_ROW_MAPPER = (rs, rowNum) -> new ProductSkuRecord(
             rs.getLong("id"),
             rs.getLong("product_id"),
+            rs.getString("product_name"),
             rs.getString("sku_code"),
             rs.getString("sku_name"),
             rs.getLong("sale_price_cent"),
@@ -246,7 +247,7 @@ public class JdbcProductRepository implements ProductRepository {
         }
         return jdbcTemplate.query(
                 """
-                        SELECT s.id, s.product_id, s.sku_code, s.sku_name, s.sale_price_cent, s.available_stock, s.reserved_stock
+                        SELECT s.id, s.product_id, p.product_name, s.sku_code, s.sku_name, s.sale_price_cent, s.available_stock, s.reserved_stock
                         FROM pms_sku s
                         JOIN pms_product p
                           ON p.id = s.product_id
@@ -475,9 +476,13 @@ public class JdbcProductRepository implements ProductRepository {
                         product,
                         jdbcTemplate.query(
                                 """
-                                        SELECT id, product_id, sku_code, sku_name, sale_price_cent, available_stock, reserved_stock
-                                        FROM pms_sku
-                                        WHERE shop_id = ? AND product_id = ? AND deleted = 0
+                                        SELECT s.id, s.product_id, p.product_name, s.sku_code, s.sku_name, s.sale_price_cent, s.available_stock, s.reserved_stock
+                                        FROM pms_sku s
+                                        JOIN pms_product p
+                                          ON p.id = s.product_id
+                                         AND p.shop_id = s.shop_id
+                                         AND p.deleted = 0
+                                        WHERE s.shop_id = ? AND s.product_id = ? AND s.deleted = 0
                                         ORDER BY id ASC
                                         """,
                                 SKU_ROW_MAPPER,

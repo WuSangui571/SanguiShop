@@ -19,11 +19,11 @@ public interface ActivityRepository {
 
     int upsertSku(Long shopId, Long activityId, SeckillActivitySku sku);
 
-    Optional<SeckillActivitySku> findSkuByRequestId(Long activityId, String requestId);
+    Optional<SeckillActivitySku> findSkuByRequestId(Long shopId, Long activityId, String requestId);
 
     Optional<StatusRequestRecord> findStatusRequestByRequestId(Long shopId, Long activityId, String requestId);
 
-    void saveStatusRequest(Long shopId, Long activityId, String requestId, SeckillActivityStatus targetStatus);
+    void saveStatusRequest(Long shopId, Long activityId, String requestId, SeckillActivityStatus targetStatus, String traceId);
 
     record StatusRequestRecord(Long shopId, Long activityId, String requestId, SeckillActivityStatus targetStatus) {
     }

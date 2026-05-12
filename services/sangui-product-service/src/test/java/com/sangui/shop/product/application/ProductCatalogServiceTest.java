@@ -507,6 +507,7 @@ class ProductCatalogServiceTest {
             skus.set(skuIndex, new ProductSkuRecord(
                     existing.id(),
                     existing.productId(),
+                    existing.productName(),
                     existing.skuCode(),
                     existing.skuName(),
                     existing.priceCent(),
@@ -527,10 +528,12 @@ class ProductCatalogServiceTest {
 
         private List<ProductSkuRecord> createSkuRecords(Long productId, List<ProductSkuDraft> skus) {
             List<ProductSkuRecord> result = new ArrayList<>();
+            String productName = productsById.get(productId).productName();
             for (ProductSkuDraft sku : skus) {
                 result.add(new ProductSkuRecord(
                         nextSkuId.incrementAndGet(),
                         productId,
+                        productName,
                         sku.skuCode(),
                         sku.skuName(),
                         sku.priceCent(),

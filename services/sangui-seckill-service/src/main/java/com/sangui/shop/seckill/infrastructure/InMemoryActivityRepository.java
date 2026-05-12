@@ -11,9 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-import org.springframework.stereotype.Repository;
-
-@Repository
 public class InMemoryActivityRepository implements ActivityRepository {
 
     private final AtomicLong nextActivityId = new AtomicLong(1000);
@@ -142,12 +139,12 @@ public class InMemoryActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public synchronized Optional<SeckillActivitySku> findSkuByRequestId(Long activityId, String requestId) {
+    public synchronized Optional<SeckillActivitySku> findSkuByRequestId(Long shopId, Long activityId, String requestId) {
         SeckillActivity activity = activitiesById.get(activityId);
-        if (activity == null) {
+        if (activity == null || !activity.shopId().equals(shopId)) {
             return Optional.empty();
         }
-        return Optional.ofNullable(skusByRequest.get(skuRequestKey(activity.shopId(), activityId, requestId)));
+        return Optional.ofNullable(skusByRequest.get(skuRequestKey(shopId, activityId, requestId)));
     }
 
     @Override
@@ -156,7 +153,7 @@ public class InMemoryActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public synchronized void saveStatusRequest(Long shopId, Long activityId, String requestId, SeckillActivityStatus targetStatus) {
+    public synchronized void saveStatusRequest(Long shopId, Long activityId, String requestId, SeckillActivityStatus targetStatus, String traceId) {
         statusRequests.put(statusRequestKey(shopId, activityId, requestId),
                 new StatusRequestRecord(shopId, activityId, requestId, targetStatus));
     }

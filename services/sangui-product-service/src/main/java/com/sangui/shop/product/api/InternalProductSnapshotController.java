@@ -42,10 +42,12 @@ public class InternalProductSnapshotController {
     private ProductSkuSnapshotItemResponse toItemResponse(ProductSkuRecord sku) {
         return new ProductSkuSnapshotItemResponse(
                 sku.productId(),
+                sku.productName(),
                 sku.id(),
                 sku.skuCode(),
                 sku.skuName(),
-                sku.priceCent()
+                sku.priceCent(),
+                sku.availableStock()
         );
     }
 

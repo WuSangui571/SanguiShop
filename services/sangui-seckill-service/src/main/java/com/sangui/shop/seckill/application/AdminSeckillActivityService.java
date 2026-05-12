@@ -93,7 +93,7 @@ public class AdminSeckillActivityService {
         List<SeckillActivitySku> activitySkus = new ArrayList<>();
         if (request.skus() != null) {
             for (var item : request.skus()) {
-                ProductSkuSnapshot skuSnapshot = resolveSku(principal.shopId(), item.skuId());
+                ProductSkuSnapshot skuSnapshot = resolveSku(principal.shopId(), item.skuId(), traceId);
                 validateRequestedProduct(skuSnapshot, item.productId());
                 validateStockAvailable(skuSnapshot, item.activityStock());
                 activitySkus.add(new SeckillActivitySku(
@@ -145,7 +145,7 @@ public class AdminSeckillActivityService {
         List<SeckillActivitySku> activitySkus = new ArrayList<>();
         if (request.skus() != null) {
             for (var item : request.skus()) {
-                ProductSkuSnapshot skuSnapshot = resolveSku(principal.shopId(), item.skuId());
+                ProductSkuSnapshot skuSnapshot = resolveSku(principal.shopId(), item.skuId(), traceId);
                 validateRequestedProduct(skuSnapshot, item.productId());
                 validateStockAvailable(skuSnapshot, item.activityStock());
                 activitySkus.add(new SeckillActivitySku(
@@ -196,7 +196,7 @@ public class AdminSeckillActivityService {
         }
 
         if (activity.status() == targetStatus) {
-            activityRepository.saveStatusRequest(principal.shopId(), activityId, requestId, targetStatus);
+            activityRepository.saveStatusRequest(principal.shopId(), activityId, requestId, targetStatus, traceId);
             return AdminSeckillActivityDetailResponse.from(activity, OffsetDateTime.now());
         }
 
@@ -208,7 +208,7 @@ public class AdminSeckillActivityService {
         if (updated == 0) {
             throw new SanguiException(SeckillErrorCode.SECKILL_ACTIVITY_STATUS_INVALID, 409);
         }
-        activityRepository.saveStatusRequest(principal.shopId(), activityId, requestId, targetStatus);
+        activityRepository.saveStatusRequest(principal.shopId(), activityId, requestId, targetStatus, traceId);
 
         SeckillActivity saved = activityRepository.findById(principal.shopId(), activityId)
                 .orElseThrow(() -> new SanguiException(SeckillErrorCode.SECKILL_ACTIVITY_NOT_FOUND, 404));
@@ -222,7 +222,7 @@ public class AdminSeckillActivityService {
                 .orElseThrow(() -> new SanguiException(SeckillErrorCode.SECKILL_ACTIVITY_NOT_FOUND, 404));
 
         String requestId = requireText(request.requestId());
-        Optional<SeckillActivitySku> existingSku = activityRepository.findSkuByRequestId(activityId, requestId);
+        Optional<SeckillActivitySku> existingSku = activityRepository.findSkuByRequestId(principal.shopId(), activityId, requestId);
         if (existingSku.isPresent()) {
             SeckillActivitySku sku = existingSku.get();
             if (sku.skuId().equals(request.skuId()) && sku.activityStock() == request.activityStock()
@@ -236,7 +236,7 @@ public class AdminSeckillActivityService {
             throw new SanguiException(CommonErrorCode.IDEMPOTENCY_CONFLICT, 409);
         }
 
-        ProductSkuSnapshot skuSnapshot = resolveSku(principal.shopId(), request.skuId());
+        ProductSkuSnapshot skuSnapshot = resolveSku(principal.shopId(), request.skuId(), traceId);
         validateRequestedProduct(skuSnapshot, request.productId());
         validateStockAvailable(skuSnapshot, request.activityStock());
         long seckillPriceCent = request.seckillPriceCent() != null ? request.seckillPriceCent() : skuSnapshot.priceCent();
@@ -267,8 +267,8 @@ public class AdminSeckillActivityService {
         }
     }
 
-    private ProductSkuSnapshot resolveSku(Long shopId, Long skuId) {
-        return productSkuSnapshotClient.findBySkuId(shopId, skuId)
+    private ProductSkuSnapshot resolveSku(Long shopId, Long skuId, String traceId) {
+        return productSkuSnapshotClient.findBySkuId(shopId, skuId, traceId)
                 .orElseThrow(() -> new SanguiException(SeckillErrorCode.PRODUCT_SKU_NOT_FOUND, 404));
     }
 

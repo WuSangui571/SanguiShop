@@ -1,0 +1,25 @@
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Backend package/layer placement for repository, adapter, API, application, and domain changes."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Cross-service DTO/envelope/idempotency/fallback contract for product SKU snapshot adapter."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "MySQL table, index, Flyway, repository, and migration contract requirements for sk_* tables."}
+{"file": ".trellis/spec/backend/seckill-contracts.md", "reason": "Admin seckill activity API, status machine, SKU validation, idempotency, and temporary boundary to replace."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Admin RBAC and trusted principal shop scope requirements."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Validation, business, downstream, and fallback exception mapping rules."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Trace propagation and sensitive-data-safe logging expectations."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Targeted Maven reactor test shape and review checklist."}
+{"file": ".trellis/spec/backend/inventory-reserve-contracts.md", "reason": "Product-service stock ownership and no direct pms_* access boundary."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer API/DB/idempotency risk checklist."}
+{"file": ".trellis/spec/guides/seckill-thinking-guide.md", "reason": "Seckill-specific stock/idempotency/race risk checklist."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Microservice boundary and data consistency review order."}
+{"file": ".trellis/tasks/05-11-admin-seckill-activity-persistence-product-sku-snapshot/prd.md", "reason": "Authoritative task requirements, error matrix, Good/Base/Bad cases, and tests."}
+{"file": ".trellis/tasks/05-11-admin-seckill-activity-persistence-product-sku-snapshot/research.md", "reason": "Focused code research, files likely to modify, risks, and test plan."}
+{"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/domain/ActivityRepository.java", "reason": "Repository interface contract to implement with MySQL."}
+{"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/infrastructure/InMemoryActivityRepository.java", "reason": "Temporary repository behavior to preserve or replace with JDBC-backed behavior."}
+{"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/application/AdminSeckillActivityService.java", "reason": "Application idempotency, SKU validation, and status transition orchestration."}
+{"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/domain/ProductSkuSnapshotClient.java", "reason": "Seckill product SKU authority port and required snapshot fields."}
+{"file": "services/sangui-product-service/src/main/java/com/sangui/shop/product/api/InternalProductSnapshotController.java", "reason": "Existing product-service internal SKU snapshot API to reuse or extend."}
+{"file": "services/sangui-product-service/src/main/java/com/sangui/shop/product/client/dto/ProductSkuSnapshotItemResponse.java", "reason": "Existing snapshot DTO likely needs productName and availableStock."}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/client/HttpProductCatalogClient.java", "reason": "Existing RestClient timeout/envelope/error-mapping pattern for product-service calls."}
+{"file": "services/sangui-product-service/src/test/java/com/sangui/shop/product/api/InternalProductSnapshotControllerTest.java", "reason": "Existing product snapshot controller contract test pattern."}
+{"file": "services/sangui-product-service/src/test/java/com/sangui/shop/product/infrastructure/persistence/ProductMigrationContractTest.java", "reason": "Existing static migration contract test pattern."}
+{"file": "services/sangui-seckill-service/src/test/java/com/sangui/shop/seckill/application/AdminSeckillActivityServiceTest.java", "reason": "Existing admin seckill application contract coverage to preserve."}
+{"file": "services/sangui-seckill-service/src/test/java/com/sangui/shop/seckill/api/AdminSeckillActivityControllerTest.java", "reason": "Existing admin seckill WebMvc contract coverage to preserve."}

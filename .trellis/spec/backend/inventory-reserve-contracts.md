@@ -196,6 +196,24 @@ Required constraints and indexes:
 | Invalid reservation transition | 409 | `PRODUCT_INVENTORY_RESERVATION_STATUS_INVALID` |
 | Same reservationNo with different payload | 409 | `IDEMPOTENCY_CONFLICT` |
 
+### Internal Product Snapshot Response Fields
+
+`POST /internal/products/skus/snapshot` response item fields:
+
+```json
+{
+  "productId": 301,
+  "productName": "Running Shoe",
+  "skuId": 401,
+  "skuCode": "RS-42",
+  "skuName": "42",
+  "priceCent": 59900,
+  "availableStock": 20
+}
+```
+
+The `productName` field is resolved from the owning `pms_product` record; `availableStock` is the current sellable stock from `pms_sku`. Unknown/inactive SKUs for the requested `shopId` are silently omitted from the response — consumers must treat missing requested SKU as `PRODUCT_SKU_NOT_FOUND`. Cross-service callers must propagate `X-Trace-Id`; seckill-service does this through `ProductSkuSnapshotClient.findBySkuId(Long shopId, Long skuId, String traceId)`.
+
 ## Required Tests
 
 ```powershell

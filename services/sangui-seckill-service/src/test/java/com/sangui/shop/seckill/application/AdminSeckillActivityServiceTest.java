@@ -446,7 +446,7 @@ class AdminSeckillActivityServiceTest {
         }
 
         @Override
-        public Optional<ProductSkuSnapshot> findBySkuId(Long shopId, Long skuId) {
+        public Optional<ProductSkuSnapshot> findBySkuId(Long shopId, Long skuId, String traceId) {
             return Optional.ofNullable(skus.get(skuId));
         }
     }
@@ -554,9 +554,10 @@ class AdminSeckillActivityServiceTest {
         }
 
         @Override
-        public Optional<SeckillActivitySku> findSkuByRequestId(Long activityId, String requestId) {
+        public Optional<SeckillActivitySku> findSkuByRequestId(Long shopId, Long activityId, String requestId) {
             return Optional.ofNullable(skusByRequestId.get(requestId))
-                    .filter(sku -> sku.activityId().equals(activityId));
+                    .filter(sku -> sku.activityId().equals(activityId))
+                    .filter(sku -> activitiesById.containsKey(activityId) && activitiesById.get(activityId).shopId().equals(shopId));
         }
 
         @Override
@@ -565,7 +566,7 @@ class AdminSeckillActivityServiceTest {
         }
 
         @Override
-        public void saveStatusRequest(Long shopId, Long activityId, String requestId, SeckillActivityStatus targetStatus) {
+        public void saveStatusRequest(Long shopId, Long activityId, String requestId, SeckillActivityStatus targetStatus, String traceId) {
             statusRequests.put(shopId + ":" + activityId + ":" + requestId,
                     new StatusRequestRecord(shopId, activityId, requestId, targetStatus));
         }

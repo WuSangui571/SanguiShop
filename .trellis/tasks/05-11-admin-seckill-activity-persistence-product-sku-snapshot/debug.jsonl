@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Debug failures against validation, business, downstream, and fallback exception mapping rules."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Debug targeted Maven selector and review failures against backend quality rules."}
+{"file": ".trellis/tasks/05-11-admin-seckill-activity-persistence-product-sku-snapshot/prd.md", "reason": "Debug against the approved task requirements and acceptance criteria."}

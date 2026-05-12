@@ -153,11 +153,16 @@ SKU response fields: `productId`, `productName`, `skuId`, `skuCode`, `skuName`, 
 - SKU bind replay with same `requestId`, `skuId`, `activityStock`, `seckillPriceCent` is idempotent.
 - SKU bind validates that the requested `productId` matches the backend product snapshot for the requested `skuId`; a mismatch returns `PRODUCT_SKU_NOT_FOUND`.
 
-#### Temporary Adapter Boundary
+#### Production Persistence & Product Authority
 
-- Current contract-test implementation may use `services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/infrastructure/InMemoryActivityRepository.java` for activity drafts until `sk_activity` / `sk_activity_sku` persistence is introduced.
-- `ProductSkuSnapshotClient` remains the product authority boundary. Until a real product-service adapter is wired, an unavailable adapter may return `PRODUCT_SKU_NOT_FOUND`; tests must use a fake client with explicit product/SKU snapshots instead of hardcoding stock in the controller.
-- When replacing in-memory persistence with MySQL, add `sk_activity`, `sk_activity_sku`, and admin write idempotency constraints covering `shop_id + request_id`, `shop_id + activity_id + request_id`, and `shop_id + activity_id + sku_id`.
+Production `ActivityRepository` is `JdbcActivityRepository` backed by `sk_activity`, `sk_activity_sku`, and `sk_activity_status_request` tables.
+
+- `JdbcActivityRepository` replaces `InMemoryActivityRepository` — the in-memory implementation is no longer a production Spring bean.
+- `ProductSkuSnapshotClientAdapter` is the production `ProductSkuSnapshotClient` implementation. The port signature is `findBySkuId(Long shopId, Long skuId, String traceId)`. It calls `POST /internal/products/skus/snapshot` on product-service via RestClient, sends `X-Trace-Id = traceId`, and maps the first matching item for `(shopId, skuId)`.
+- Adapter maps missing SKU to `Optional.empty()` so the application returns `PRODUCT_SKU_NOT_FOUND`; productId mismatch is rejected by the application as `PRODUCT_SKU_NOT_FOUND`; downstream errors map to `DOWNSTREAM_TIMEOUT`; stock shortage maps to `PRODUCT_STOCK_NOT_ENOUGH`. It never returns a fake SKU snapshot.
+- Internal DTO (`ProductSnapshotRequest` / `ProductSnapshotResponse`) lives in the adapter class; public response DTO is `ProductSkuSnapshotClient.ProductSkuSnapshot`.
+- Application tests use a fake `ProductSkuSnapshotClient` and do not depend on the real adapter.
+- `ActivityRepository.findSkuByRequestId(Long shopId, Long activityId, String requestId)` must include `shopId` in the lookup. `ActivityRepository.saveStatusRequest(Long shopId, Long activityId, String requestId, SeckillActivityStatus targetStatus, String traceId)` must persist `trace_id` to `sk_activity_status_request`.
 
 #### Tests Required
 
@@ -168,6 +173,9 @@ SKU response fields: `productId`, `productName`, `skuId`, `skuCode`, `skuName`, 
 - Status transition tests: valid transitions, invalid transitions, unknown status.
 - Idempotency tests: create/status/SKU replay identical and changed payload.
 - SKU stock boundary tests: SKU not found, activityStock = availableStock, activityStock > availableStock, negative stock.
+- Migration contract test: `SeckillActivityMigrationContractTest` validates `V1` SQL structure including platform columns, `shop_id`, `request_id`, `status`, unique indexes, and lookup indexes.
+- Repository test: `JdbcActivityRepositoryTest` verifies create, update, list paging, status transition, SKU upsert, cross-shop isolation, and idempotency lookup queries.
+- Adapter test: `ProductSkuSnapshotClientAdapterTest` verifies successful mapping, `X-Trace-Id` propagation, missing SKU, invalid envelope, and downstream exception patterns.
 
 ### Flash Sale Token & Order APIs
 
