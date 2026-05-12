@@ -1,0 +1,11 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Local Docker Compose and runtime artifact hygiene contract for RocketMQ dependencies."}
+{"file": ".trellis/spec/backend/messaging-cache-guidelines.md", "reason": "RocketMQ is MQ infrastructure; cleanup must not alter topic/event behavior."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Scoped completion checks and no runtime/debug artifacts in repository state."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Use to keep task limited to operational hygiene, not API/service redesign."}
+{"file": "deploy/docker-compose.yml", "reason": "Shows RocketMQ broker store/log bind mounts that generate local runtime output."}
+{"file": "deploy/rocketmq/broker.conf", "reason": "Shows broker store paths mapped to /home/rocketmq/store."}
+{"file": ".gitignore", "reason": "Existing ignore baseline to extend narrowly for local runtime output."}
+{"file": ".trellis/tasks/archive/2026-05/05-12-manual-existing-feature-test-plan/task.json", "reason": "Old manual test task state after archival."}
+{"file": ".trellis/tasks/archive/2026-05/05-12-manual-existing-feature-test-plan/prd.md", "reason": "Old manual test PRD and acceptance scope preserved under archive."}

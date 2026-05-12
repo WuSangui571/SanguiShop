@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Check local dependency and Docker Compose config remains valid."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check final status contains only scoped hygiene changes and no runtime artifacts."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Check no service/API/data boundary was changed."}
+{"file": "deploy/docker-compose.yml", "reason": "Verify RocketMQ service config still renders after ignore/docs changes."}
+{"file": "deploy/rocketmq/broker.conf", "reason": "Verify broker config remains tracked and behavior unchanged."}
+{"file": ".gitignore", "reason": "Verify ignore rules are narrow and do not hide broker.conf."}
+{"file": ".trellis/tasks/archive/2026-05/05-12-manual-existing-feature-test-plan/task.json", "reason": "Verify old task archival decision and resulting state."}
+{"file": ".trellis/tasks/05-12-local-runtime-and-manual-task-hygiene/prd.md", "reason": "Acceptance criteria and boundary for this cleanup task."}

@@ -52,6 +52,41 @@ Compensation scheduler env rule:
 - `.env.example` keeps only runnable placeholders and defaults; alert rules or dashboard values must not be baked into secrets or code.
 - Repo-backed observability artifacts for recurring jobs live under `deploy/observability/` so dashboards and alert rules can be reviewed together with code.
 
+### RocketMQ Local Runtime Artifact Contract
+
+RocketMQ local dependency configuration keeps source configuration tracked and broker runtime state ignored:
+
+- Tracked source config: `deploy/rocketmq/broker.conf`.
+- Ignored runtime directories:
+  - `deploy/rocketmq/broker-store/`
+  - `deploy/rocketmq/broker-logs/`
+  - `deploy/rocketmq/namesrv-logs/`
+- Docker Compose bind mounts:
+  - `./rocketmq/broker.conf:/opt/rocketmq-5.2.0/conf/broker.conf:ro`
+  - `./rocketmq/broker-store:/home/rocketmq/store`
+  - `./rocketmq/broker-logs:/home/rocketmq/logs`
+  - `./rocketmq/namesrv-logs:/home/rocketmq/logs`
+
+When a local RocketMQ run creates or mutates broker store/log files, those files must not remain tracked in Git. If runtime files were accidentally committed, remove them from the index without deleting local data:
+
+```powershell
+git ls-files deploy/rocketmq/broker-store deploy/rocketmq/broker-logs deploy/rocketmq/namesrv-logs
+git rm --cached -r deploy/rocketmq/broker-store
+```
+
+Only run `git rm --cached -r` for runtime directories that are actually listed by `git ls-files`.
+
+Validation matrix:
+
+| Case | Command | Expected Result |
+| --- | --- | --- |
+| Good | `git ls-files deploy/rocketmq/broker.conf` | `deploy/rocketmq/broker.conf` remains tracked. |
+| Good | `git check-ignore deploy/rocketmq/broker-store/config/timercheck` | The broker store runtime path is ignored. |
+| Good | `docker compose -f deploy/docker-compose.yml config` | RocketMQ services render and `broker.conf` remains a read-only mount. |
+| Base | `git ls-files deploy/rocketmq/broker-logs deploy/rocketmq/namesrv-logs` | Empty output is acceptable if log directories were never tracked. |
+| Bad | Ignoring `deploy/rocketmq/` | Reject because it hides `broker.conf`. |
+| Bad | Deleting runtime directories from disk to clean Git status | Reject; use `git rm --cached` for tracked runtime files. |
+
 Required checks:
 
 ```bash
