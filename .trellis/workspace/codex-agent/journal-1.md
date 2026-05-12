@@ -51,3 +51,65 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: 完成秒杀活动持久化与SKU快照适配
+
+**Date**: 2026-05-12
+**Task**: 完成秒杀活动持久化与SKU快照适配
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Item | Details |
+| --- | --- |
+| Commit | `bd754f5 feat:??????????SKU??` |
+| Task | `05-11-admin-seckill-activity-persistence-product-sku-snapshot` archived after human manual testing passed. |
+| Main modules | Product internal SKU snapshot contract; seckill activity persistence; seckill product snapshot adapter; backend Trellis specs. |
+| Product service changes | `ProductSkuRecord`, `ProductSkuSnapshotItemResponse`, `InternalProductSnapshotController`, and `JdbcProductRepository` now expose/resolve `productName` and `availableStock` for internal SKU snapshots, with stricter product/SKU join scoping. |
+| Seckill service changes | Added JDBC/Flyway production persistence through `JdbcActivityRepository`, `V1__create_seckill_activity_tables.sql`, datasource/Flyway/product-client config, and `ProductSkuSnapshotClientAdapter`; removed production bean wiring from in-memory/fallback stubs. |
+| Codex quality fixes | Added trace propagation through `ProductSkuSnapshotClient.findBySkuId(Long shopId, Long skuId, String traceId)`; scoped SKU-bind idempotency lookup by `shopId`; persisted `trace_id` for status idempotency requests; synchronized tests and specs. |
+| Spec updates | Updated `.trellis/spec/backend/database-guidelines.md`, `seckill-contracts.md`, and `inventory-reserve-contracts.md` with executable table/index/client/signature/test details. |
+| Verification | Passed targeted product + seckill Maven tests and compile checks. Human manual testing also passed before record-session. |
+| Boundaries | Full root reactor test and live Docker MySQL/Flyway boot validation were not run by Codex; real DB behavior was left to manual environment validation. No frontend changes. |
+
+**Verification commands run by Codex**:
+
+```powershell
+.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-seckill-service" -am "-Dtest=InternalProductSnapshotControllerTest,ProductCatalogServiceTest,AdminSeckillActivityControllerTest,AdminSeckillActivityServiceTest,SeckillActivityMigrationContractTest,JdbcActivityRepositoryTest,ProductSkuSnapshotClientAdapterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+```powershell
+.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service" -am "-Dtest=InternalProductSnapshotControllerTest,ProductCatalogServiceTest,ProductInventoryServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+```powershell
+.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-seckill-service" -am "-Dtest=AdminSeckillActivityControllerTest,AdminSeckillActivityServiceTest,SeckillActivityMigrationContractTest,JdbcActivityRepositoryTest,ProductSkuSnapshotClientAdapterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+```powershell
+.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-product-service,services/sangui-seckill-service" -am -DskipTests compile
+```
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bd754f5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

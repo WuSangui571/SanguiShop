@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 1
-- **Last Active**: 2026-05-11
+- **Total Sessions**: 2
+- **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~53 | Active |
+| `journal-1.md` | ~115 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 2 | 2026-05-12 | 完成秒杀活动持久化与SKU快照适配 | `bd754f5` | `main` |
 | 1 | 2026-05-11 | 管理端秒杀活动后端合同收尾 | `76a7fc0` | `main` |
 <!-- @@@/auto:session-history -->
 
