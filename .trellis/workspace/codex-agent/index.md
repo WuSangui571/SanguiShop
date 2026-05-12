@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~268 | Active |
+| `journal-1.md` | ~338 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-05-12 | 清理本地运行时产物与收尾手测任务状态 | `a572226` | `main` |
 | 4 | 2026-05-12 | 完善后台 Ops 权限登录白名单 | `d8714fe` | `main` |
 | 3 | 2026-05-12 | Manual existing feature test pass | `46d36e9` | `main` |
 | 2 | 2026-05-12 | 完成秒杀活动持久化与SKU快照适配 | `bd754f5` | `main` |

@@ -266,3 +266,73 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: 清理本地运行时产物与收尾手测任务状态
+
+**Date**: 2026-05-12
+**Task**: 清理本地运行时产物与收尾手测任务状态
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Details |
+| --- | --- |
+| Commit | `a572226 chore:?????????` |
+| Task | `05-12-local-runtime-and-manual-task-hygiene` archived after human manual testing passed. |
+| Main modules | Git hygiene for RocketMQ local runtime outputs; Trellis task cleanup; backend DevOps spec. |
+| Runtime cleanup | Added narrow `.gitignore` rules for `deploy/rocketmq/broker-store/`, `deploy/rocketmq/broker-logs/`, and `deploy/rocketmq/namesrv-logs/`. |
+| Index cleanup | Removed tracked `deploy/rocketmq/broker-store/**` runtime files from Git index while preserving local files. |
+| Config boundary | `deploy/rocketmq/broker.conf` remains tracked and Docker Compose keeps it as a read-only bind mount. |
+| Trellis cleanup | Archived completed `05-12-manual-existing-feature-test-plan` and updated the cleanup task context to reference the archived path. |
+| Spec update | Added RocketMQ local runtime artifact contract to `.trellis/spec/backend/observability-devops.md`, including tracked/ignored paths, cleanup commands, validation matrix, and Good/Base/Bad cases. |
+| Human acceptance | User manually tested after Codex check and confirmed all tests passed before committing. |
+| Boundary | No Java/Vue business logic changed; no API, DB, Redis key, MQ topic, Gateway route, or permission model changed. |
+
+**Updated Files / Paths**:
+- `.gitignore`
+- `.trellis/spec/backend/observability-devops.md`
+- `.trellis/tasks/archive/2026-05/05-12-manual-existing-feature-test-plan/`
+- `.trellis/tasks/05-12-local-runtime-and-manual-task-hygiene/` (now archived by record-session step)
+- `deploy/rocketmq/broker-store/**` removed from Git index only; local files preserved.
+
+**Verification Commands / Results**:
+- `[OK]` `git diff --check` passed; only line-ending warnings were reported, no whitespace errors.
+- `[OK]` `git check-ignore -v deploy/rocketmq/broker-store/config/timercheck deploy/rocketmq/broker-logs/rocketmqlogs/broker.log deploy/rocketmq/namesrv-logs/rocketmqlogs/namesrv.log` showed all runtime paths are ignored by `.gitignore`.
+- `[OK]` `git ls-files deploy/rocketmq/broker.conf deploy/rocketmq/broker-store deploy/rocketmq/broker-logs deploy/rocketmq/namesrv-logs` output only `deploy/rocketmq/broker.conf`.
+- `[OK]` `Test-Path deploy/rocketmq/broker-store/config/timercheck; Test-Path deploy/rocketmq/broker-store/abort` returned `True`, proving local runtime files were preserved.
+- `[OK]` `python ./.trellis/scripts/task.py validate .trellis/tasks/05-12-local-runtime-and-manual-task-hygiene` passed before archive.
+- `[OK]` `python ./.trellis/scripts/task.py list` showed only the cleanup task before archive and no active tasks after archive.
+- `[OK]` `docker compose -f deploy/docker-compose.yml config` rendered successfully with `rocketmq-namesrv`, `rocketmq-broker`, `broker.conf` read-only mount, and store/log bind mounts intact.
+
+**Not Run**:
+- Maven backend tests were not run because no Java/Spring/API/DB/MQ consumer business code changed.
+- Frontend lint/typecheck/build were not run because no `frontend/**` files changed.
+
+**Result**:
+- Runtime file pollution is removed from future diffs.
+- Completed manual test task is archived.
+- Repository hygiene rule is now captured in backend DevOps spec for future agents.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a572226` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
