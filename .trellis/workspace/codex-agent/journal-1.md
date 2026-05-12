@@ -113,3 +113,88 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Manual existing feature test pass
+
+**Date**: 2026-05-12
+**Task**: Manual existing feature test pass
+**Branch**: `main`
+
+### Summary
+
+Recorded user-completed manual full-stack verification for SanguiShop existing features, including local dependencies, backend/frontend startup, admin workspaces, mall order flow, and known permission/env boundaries.
+
+### Main Changes
+
+| Area | Result |
+|------|--------|
+| Manual Test Scope | Existing SanguiShop local full-stack smoke and feature verification completed by user. |
+| Local Dependencies | `mysql`, `redis`, `nacos`, `rocketmq-namesrv`, and `rocketmq-broker` started with Docker Compose and verified running/healthy where applicable. |
+| Backend Startup | Core services started from IDEA with local env. User service env consolidated with `ops_admin`, `alice`, `bob`, and `mall_demo_user` ops bindings. |
+| Frontend Build | `cmd /c npm install` completed with packages up to date; `cmd /c npm run build` completed successfully. |
+| Backend Build | `./mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -DskipTests compile` completed successfully. |
+| Product Management | Admin product management page usable. |
+| Mall Flow | Mall user can add to cart, pay, and place orders. |
+| Order Admin | Order workspace issue traced to dynamic SQL whitespace in `JdbcOrderRepository`; after fix, user manual test passed. |
+| Review Admin | Gateway review route and order-service review query path verified through manual test; user manual test passed. |
+| Fulfillment Admin | Fulfillment page supports selecting unshipped paid orders, entering carrier/tracking number, and shipping from the page; user manual test passed. |
+| Seckill Startup | Seckill service startup issue traced to `ProductSkuSnapshotClientAdapter` constructor injection and DB schema/grant setup; user continued startup testing successfully. |
+| Logistics Startup | Logistics service DataSource env issue resolved for IDEA startup; user confirmed startup no longer errors. |
+| Permissions | Found current ops login whitelist admits product/order/review/compensation permissions but not pure fulfillment/seckill permissions. Temporary manual-test env added `PRODUCT_CATALOG_ADMIN` to `bob` and `mall_demo_user` so they can enter admin shell while retaining fulfillment/seckill permissions. |
+
+**Main Changes / Modules Covered**:
+- `services/sangui-order-service`: admin order/review/fulfillment/compensation dynamic SQL whitespace fix in `JdbcOrderRepository`.
+- `services/sangui-gateway`: admin review route added so `/api/admin/reviews/**` reaches order-service.
+- `services/sangui-seckill-service`: SKU snapshot adapter constructor injection fixed for Spring startup.
+- `services/sangui-logistics-service`: IDEA local DataSource/Flyway env guidance used to start logistics service.
+- `deploy`: Docker Compose/RocketMQ local dependency setup validated by user.
+- `frontend`: admin product, order, review, fulfillment, seckill permission/workspace behavior manually exercised.
+
+**Updated Files Observed In Working Tree**:
+- `common/sangui-common-web/src/main/java/com/sangui/shop/common/web/GlobalApiExceptionHandler.java`
+- `deploy/docker-compose.yml`
+- `deploy/rocketmq/broker.conf`
+- `services/sangui-gateway/src/main/resources/application.yml`
+- `services/sangui-order-service/src/main/java/com/sangui/shop/order/infrastructure/persistence/JdbcOrderRepository.java`
+- `services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/infrastructure/ProductSkuSnapshotClientAdapter.java`
+- `deploy/rocketmq/broker-store/` remains untracked local runtime data.
+
+**Verification Commands / Results**:
+- `[OK]` `docker compose -f deploy/docker-compose.yml up -d mysql redis nacos rocketmq-namesrv rocketmq-broker`
+- `[OK]` `docker compose -f deploy/docker-compose.yml ps` showed five required containers running; MySQL/Redis/Nacos healthy.
+- `[OK]` `docker compose -f deploy/docker-compose.yml config` inspected effective local dependency configuration.
+- `[OK]` `./mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -DskipTests compile`
+- `[OK]` `cmd /c npm install`
+- `[OK]` `cmd /c npm run build`
+- `[OK]` `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am "-Dtest=AdminOrderControllerTest,AdminReviewControllerTest,AdminOrderManagementServiceTest,AdminReviewManagementServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+- `[OK]` `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-order-service" -am -DskipTests compile`
+- `[OK]` `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-seckill-service" -am -DskipTests compile`
+- `[OK]` `mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-pl=services/sangui-gateway,services/sangui-order-service" -am "-Dtest=AdminOrderControllerTest,AdminReviewControllerTest,GatewayJwtAuthenticationFilterTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+
+**Commit Recorded**:
+- `46d36e9` (`fix?????????`) currently contains Trellis task files for the manual existing feature test plan.
+
+**Important Boundary**:
+- User reported manual testing passed.
+- `git status --short` still shows business/config files modified and `deploy/rocketmq/broker-store/` untracked, so the active Trellis task was not archived in this record step. It should be archived after the actual business/config changes are committed or intentionally reverted/ignored.
+- No business code was edited during this record step.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `46d36e9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

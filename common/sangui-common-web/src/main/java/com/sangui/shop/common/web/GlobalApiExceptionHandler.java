@@ -11,9 +11,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestControllerAdvice
 public class GlobalApiExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalApiExceptionHandler.class);
 
     @ExceptionHandler(SanguiException.class)
     public ResponseEntity<ApiResult<Void>> handleSanguiException(
@@ -44,6 +47,13 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResult<Void>> handleUnexpected(Exception exception, HttpServletRequest request) {
+        log.error("Unhandled exception. uri={}, method={}, traceId={}",
+                request.getRequestURI(),
+                request.getMethod(),
+                traceId(request),
+                exception
+        );
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResult.failure(
                         CommonErrorCode.INTERNAL_ERROR.code(),

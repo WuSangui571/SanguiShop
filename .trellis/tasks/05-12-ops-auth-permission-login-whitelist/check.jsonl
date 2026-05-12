@@ -1,0 +1,18 @@
+{"file": ".trellis\\tasks\\05-12-ops-auth-permission-login-whitelist\\prd.md", "reason": "Check implementation against confirmed PRD, scope, validation matrix, and tests"}
+{"file": ".trellis\\tasks\\05-12-ops-auth-permission-login-whitelist\\research.md", "reason": "Review against researched patterns and risk boundaries"}
+{"file": ".trellis\\spec\\backend\\authentication-contracts.md", "reason": "Verify auth contract and forbidden behavior remain correct"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Check security boundary and audit expectations"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Check envelope, shop scope, and AUTH_FORBIDDEN semantics"}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "Check error mapping and no internal leakage"}
+{"file": ".trellis\\spec\\backend\\logging-guidelines.md", "reason": "Check audit behavior remains unchanged"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Verify required targeted tests and Good/Base/Bad coverage"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Check workspace isolation and backend error preservation expectations"}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Check session state does not leak sensitive auth data"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Check component permission gate behavior"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Verify frontend quality commands and permission states"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Check no cross-layer contract drift"}
+{"file": "services\\sangui-user-service\\src\\main\\java\\com\\sangui\\shop\\user\\application\\OpsAuthService.java", "reason": "Review whitelist remains least-privilege"}
+{"file": "services\\sangui-user-service\\src\\main\\java\\com\\sangui\\shop\\user\\application\\OpsAccessRegistry.java", "reason": "Review binding normalization and optional legacy seckill alignment"}
+{"file": "services\\sangui-user-service\\src\\test\\java\\com\\sangui\\shop\\user\\application\\OpsAuthServiceTest.java", "reason": "Check backend test assertions for pure fulfillment/seckill and denial"}
+{"file": "frontend\\src\\App.vue", "reason": "Check workspace visibility remains isolated"}
+{"file": "frontend\\src\\App.spec.ts", "reason": "Check isolation assertions for fulfillment-only and seckill-only users"}

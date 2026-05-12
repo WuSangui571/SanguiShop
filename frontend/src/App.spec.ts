@@ -202,6 +202,60 @@ describe('App seckill workspace permission gating', () => {
   })
 })
 
+describe('App fulfillment workspace isolation', () => {
+  let wrapper: VueWrapper | null = null
+
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/admin?workspace=fulfillment')
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    mockSessionRef.current = null
+  })
+
+  it('renders only fulfillment workspace for LOGISTICS_FULFILLMENT_ADMIN alone', async () => {
+    mockSessionRef.current = adminSession([], ['LOGISTICS_FULFILLMENT_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.fulfillmentWorkspace')
+    expect(wrapper.text()).not.toContain('admin.productWorkspace')
+    expect(wrapper.text()).not.toContain('admin.orderWorkspace')
+    expect(wrapper.text()).not.toContain('admin.reviewWorkspace')
+    expect(wrapper.text()).not.toContain('admin.seckillWorkspace')
+    expect(wrapper.text()).not.toContain('admin.compensationWorkspace')
+  })
+})
+
+describe('App seckill workspace isolation', () => {
+  let wrapper: VueWrapper | null = null
+
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/admin?workspace=seckill')
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    mockSessionRef.current = null
+  })
+
+  it('renders only seckill workspace for SECKILL_ACTIVITY_ADMIN alone', async () => {
+    mockSessionRef.current = adminSession([], ['SECKILL_ACTIVITY_ADMIN'])
+    wrapper = shallowMount(App)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('admin.seckillWorkspace')
+    expect(wrapper.text()).not.toContain('admin.productWorkspace')
+    expect(wrapper.text()).not.toContain('admin.orderWorkspace')
+    expect(wrapper.text()).not.toContain('admin.reviewWorkspace')
+    expect(wrapper.text()).not.toContain('admin.fulfillmentWorkspace')
+    expect(wrapper.text()).not.toContain('admin.compensationWorkspace')
+  })
+})
+
 describe('App product workspace permission gating', () => {
   let wrapper: VueWrapper | null = null
 

@@ -373,6 +373,7 @@ public class JdbcOrderRepository implements OrderRepository {
         return jdbcTemplate.query(
                 adminReviewSelectSql()
                         + queryParts.sql()
+                        + "\n"
                         + """
                         ORDER BY r.created_at DESC, r.id DESC
                         LIMIT ? OFFSET ?
@@ -563,6 +564,7 @@ public class JdbcOrderRepository implements OrderRepository {
                         FROM oms_order
                         """
                         + queryParts.sql()
+                        + "\n"
                         + """
                         ORDER BY created_at DESC, id DESC
                         LIMIT ? OFFSET ?
@@ -599,6 +601,7 @@ public class JdbcOrderRepository implements OrderRepository {
                         FROM oms_order
                         """
                         + queryParts.sql()
+                        + "\n"
                         + """
                         ORDER BY created_at DESC, id DESC
                         LIMIT ? OFFSET ?
@@ -690,6 +693,7 @@ public class JdbcOrderRepository implements OrderRepository {
                         FROM oms_order_compensation_attempt
                         """
                         + queryParts.sql()
+                        + "\n"
                         + """
                         GROUP BY order_id
                         ORDER BY latest_attempt_at DESC, order_id DESC

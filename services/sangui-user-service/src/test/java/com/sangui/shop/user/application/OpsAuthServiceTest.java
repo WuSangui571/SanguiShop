@@ -67,7 +67,8 @@ class OpsAuthServiceTest {
                 SanguiPermissionConstants.PRODUCT_CATALOG_ADMIN,
                 SanguiPermissionConstants.ORDER_MANAGEMENT_ADMIN,
                 SanguiPermissionConstants.REVIEW_MANAGEMENT_ADMIN,
-                SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN
+                SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN,
+                SanguiPermissionConstants.SECKILL_ACTIVITY_ADMIN
         );
     }
 
@@ -121,7 +122,49 @@ class OpsAuthServiceTest {
     }
 
     @Test
-    void loginRejectsBindingWithoutCompensationPermission() {
+    void loginAllowsLogisticsFulfillmentAdminPermission() {
+        accessRegistry.setBindings(List.of(accessBinding(1L, "fulfillment-admin", SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN)));
+        userRepository.save(1L, "fulfillment-admin", "13800000004", passwordHasher.hash("Passw0rd!"));
+
+        OpsSessionResponse response = opsAuthService.login(new LoginUserRequest(1L, "fulfillment-admin", "Passw0rd!"));
+
+        assertThat(response.permissions()).containsExactly(SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN);
+        assertThat(tokenIssuer.lastPermissions).containsExactly(SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN);
+    }
+
+    @Test
+    void loginAllowsSeckillActivityAdminPermission() {
+        accessRegistry.setBindings(List.of(accessBinding(1L, "seckill-admin", SanguiPermissionConstants.SECKILL_ACTIVITY_ADMIN)));
+        userRepository.save(1L, "seckill-admin", "13800000005", passwordHasher.hash("Passw0rd!"));
+
+        OpsSessionResponse response = opsAuthService.login(new LoginUserRequest(1L, "seckill-admin", "Passw0rd!"));
+
+        assertThat(response.permissions()).containsExactly(SanguiPermissionConstants.SECKILL_ACTIVITY_ADMIN);
+        assertThat(tokenIssuer.lastPermissions).containsExactly(SanguiPermissionConstants.SECKILL_ACTIVITY_ADMIN);
+    }
+
+    @Test
+    void refreshReissuesTokenForLogisticsFulfillmentAdmin() {
+        accessRegistry.setBindings(List.of(accessBinding(1L, "fulfillment-admin", SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN)));
+        Long userId = userRepository.save(1L, "fulfillment-admin", "13800000006", passwordHasher.hash("Passw0rd!"));
+
+        OpsSessionResponse response = opsAuthService.refresh(new SanguiPrincipal(
+                String.valueOf(userId),
+                1L,
+                java.util.Set.of(),
+                java.util.Set.of(SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN),
+                "jwt-fulfillment-1"
+        ));
+
+        assertThat(response.userId()).isEqualTo(userId);
+        assertThat(response.roles()).isEmpty();
+        assertThat(response.permissions()).containsExactly(SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN);
+        assertThat(tokenIssuer.lastRoles).isEmpty();
+        assertThat(tokenIssuer.lastPermissions).containsExactly(SanguiPermissionConstants.LOGISTICS_FULFILLMENT_ADMIN);
+    }
+
+    @Test
+    void loginRejectsBindingWithoutAdminSessionPermission() {
         accessRegistry.setBindings(List.of(accessBinding(1L, "ops-admin", "OPS_OTHER_PERMISSION")));
         userRepository.save(1L, "ops-admin", "13800000000", passwordHasher.hash("Passw0rd!"));
 

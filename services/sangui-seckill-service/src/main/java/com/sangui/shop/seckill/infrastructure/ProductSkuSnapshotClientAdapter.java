@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
@@ -30,6 +31,7 @@ public class ProductSkuSnapshotClientAdapter implements ProductSkuSnapshotClient
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
+    @Autowired
     public ProductSkuSnapshotClientAdapter(
             @Value("${sangui.client.product.base-url}") String baseUrl,
             @Value("${sangui.client.product.connect-timeout-ms:2000}") int connectTimeoutMs,

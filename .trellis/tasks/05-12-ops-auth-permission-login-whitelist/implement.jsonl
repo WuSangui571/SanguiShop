@@ -1,0 +1,21 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\tasks\\05-12-ops-auth-permission-login-whitelist\\prd.md", "reason": "Confirmed PRD, scope, validation matrix, tests, and handoff boundaries"}
+{"file": ".trellis\\tasks\\05-12-ops-auth-permission-login-whitelist\\research.md", "reason": "Focused code research and files likely to modify"}
+{"file": ".trellis\\spec\\backend\\authentication-contracts.md", "reason": "Ops login, refresh, JWT permissions, and ops binding contract"}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Gateway/user-service responsibility split for ops login and security"}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "API envelope and auth error code conventions"}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "403/auth failure mapping expectations"}
+{"file": ".trellis\\spec\\backend\\logging-guidelines.md", "reason": "Preserve ops auth audit log behavior"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Targeted Maven reactor test requirements"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin workspace permission gates for fulfillment and seckill"}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Persisted ops session permission handling"}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Reactive workspace gate and UI state guidance"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend test/typecheck/build expectations"}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Cross-layer auth/frontend/manual env risk checklist"}
+{"file": "services\\sangui-user-service\\src\\main\\java\\com\\sangui\\shop\\user\\application\\OpsAuthService.java", "reason": "Primary whitelist implementation point"}
+{"file": "services\\sangui-user-service\\src\\main\\java\\com\\sangui\\shop\\user\\application\\OpsAccessRegistry.java", "reason": "Ops binding and legacy admin permission pattern"}
+{"file": "services\\sangui-user-service\\src\\test\\java\\com\\sangui\\shop\\user\\application\\OpsAuthServiceTest.java", "reason": "Backend unit tests for pure permissions"}
+{"file": "frontend\\src\\App.vue", "reason": "Admin workspace gate behavior"}
+{"file": "frontend\\src\\App.spec.ts", "reason": "Frontend workspace permission tests"}

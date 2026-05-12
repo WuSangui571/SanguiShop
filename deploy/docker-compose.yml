@@ -63,7 +63,7 @@ services:
     ports:
       - "9876:9876"
     volumes:
-      - sangui-rocketmq-namesrv-logs:/home/rocketmq/logs
+      - ./rocketmq/namesrv-logs:/home/rocketmq/logs
 
   rocketmq-broker:
     image: apache/rocketmq:5.2.0
@@ -72,15 +72,16 @@ services:
       - rocketmq-namesrv
     environment:
       NAMESRV_ADDR: rocketmq-namesrv:9876
-    command: sh mqbroker -c /home/rocketmq/rocketmq-5.2.0/conf/broker.conf
+      JAVA_OPT_EXT: "-server -Xms512m -Xmx512m -Xmn256m -XX:MaxDirectMemorySize=256m"
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /opt/rocketmq-5.2.0/conf/broker.conf
     ports:
       - "10909:10909"
       - "10911:10911"
       - "10912:10912"
     volumes:
-      - ./rocketmq/broker.conf:/home/rocketmq/rocketmq-5.2.0/conf/broker.conf:ro
-      - sangui-rocketmq-broker-store:/home/rocketmq/store
-      - sangui-rocketmq-broker-logs:/home/rocketmq/logs
+      - ./rocketmq/broker.conf:/opt/rocketmq-5.2.0/conf/broker.conf:ro
+      - ./rocketmq/broker-store:/home/rocketmq/store
+      - ./rocketmq/broker-logs:/home/rocketmq/logs
 
 volumes:
   sangui-mysql-data:
