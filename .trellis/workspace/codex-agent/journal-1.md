@@ -336,3 +336,82 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: 沉淀本地一键 smoke 验证
+
+**Date**: 2026-05-13
+**Task**: 沉淀本地一键 smoke 验证
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Details |
+| --- | --- |
+| Commit | `103e923 chore:??????smoke??` |
+| Task | `05-12-local-one-click-smoke-scripts` archived after human manual testing and commit. |
+| Main modules | Local DevOps smoke script, README verification docs, backend observability/devops spec, Trellis task context. |
+| Smoke script | Added `scripts/smoke-local.ps1` with Git hygiene, Docker Compose config, backend Maven Wrapper compile/test mode, and frontend `cmd /c npm --prefix frontend` typecheck/build gates. |
+| Command flags | Supports `-SkipDocker`, `-SkipBackend`, `-SkipFrontend`, `-BackendMode compile|test`, and `-PrintCommandOnly`. |
+| Git hygiene | Validates RocketMQ runtime directories are ignored, `deploy/rocketmq/broker.conf` remains tracked, and runtime dirs are not tracked in Git index. |
+| Codex check fixes | Changed selected Docker missing-tool behavior from skip to fail unless `-SkipDocker` is explicit; changed tracked runtime dirs from warn to fail without cleanup; switched default Compose validation to `config --quiet` to avoid printing local `.env` values. |
+| Docs/spec sync | Updated README Verification section and `.trellis/spec/backend/observability-devops.md` with local smoke contract, process-scoped PowerShell bypass, skip semantics, Good/Base/Bad cases, and quiet Compose validation. |
+| Boundary | No Java/Vue business implementation changed; no API, DB, Redis, MQ topic, auth/permission, or Docker image pipeline change; no runtime directory deletion or Git index cleanup performed by the script. |
+
+**Updated Files / Paths**:
+- `scripts/smoke-local.ps1`
+- `README.md`
+- `.trellis/spec/backend/observability-devops.md`
+- `.trellis/tasks/archive/2026-05/05-12-local-one-click-smoke-scripts/`
+
+**Verification Commands / Results**:
+- `[OK]` `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1 -PrintCommandOnly`
+- `[OK]` `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1 -PrintCommandOnly -SkipDocker -SkipFrontend`
+- `[OK]` `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1 -PrintCommandOnly -BackendMode test -SkipDocker -SkipFrontend`
+- `[OK]` `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1 -SkipDocker -SkipBackend -SkipFrontend`
+- `[OK]` `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1 -SkipBackend -SkipFrontend`
+- `[OK]` `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1`
+- `[OK]` `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1 -BackendMode test -SkipDocker -SkipFrontend`
+- `[OK]` `git check-ignore -v deploy/rocketmq/broker-store/config/timercheck deploy/rocketmq/broker-logs/rocketmqlogs/broker.log deploy/rocketmq/namesrv-logs/rocketmqlogs/namesrv.log`
+- `[OK]` `git ls-files deploy/rocketmq/broker.conf deploy/rocketmq/broker-store deploy/rocketmq/broker-logs deploy/rocketmq/namesrv-logs` returned only `deploy/rocketmq/broker.conf`.
+- `[OK]` `docker compose -f deploy/docker-compose.yml config`
+- `[OK]` `docker compose -f deploy/docker-compose.yml config --quiet`
+- `[OK]` `.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" -DskipTests compile`
+- `[OK]` `.\mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" test`
+- `[OK]` `cmd /c npm --prefix frontend run typecheck`
+- `[OK]` `cmd /c npm --prefix frontend run build`
+- `[OK]` `cmd /c npm --prefix frontend run test` passed 20 test files / 245 tests.
+- `[OK]` `python .\.trellis\scripts\task.py validate .trellis\tasks\05-12-local-one-click-smoke-scripts` before archive.
+- `[OK]` `git diff --check` passed; only LF-to-CRLF working-copy warnings were reported for README/spec.
+
+**Notable Runtime Notes**:
+- Direct `.[0mscripts\smoke-local.ps1` was blocked by local PowerShell execution policy on this machine, so the documented process-scoped fallback `powershell -ExecutionPolicy Bypass -File ...` was verified.
+- Maven full tests passed but emitted existing Nacos localhost connection-refused log noise; it did not fail the run.
+- Maven Wrapper reported using globally installed Maven 3.9.9 because the wrapper distribution was not cached.
+
+**Result**:
+- Local one-click smoke validation is now reproducible, documented, and spec-backed.
+- Future business changes can quickly distinguish code regressions from missing Docker, bad Git hygiene, missing frontend deps, or backend compile/test failures.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `103e923` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
