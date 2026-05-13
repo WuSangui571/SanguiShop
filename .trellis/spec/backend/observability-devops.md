@@ -155,6 +155,53 @@ Required assertion points:
 
 如果 Windows PowerShell 执行 npm `.ps1` shim 被策略拦截，前端命令使用 `cmd /c npm ...`。
 
+### Local Smoke Validation
+
+本地一键 smoke 入口：
+
+```powershell
+.\scripts\smoke-local.ps1
+```
+
+如果 Windows PowerShell 策略阻止直接执行 `.ps1`，只允许使用进程级 bypass：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1
+```
+
+验证顺序和合同：
+
+| Step | Checks | Failure Meaning |
+| --- | --- | --- |
+| Git hygiene | broker-store/broker-logs/namesrv-logs 被 gitignore；broker.conf 保持 tracked | runtime 产物可能污染 diff 或 broker.conf 被误忽略 |
+| Docker Compose | `docker compose -f deploy/docker-compose.yml config --quiet` | Compose 配置或环境插值失效 |
+| Backend compile | `.\mvnw.cmd -q -Dmaven.repo.local=<root>\.m2\repository -DskipTests compile` | Java 编译或依赖断裂 |
+| Backend test（-BackendMode test） | `.\mvnw.cmd -q -Dmaven.repo.local=<root>\.m2\repository test` | 测试回归 |
+| Frontend typecheck | `cmd /c npm --prefix frontend run typecheck` | TypeScript 类型断裂 |
+| Frontend build | `cmd /c npm --prefix frontend run build` | Vite 构建回归 |
+
+Skip flags:
+
+- `-SkipDocker`: 无 Docker 环境时跳过 Compose 检查。
+- `-SkipBackend`: 跳过 Maven 编译/测试。
+- `-SkipFrontend`: 跳过 npm typecheck/build。
+- `-BackendMode test`: 运行完整 `test` 而非默认 `compile`。
+- `-PrintCommandOnly`: 打印解析后的命令并退出，不执行任何操作。
+
+Exit code:
+
+- `0`: 所有选中检查通过或明确跳过。
+- 非零：选中检查失败；输出标明失败区域。
+- 默认选中的检查如果缺少本地工具必须失败；只有显式 skip flag 或可选目录不存在才能标记为跳过。
+- 默认脚本执行 Docker Compose 校验时必须使用 `--quiet`，避免把本地 `.env` secret 展开到终端输出；排障时才手动运行完整 `docker compose -f deploy/docker-compose.yml config`。
+
+Good/Base/Bad cases:
+
+- Good: `.\scripts\smoke-local.ps1` 全部通过。
+- Good: `.\scripts\smoke-local.ps1 -PrintCommandOnly` 打印 git/docker/maven/npm 命令。
+- Base: `.\scripts\smoke-local.ps1 -SkipDocker` 通过且输出标明 Docker 跳过。
+- Bad: 脚本删除 runtime 目录或业务实现文件被修改。
+
 ## Kubernetes Rules
 
 - 每个服务使用 Deployment + Service。

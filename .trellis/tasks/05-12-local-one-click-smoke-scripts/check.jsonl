@@ -1,0 +1,12 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\spec\\backend\\observability-devops.md", "reason": "Check script/docs against wrapper, compose, and RocketMQ runtime artifact contracts."}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Verify selected backend smoke gates and assertions are explicit and reproducible."}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Check frontend smoke entry runs typecheck/build without changing UI behavior."}
+{"file": ".trellis\\spec\\guides\\architecture-review-checklist.md", "reason": "Review that the smoke script does not drift into business/API/DB changes."}
+{"file": "scripts\\verify-compensation-ops-audit.ps1", "reason": "Use as check reference for print-only output and wrapper command transparency."}
+{"file": "deploy\\docker-compose.yml", "reason": "Verify smoke output matches actual service names and RocketMQ bind mounts."}
+{"file": ".gitignore", "reason": "Confirm runtime directories remain ignored without hiding broker.conf."}
+{"file": "frontend\\package.json", "reason": "Check documented npm commands match actual frontend scripts."}
+{"file": "README.md", "reason": "Verify local smoke docs no longer recommend global mvn and clearly explain skip flags."}
+{"file": ".trellis\\tasks\\05-12-local-one-click-smoke-scripts\\prd.md", "reason": "Check implementation against PRD acceptance criteria and explicit non-goals."}

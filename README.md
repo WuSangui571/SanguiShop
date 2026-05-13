@@ -43,12 +43,52 @@ docs/
 
 ## Verification
 
+### One-click smoke validation
+
 ```powershell
-mvn -q -DskipTests compile
-mvn -q test
+.\scripts\smoke-local.ps1
 ```
 
-PowerShell may block npm's `.ps1` shim on some Windows machines. Use `cmd /c npm ...` for frontend commands when a full frontend project is added.
+Default run validates Git hygiene, Docker Compose config, backend compile, and frontend typecheck/build. The script uses quiet Compose validation by default so local `.env` values are not printed.
+If Windows PowerShell blocks local `.ps1` execution, use a process-scoped bypass:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1
+```
+
+### Skip flags
+
+| Flag | Effect |
+| --- | --- |
+| `-SkipDocker` | Skip Docker-compose check (machine without Docker) |
+| `-SkipBackend` | Skip Maven compile/test |
+| `-SkipFrontend` | Skip npm typecheck/build |
+| `-BackendMode test` | Run full Maven test suite instead of compile |
+| `-PrintCommandOnly` | Print resolved commands and exit, no side effects |
+
+### Check interpretation
+
+- `PASS`: check completed successfully.
+- `FAIL`: check failed; investigate the reported area.
+- `SKIP`: check skipped by an explicit flag, or because an optional project area is absent; not a failure, but note omitted checks.
+- Missing tools for selected checks are `FAIL`. Use an explicit skip flag, such as `-SkipDocker`, when the local machine intentionally lacks that tool.
+
+### RocketMQ tracked/ignored boundary
+
+- Tracked: `deploy/rocketmq/broker.conf`.
+- Ignored (gitignored runtime artifacts): `deploy/rocketmq/broker-store/`, `deploy/rocketmq/broker-logs/`, `deploy/rocketmq/namesrv-logs/`.
+
+### Fallback commands
+
+```powershell
+.\mvnw.cmd -q "-Dmaven.repo.local=<root>\.m2\repository" -DskipTests compile
+.\mvnw.cmd -q "-Dmaven.repo.local=<root>\.m2\repository" test
+docker compose -f deploy/docker-compose.yml config --quiet
+cmd /c npm --prefix frontend run typecheck
+cmd /c npm --prefix frontend run build
+```
+
+Windows frontend commands must use `cmd /c npm --prefix frontend ...` to avoid PowerShell npm shim policy issues.
 
 ## Secret Policy
 
