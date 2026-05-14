@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
-- **Last Active**: 2026-05-13
+- **Total Sessions**: 7
+- **Last Active**: 2026-05-14
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~417 | Active |
+| `journal-1.md` | ~506 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-05-14 | 收敛后端测试中的 Nacos 连接噪音 / 测试环境隔离 | `2fe34a0` | `main` |
 | 6 | 2026-05-13 | 沉淀本地一键 smoke 验证 | `103e923` | `main` |
 | 5 | 2026-05-12 | 清理本地运行时产物与收尾手测任务状态 | `a572226` | `main` |
 | 4 | 2026-05-12 | 完善后台 Ops 权限登录白名单 | `d8714fe` | `main` |

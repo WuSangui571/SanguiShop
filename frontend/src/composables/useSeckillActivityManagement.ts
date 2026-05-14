@@ -209,6 +209,7 @@ export function useSeckillActivityManagement(
         description: draft.value.activityDescription.trim() || null,
         startsAt: draft.value.startsAt.trim(),
         endsAt: draft.value.endsAt.trim(),
+        requestId: createRequestId(),
         skus: [],
       }
       let nextActivityId = draft.value.activityId

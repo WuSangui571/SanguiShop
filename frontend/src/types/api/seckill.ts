@@ -40,6 +40,7 @@ export interface AdminSeckillActivityDraftRequest {
   description?: string | null
   startsAt: string
   endsAt: string
+  requestId: string
   skus: Array<{
     productId: number
     skuId: number

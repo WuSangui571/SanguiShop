@@ -415,3 +415,91 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: 收敛后端测试中的 Nacos 连接噪音 / 测试环境隔离
+
+**Date**: 2026-05-14
+**Task**: 收敛后端测试中的 Nacos 连接噪音 / 测试环境隔离
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Details |
+| --- | --- |
+| Commit | `2fe34a0 test:??Nacos??????` |
+| Task | `05-13-backend-test-nacos-isolation` archived after human verification and commit. |
+| Main modules | Backend smoke tests, WebMvc test isolation, backend quality/devops spec, Trellis task context. |
+| Smoke coverage | Added application smoke tests for `seckill`, `logistics`, `review`, `marketing`, `search-rec`, and `ai`, bringing all 11 backend services under smoke coverage. |
+| Check fixes | Refined `sangui-gateway` smoke test to use `SpringBootTest.WebEnvironment.MOCK` for reactive gateway infrastructure instead of `NONE`. |
+| Noise isolation | Added test-only `spring.config.import=`, `spring.cloud.nacos.config.enabled=false`, `spring.cloud.nacos.discovery.enabled=false`, and `spring.cloud.sentinel.enabled=false` to affected `@WebMvcTest` slices so default `mvn test` stays free of Nacos config/import noise. |
+| Spec sync | Updated `.trellis/spec/backend/quality-guidelines.md` with executable default test isolation rules and WebMvc slice isolation rules; updated `.trellis/spec/backend/observability-devops.md` to require smoke coverage for all 11 services. |
+| Boundary | No business implementation, API contract, DTO, DB schema, Redis key, MQ topic, frontend code, or deploy runtime behavior changed. |
+
+**Updated Files**:
+- `.trellis/spec/backend/quality-guidelines.md`
+- `.trellis/spec/backend/observability-devops.md`
+- `.trellis/tasks/archive/2026-05/05-13-backend-test-nacos-isolation/`
+- `services/sangui-gateway/src/test/java/com/sangui/shop/gateway/SanguiGatewayApplicationSmokeTest.java`
+- `services/sangui-seckill-service/src/test/java/com/sangui/shop/seckill/SanguiSeckillApplicationSmokeTest.java`
+- `services/sangui-logistics-service/src/test/java/com/sangui/shop/logistics/SanguiLogisticsApplicationSmokeTest.java`
+- `services/sangui-review-service/src/test/java/com/sangui/shop/review/SanguiReviewApplicationSmokeTest.java`
+- `services/sangui-marketing-service/src/test/java/com/sangui/shop/marketing/SanguiMarketingApplicationSmokeTest.java`
+- `services/sangui-search-rec-service/src/test/java/com/sangui/shop/searchrec/SanguiSearchRecApplicationSmokeTest.java`
+- `services/sangui-ai-service/src/test/java/com/sangui/shop/ai/SanguiAiApplicationSmokeTest.java`
+- `services/sangui-user-service/src/test/java/com/sangui/shop/user/api/UserAuthControllerTest.java`
+- `services/sangui-product-service/src/test/java/com/sangui/shop/product/api/ProductCatalogControllerTest.java`
+- `services/sangui-product-service/src/test/java/com/sangui/shop/product/api/InternalProductSnapshotControllerTest.java`
+- `services/sangui-product-service/src/test/java/com/sangui/shop/product/api/InternalProductInventoryControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/OrderControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/ReviewImageUploadControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/InternalOrderTimeoutControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/InternalOrderShipmentControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/InternalOrderReviewControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/InternalOrderPaymentControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/InternalOrderCompensationControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminReviewControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminOrderControllerTest.java`
+- `services/sangui-payment-service/src/test/java/com/sangui/shop/payment/api/PaymentControllerTest.java`
+- `services/sangui-payment-service/src/test/java/com/sangui/shop/payment/api/InternalPaymentCompensationControllerTest.java`
+- `services/sangui-payment-service/src/test/java/com/sangui/shop/payment/api/AdminPaymentControllerTest.java`
+- `services/sangui-logistics-service/src/test/java/com/sangui/shop/logistics/api/AdminFulfillmentControllerTest.java`
+
+**Verification Commands / Results**:
+- `[OK]` `git diff --check`
+- `[OK]` `.mvnw.cmd -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" test` passed with no `localhost:9848 connection refused` noise.
+- `[OK]` `powershell -ExecutionPolicy Bypass -File .\scripts\smoke-local.ps1 -BackendMode test -SkipDocker -SkipFrontend` passed on a machine with Nacos not started.
+- `[OK]` Human manual verification confirmed smoke output ended with `PASS: Backend test succeeded` and `All selected checks passed.`
+- `[OK]` `python .\.trellis\scripts\task.py validate .trellis\tasks\05-13-backend-test-nacos-isolation` passed before archive.
+
+**Result**:
+- Default backend `mvn test` no longer depends on live Nacos and no longer emits `localhost:9848 connection refused` noise.
+- WebMvc slice tests that previously loaded Nacos config import now run with explicit test isolation.
+- The backend spec now documents executable rules for smoke tests and controller-slice isolation.
+
+**Residual Notes**:
+- Gateway smoke still emits expected Spring Cloud gateway and generated-security informational warnings; these are not live Nacos dependency failures.
+- Maven reported using globally installed Maven 3.9.9 because the wrapper distribution was not cached locally.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2fe34a0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

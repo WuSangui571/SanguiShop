@@ -40,6 +40,10 @@ spring:
           uri: lb://sangui-seckill
           predicates:
             - Path=/api/seckill/**
+        - id: sangui-seckill-admin
+          uri: lb://sangui-seckill
+          predicates:
+            - Path=/api/admin/seckill/**
         - id: sangui-order
           uri: lb://sangui-order
           predicates:

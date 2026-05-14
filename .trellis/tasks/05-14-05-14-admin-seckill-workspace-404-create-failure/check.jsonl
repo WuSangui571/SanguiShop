@@ -1,0 +1,17 @@
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Final review must confirm frontend path, gateway route, service mapping, and auth scope stay aligned."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Review gateway protection, admin/public classification, and auth failure handling on the repaired route."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Verify repaired admin seckill APIs still match documented envelope, idempotency, and error behavior."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify 400/401/403/404/409 behavior and traceId propagation on admin seckill failures."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Confirm requestId/time/status typing and unknown fallback behavior remain correct after changes."}
+{"file": ".trellis/spec/backend/seckill-contracts.md", "reason": "Validate list/detail/create routes, payload fields, permissions, and seckill-specific error codes after the fix."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Review final frontend route, requestId handling, and backend error preservation against the documented contract."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review must verify targeted Maven/WebMvc/gateway tests for the touched services and routes."}
+{"file": ".trellis/spec/guides/seckill-thinking-guide.md", "reason": "Review route/auth fixes without regressing seckill-specific server-side validation assumptions."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Final review should confirm traceId-preserving errors and duplicate-submit behavior still hold."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Final check should confirm no cross-service or auth boundary violations were introduced by the repair."}
+{"file": "services/sangui-seckill-service/src/test/java/com/sangui/shop/seckill/api/AdminSeckillActivityControllerTest.java", "reason": "WebMvc contract test should continue to prove the backend route and validation behavior."}
+{"file": "services/sangui-gateway/src/test/java/com/sangui/shop/gateway/security/GatewayJwtAuthenticationFilterTest.java", "reason": "Gateway security test needs explicit admin seckill route protection coverage after route addition."}
+{"file": "services/sangui-gateway/src/main/resources/application.yml", "reason": "Ensure the added admin seckill route does not disturb existing public or other admin route mappings."}
+{"file": "frontend/src/views/admin/SeckillActivityManagementView.spec.ts", "reason": "Frontend spec already encodes expected admin seckill list/create/status/SKU behavior and should be updated with any requestId contract fix."}
+{"file": "frontend/src/composables/useSeckillActivityManagement.ts", "reason": "Review create/update requestId generation and failure-preservation behavior after the fix."}
+{"file": "frontend/src/services/seckillApi.ts", "reason": "Verify the frontend still routes through gateway with authContext='ops' and correct admin paths."}

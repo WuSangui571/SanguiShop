@@ -220,6 +220,23 @@ class GatewayJwtAuthenticationFilterTest {
     }
 
     @Test
+    void keepsAdminSeckillRoutesProtected() throws Exception {
+        MockServerWebExchange adminExchange = MockServerWebExchange.from(MockServerHttpRequest
+                .method(HttpMethod.GET, "/api/admin/seckill/activities")
+                .header(TraceConstants.TRACE_ID_HEADER, "trace-admin-seckill")
+        );
+        AtomicReference<ServerWebExchange> forwardedAdmin = new AtomicReference<>();
+
+        filter.filter(adminExchange, capture(forwardedAdmin)).block();
+
+        assertThat(forwardedAdmin.get()).isNull();
+        assertThat(adminExchange.getResponse().getStatusCode().value()).isEqualTo(401);
+        JsonNode body = objectMapper.readTree(adminExchange.getResponse().getBodyAsString().block());
+        assertThat(body.get("code").asText()).isEqualTo(CommonErrorCode.AUTH_TOKEN_MISSING.code());
+        assertThat(body.get("traceId").asText()).isEqualTo("trace-admin-seckill");
+    }
+
+    @Test
     void allowsCorsPreflightWithoutJwt() {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
                 .method(HttpMethod.OPTIONS, "/api/internal/payments/compensation-records/query")

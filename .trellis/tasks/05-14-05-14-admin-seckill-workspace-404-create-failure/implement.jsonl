@@ -1,0 +1,24 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Admin seckill route and payload contract must align across frontend, gateway, and service."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Need standard validation/auth/not-found error mapping with traceId preserved."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Gateway routing and JWT/RBAC behavior are directly in scope for /api/admin/seckill/**."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Frontend DTOs and time fields must match backend request contract exactly."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "This task spans admin UI, gateway, service contract, and auth context."}
+{"file": ".trellis/spec/backend/seckill-contracts.md", "reason": "Admin seckill management APIs and permission rules are the primary backend contract surface."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Frontend admin seckill contract already documents /api/admin/seckill/activities and ops auth context."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Fix requires focused gateway/controller/frontend regression coverage and Good/Base/Bad assertions."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Admin UI write actions need duplicate-submit guard, backend error preservation, and build/type coverage."}
+{"file": ".trellis/spec/guides/seckill-thinking-guide.md", "reason": "Seckill admin fixes must still respect status/time authority and server-side validation boundaries."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Need boundary review across gateway, user-service auth, and seckill-service ownership."}
+{"file": "frontend/src/services/seckillApi.ts", "reason": "Current admin frontend route contract points to /api/admin/seckill/activities via ops auth context."}
+{"file": "frontend/src/types/api/seckill.ts", "reason": "Frontend admin seckill DTO definitions are part of the current contract drift."}
+{"file": "frontend/src/composables/useSeckillActivityManagement.ts", "reason": "Current save flow omits requestId on create/update and already contains duplicate-submit gates for status/SKU writes."}
+{"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/api/AdminSeckillActivityController.java", "reason": "Backend controller already exposes the expected admin path and envelope codes."}
+{"file": "frontend/src/App.vue", "reason": "Admin workspace gating already uses SECKILL_ACTIVITY_ADMIN and should stay aligned with session permissions."}
+{"file": "services/sangui-gateway/src/main/resources/application.yml", "reason": "Gateway route table currently lacks /api/admin/seckill/** mapping."}
+{"file": "services/sangui-gateway/src/test/java/com/sangui/shop/gateway/security/GatewayJwtAuthenticationFilterTest.java", "reason": "Existing gateway auth tests cover other admin routes; seckill admin route needs analogous protection coverage."}
+{"file": "common/sangui-common-security/src/main/java/com/sangui/shop/common/security/SanguiPermissionConstants.java", "reason": "Shared permission constant source of truth for SECKILL_ACTIVITY_ADMIN."}
+{"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/application/AdminSeckillActivityService.java", "reason": "Service enforces ADMIN or SECKILL_ACTIVITY_ADMIN and validates requestId/time/order/stock."}
+{"file": "services/sangui-user-service/src/main/java/com/sangui/shop/user/application/OpsAuthService.java", "reason": "Ops session minting and allowed admin permissions define the token/permission side of the chain."}

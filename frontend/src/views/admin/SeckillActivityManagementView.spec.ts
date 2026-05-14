@@ -404,6 +404,7 @@ describe('SeckillActivityManagementView save failure and duplicate guard', () =>
       description: 'New Description',
       startsAt: '2026-06-01T00:00:00+08:00',
       endsAt: '2026-06-07T23:59:59+08:00',
+      requestId: '00000000-0000-0000-0000-000000000001',
       skus: [],
     })
     expect((inputs[0].element as HTMLInputElement).value).toBe('New Activity')
@@ -434,6 +435,16 @@ describe('SeckillActivityManagementView save failure and duplicate guard', () =>
     await flushPromises()
     await nextTick()
 
+    expect(vi.mocked(updateAdminSeckillActivity)).toHaveBeenCalledWith(1, {
+      shopId: 1,
+      userId: '1',
+      activityName: 'Test Activity',
+      description: 'Activity description',
+      startsAt: '2026-06-01T00:00:00+08:00',
+      endsAt: '2026-06-07T23:59:59+08:00',
+      requestId: '00000000-0000-0000-0000-000000000001',
+      skus: [],
+    })
     expect(w.find('.detail-panel').text()).toContain('Test Activity')
 
     const actionErrors = w.find('.detail-panel').findAll('.banner.error')

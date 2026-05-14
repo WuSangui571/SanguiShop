@@ -33,6 +33,16 @@
 | `POST /api/payments/callback/**` | channel signed | 支付渠道验签，不依赖用户 JWT |
 | `/admin/**` | admin required | RBAC + 审计日志 |
 
+## Gateway Route Contracts
+
+Admin seckill management is an admin API exposed only through `sangui-gateway`.
+
+| Route id | Path predicate | Upstream URI | Auth classification | Required regression test |
+| --- | --- | --- | --- | --- |
+| `sangui-seckill-admin` | `Path=/api/admin/seckill/**` | `lb://sangui-seckill` | protected admin JWT; downstream service enforces `ADMIN` role or `SECKILL_ACTIVITY_ADMIN` permission | `SanguiGatewayApplicationSmokeTest.adminSeckillRouteIsConfigured` asserts route id, URI, and path; `GatewayJwtAuthenticationFilterTest.keepsAdminSeckillRoutesProtected` asserts unauthenticated requests return `401` with `AUTH_TOKEN_MISSING` and `traceId`. |
+
+If `spring.cloud.gateway.routes` is externalized in Nacos for `sangui-gateway.yml`, the remote route list must include the same `sangui-seckill-admin` route. A remote route list that omits this route overrides the local contract and causes `/api/admin/seckill/**` to return gateway-level `404`.
+
 ## Secret Management
 
 - JWT 私钥、数据库密码、Redis 密码、MQ 密码、支付密钥、模型 API Key 禁止提交到仓库。
