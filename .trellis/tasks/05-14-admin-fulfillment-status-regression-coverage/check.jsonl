@@ -1,0 +1,17 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Check backend API/DTO envelope, traceId, idempotency, validation matrix"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Verify admin main status and fulfillment status contract assertions"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Review error mapping and traceId behavior"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Verify targeted service tests and no hidden external dependencies"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify frontend API payload, status labels, traceId and duplicate guard tests"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review fulfillment component state and rendering behavior"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify no enum crash and DTO compatibility"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Review composable loading/error/retry behavior"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify required frontend quality gates"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review cross-layer consistency between backend responses and frontend display"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderShipmentService.java", "reason": "Check main status and fulfillment status projection behavior"}
+{"file": "services/sangui-logistics-service/src/main/java/com/sangui/shop/logistics/application/AdminFulfillmentService.java", "reason": "Check admin fulfillment idempotency and trace forwarding"}
+{"file": "frontend/src/composables/useFulfillmentManagement.ts", "reason": "Check duplicate submit guard and traceId error preservation"}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.ts", "reason": "Check status fallback, payload trimming and duplicate gate tests"}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.vue", "reason": "Check order status vs fulfillment status display consistency"}

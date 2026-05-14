@@ -1,0 +1,18 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Backend API/DTO envelope, traceId, idempotency, validation matrix for fulfillment/order contracts"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order admin status non-overwrite and fulfillment shipment addenda are the core executable contract"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Shipment and fulfillment validation/conflict errors must map to correct codes and preserve traceId"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Targeted Maven reactor tests and backend DoD"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin fulfillment/order frontend API contracts, duplicate guard and traceId preservation"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue reactive pending state and component boundary guidance"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Status type compatibility and unknown fallback rules"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "useFulfillmentManagement data fetching/action composable behavior"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend typecheck/test/build acceptance"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer status contract and idempotent ship action risk checklist"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderShipmentService.java", "reason": "Existing order-service fulfillment query/ship transition pattern"}
+{"file": "services/sangui-logistics-service/src/main/java/com/sangui/shop/logistics/application/AdminFulfillmentService.java", "reason": "Existing logistics admin fulfillment permission/idempotency/forwarding pattern"}
+{"file": "frontend/src/composables/useFulfillmentManagement.ts", "reason": "Existing frontend fulfillment action/loading/error state pattern"}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.ts", "reason": "Existing fulfillment label/query/payload/error pure model pattern"}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.vue", "reason": "Existing fulfillment UI status display and ship form"}

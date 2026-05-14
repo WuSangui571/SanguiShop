@@ -591,3 +591,68 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: 管理端订单状态回归覆盖收尾
+
+**Date**: 2026-05-14
+**Task**: 管理端订单状态回归覆盖收尾
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Module | Summary |
+| --- | --- |
+| Backend order service tests | Added parameterized regression coverage over every `OrderStatus.values()` value for admin order list/detail projection and timeline construction. |
+| Backend admin controller tests | Added WebMvc serialization coverage proving admin list/detail JSON preserves each main `status` value. |
+| Frontend admin order model tests | Expanded status label and timeline description coverage for known statuses and unknown fallback behavior. |
+| Frontend admin order component tests | Added status matrix rendering coverage for list/detail/timeline/cancel-button state and tightened Codex check assertions to avoid global text false positives. |
+| Backend spec | Documented the admin order main-status non-overwrite contract and executable regression assertion points. |
+
+**Commit**: `43c13f5 test:???????????`
+
+**Updated Files**:
+- `.trellis/spec/backend/order-create-contracts.md`
+- `frontend/src/views/admin/OrderManagementView.spec.ts`
+- `frontend/src/views/admin/orderManagementModel.test.ts`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminOrderControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/application/AdminOrderManagementServiceTest.java`
+
+**Verification**:
+- `cmd /c npx vitest run --reporter=verbose src/views/admin/orderManagementModel.test.ts src/views/admin/OrderManagementView.spec.ts` passed: 2 files, 39 tests.
+- `.\mvnw.cmd -q -pl services/sangui-order-service -am "-Dtest=AdminOrderManagementServiceTest,AdminOrderControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed after sandbox dependency-resolution escalation: `AdminOrderControllerTest` 14 tests and `AdminOrderManagementServiceTest` 16 tests.
+- `cmd /c npm run typecheck` passed.
+- `cmd /c npm run lint` passed.
+- `cmd /c npm test` passed: 20 files, 255 tests.
+- `cmd /c npm run build` passed.
+- `git diff --check` passed with only Windows LF-to-CRLF warnings.
+- Human manual testing passed before this record step.
+
+**Result / Boundaries**:
+- Acceptance criteria met for admin order main-status regression coverage across backend projection, controller serialization, frontend model, frontend component rendering, timeline behavior, and executable spec guidance.
+- No production runtime logic, API schema, database schema, auth, Redis, MQ, Docker, Gateway, or CI behavior was changed.
+- Unknown frontend status compatibility remains intentionally open via raw fallback.
+- Current Trellis task was archived after commit and manual validation.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `43c13f5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

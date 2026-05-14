@@ -211,6 +211,7 @@ Admin fulfillment model rules:
 
 - Page copy must use `useAppPreferences().t()` and new colors must rely on semantic CSS variables.
 - Fulfillment status must display `unshipped` and `shipped`, and fall back to raw unknown backend values.
+- When a fulfillment response also displays order main `status`, it must use the admin order main-status labels for `created`, `paid`, `cancelled`, `shipped`, and `completed`; it must not derive the order main label from `fulfillmentStatus`.
 - Money is integer cents and display uses `formatMoney(cents)`.
 - Time filters from `datetime-local` inputs must be normalized to ISO-8601 values before sending.
 - API errors must preserve and display backend `code`, `message`, and `traceId`.

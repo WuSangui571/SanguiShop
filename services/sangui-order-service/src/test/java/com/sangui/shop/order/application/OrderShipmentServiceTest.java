@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.sangui.shop.common.core.error.CommonErrorCode;
 import com.sangui.shop.common.core.exception.SanguiException;
 import com.sangui.shop.order.client.dto.ConfirmOrderShipmentRequest;
+import com.sangui.shop.order.client.dto.FulfillmentOrderDetailRequest;
 import com.sangui.shop.order.client.dto.FulfillmentOrderResponse;
 import com.sangui.shop.order.domain.OrderCreateDraft;
 import com.sangui.shop.order.domain.OrderErrorCode;
@@ -22,6 +23,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class OrderShipmentServiceTest {
 
@@ -121,6 +124,36 @@ class OrderShipmentServiceTest {
         });
     }
 
+    @Test
+    void detailPreservesCompletedMainStatusWhenFulfillmentIsShipped() {
+        Long orderId = orderRepository.seedCompletedWithFulfillment(1L, "10001", "ORD-001", "shipped", "SF Express", "SF123", "ship-001", "trace-ship");
+
+        FulfillmentOrderResponse response = orderShipmentService.getFulfillmentRecord(
+                new FulfillmentOrderDetailRequest(1L, orderId)
+        );
+
+        assertThat(response.status()).isEqualTo("completed");
+        assertThat(response.fulfillmentStatus()).isEqualTo("shipped");
+        assertThat(response.carrier()).isEqualTo("SF Express");
+        assertThat(response.trackingNo()).isEqualTo("SF123");
+    }
+
+    @ParameterizedTest
+    @EnumSource(OrderStatus.class)
+    void fulfillmentResponsePreservesMainStatusForEveryKnownStatus(OrderStatus status) {
+        Long orderId = status == OrderStatus.SHIPPED
+                ? orderRepository.seedShippedOrder(1L, "10001", "ORD-" + status.value(), "ship-req-001", "SF", "SF-TRACK")
+                : status == OrderStatus.COMPLETED
+                        ? orderRepository.seedCompletedWithFulfillment(1L, "10001", "ORD-" + status.value(), "shipped", "SF", "SF-TRACK", "ship-req", "trace-ship")
+                        : orderRepository.seedOrder(1L, "10001", "ORD-" + status.value(), status);
+
+        FulfillmentOrderResponse response = orderShipmentService.getFulfillmentRecord(
+                new FulfillmentOrderDetailRequest(1L, orderId)
+        );
+
+        assertThat(response.status()).isEqualTo(status.value());
+    }
+
     private static final class InMemoryOrderRepository implements OrderRepository {
 
         private final AtomicLong nextOrderId = new AtomicLong(10000);
@@ -129,6 +162,12 @@ class OrderShipmentServiceTest {
         private Long seedOrder(Long shopId, String userId, String orderNo, OrderStatus status) {
             Long orderId = nextOrderId.incrementAndGet();
             put(orderId, shopId, userId, orderNo, status, null, null, null, null, null, null);
+            return orderId;
+        }
+
+        private Long seedCompletedWithFulfillment(Long shopId, String userId, String orderNo, String fulfillmentStatus, String carrier, String trackingNo, String shipmentRequestId, String shipmentTraceId) {
+            Long orderId = nextOrderId.incrementAndGet();
+            put(orderId, shopId, userId, orderNo, OrderStatus.COMPLETED, fulfillmentStatus, carrier, trackingNo, LocalDateTime.now().minusDays(1), shipmentRequestId, shipmentTraceId);
             return orderId;
         }
 

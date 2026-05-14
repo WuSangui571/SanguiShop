@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sangui.shop.common.core.trace.TraceConstants;
 import com.sangui.shop.common.web.GlobalApiExceptionHandler;
 import com.sangui.shop.order.application.OrderShipmentService;
+import com.sangui.shop.order.client.dto.FulfillmentOrderDetailRequest;
 import com.sangui.shop.order.client.dto.FulfillmentOrderPageResponse;
 import com.sangui.shop.order.client.dto.FulfillmentOrderResponse;
 import java.time.OffsetDateTime;
@@ -83,6 +84,24 @@ class InternalOrderShipmentControllerTest {
                 .andExpect(jsonPath("$.code").value("ORDER_SHIPPED"))
                 .andExpect(jsonPath("$.data.status").value("shipped"))
                 .andExpect(jsonPath("$.data.carrier").value("SF Express"));
+    }
+
+    @Test
+    void detailPreservesCompletedMainStatusWhenFulfillmentIsShipped() throws Exception {
+        when(orderShipmentService.getFulfillmentRecord(any(FulfillmentOrderDetailRequest.class)))
+                .thenReturn(response("completed", "shipped"));
+
+        mockMvc.perform(post("/internal/orders/fulfillment-records/detail")
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-fulfillment-detail")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "shopId", 1,
+                                "orderId", 101
+                        ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ORDER_FULFILLMENT_RECORD_FETCHED"))
+                .andExpect(jsonPath("$.data.status").value("completed"))
+                .andExpect(jsonPath("$.data.fulfillmentStatus").value("shipped"));
     }
 
     private FulfillmentOrderResponse response(String status, String fulfillmentStatus) {

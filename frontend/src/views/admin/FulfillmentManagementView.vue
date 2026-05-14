@@ -58,6 +58,7 @@ const orderStatusLabels = computed(() => ({
   created: t('orderAdmin.statusCreated'),
   paid: t('orderAdmin.statusPaid'),
   cancelled: t('orderAdmin.statusCancelled'),
+  completed: t('orderAdmin.statusCompleted'),
 }))
 
 watch(

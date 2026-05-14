@@ -399,3 +399,114 @@ describe('FulfillmentManagementView ship action failure recovery', () => {
     await flushPromises()
   })
 })
+
+describe('FulfillmentManagementView successful ship', () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue('00000000-0000-0000-0000-000000000001')
+    vi.mocked(listAdminFulfillments).mockResolvedValue({
+      data: {
+        items: [createFulfillment({ orderId: 1, orderNo: 'ORD-001', fulfillmentStatus: 'unshipped' })],
+        total: 1,
+        page: 1,
+        size: 20,
+      },
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminFulfillment).mockResolvedValue({
+      data: createFulfillment({ orderId: 1, orderNo: 'ORD-001', fulfillmentStatus: 'unshipped' }),
+      meta: mockMeta,
+    })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+    vi.restoreAllMocks()
+  })
+
+  it('transitions detail to shipped status and fulfillment after successful ship', async () => {
+    vi.mocked(shipAdminFulfillment).mockResolvedValue({
+      data: createFulfillment({ orderId: 1, orderNo: 'ORD-001', status: 'shipped', fulfillmentStatus: 'shipped', carrier: 'SF Express', trackingNo: 'SF123' }),
+      meta: mockMeta,
+    })
+
+    const w = await mountView()
+
+    const shipForm = w.find('.ship-form')
+    const inputs = shipForm.findAll('input')
+
+    await inputs[0].setValue('SF Express')
+    await inputs[1].setValue('SF123')
+    await shipForm.trigger('submit')
+    await flushPromises()
+    await nextTick()
+
+    expect(vi.mocked(shipAdminFulfillment)).toHaveBeenCalledTimes(1)
+
+    const summaryGrid = w.find('.summary-grid')
+    expect(summaryGrid.text()).toContain('fulfillmentAdmin.statusShipped')
+    expect(summaryGrid.text()).toContain('fulfillmentAdmin.orderStatusShipped')
+  })
+})
+
+describe('FulfillmentManagementView cross-status display', () => {
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+  })
+
+  it('shows completed order with shipped fulfillment using separate status labels', async () => {
+    vi.mocked(listAdminFulfillments).mockResolvedValue({
+      data: {
+        items: [createFulfillment({ orderId: 1, orderNo: 'ORD-001', status: 'completed', fulfillmentStatus: 'shipped', carrier: 'SF Express', trackingNo: 'SF123', shippedAt: '2026-05-07T10:00:00+08:00' })],
+        total: 1,
+        page: 1,
+        size: 20,
+      },
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminFulfillment).mockResolvedValue({
+      data: createFulfillment({ orderId: 1, orderNo: 'ORD-001', status: 'completed', fulfillmentStatus: 'shipped', carrier: 'SF Express', trackingNo: 'SF123', shippedAt: '2026-05-07T10:00:00+08:00' }),
+      meta: mockMeta,
+    })
+
+    const w = await mountView()
+
+    const listItem = w.find('.list-item')
+    expect(listItem.text()).toContain('fulfillmentAdmin.statusShipped')
+    expect(listItem.text()).toContain('orderAdmin.statusCompleted')
+    expect(listItem.text()).not.toContain('fulfillmentAdmin.orderStatusShipped')
+
+    const summaryGrid = w.find('.summary-grid')
+    expect(summaryGrid.text()).toContain('fulfillmentAdmin.statusShipped')
+    expect(summaryGrid.text()).toContain('orderAdmin.statusCompleted')
+    expect(summaryGrid.text()).not.toContain('fulfillmentAdmin.orderStatusShipped')
+  })
+
+  it('renders unknown fulfillment status as raw fallback without affecting order status display', async () => {
+    vi.mocked(listAdminFulfillments).mockResolvedValue({
+      data: {
+        items: [createFulfillment({ orderId: 1, orderNo: 'ORD-001', status: 'paid', fulfillmentStatus: 'in_transit' })],
+        total: 1,
+        page: 1,
+        size: 20,
+      },
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminFulfillment).mockResolvedValue({
+      data: createFulfillment({ orderId: 1, orderNo: 'ORD-001', status: 'paid', fulfillmentStatus: 'in_transit' }),
+      meta: mockMeta,
+    })
+
+    const w = await mountView()
+
+    const listItem = w.find('.list-item')
+    expect(listItem.text()).toContain('in_transit')
+
+    const summaryGrid = w.find('.summary-grid')
+    expect(summaryGrid.text()).toContain('in_transit')
+    expect(summaryGrid.text()).toContain('orderAdmin.statusPaid')
+  })
+})
