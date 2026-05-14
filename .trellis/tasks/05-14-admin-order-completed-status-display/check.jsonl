@@ -1,0 +1,19 @@
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "API/DTO response envelope and cross-service contract rules for admin order responses"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order status machine and Admin Order Management API contract including list/detail/timeline"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Validation and business error mapping for admin status filters and order detail failures"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend targeted Maven test and contract-test expectations"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Frontend Admin Order Management API, status display, timeline, and unknown fallback contract"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Frontend enum/string fallback and DTO compatibility rules"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Admin order component rendering and async state boundaries"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend typecheck/build/test requirements"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer state projection and field-name consistency checklist"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/application/AdminOrderManagementService.java", "reason": "Backend admin order list/detail/timeline projection pattern"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderStatus.java", "reason": "Persisted order status enum includes shipped/completed"}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/application/AdminOrderManagementServiceTest.java", "reason": "Backend admin query service test pattern to extend with completed"}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminOrderControllerTest.java", "reason": "Backend admin controller response envelope test pattern to extend with completed"}
+{"file": "frontend/src/types/api/order.ts", "reason": "Frontend order/admin order status type definitions"}
+{"file": "frontend/src/views/admin/orderManagementModel.ts", "reason": "Admin status label/timeline mapping likely missing completed"}
+{"file": "frontend/src/views/admin/orderManagementModel.test.ts", "reason": "Admin status/timeline model tests to extend with completed and unknown fallback"}
+{"file": "frontend/src/views/admin/OrderManagementView.vue", "reason": "Admin list/detail/timeline rendering and status filter options"}
+{"file": "frontend/src/views/admin/OrderManagementView.spec.ts", "reason": "Admin list/detail/timeline component tests to extend with completed"}
+{"file": "frontend/src/composables/useAppPreferences.ts", "reason": "Localized admin status/timeline copy keys likely missing completed"}

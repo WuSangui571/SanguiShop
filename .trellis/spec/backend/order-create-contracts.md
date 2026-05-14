@@ -990,7 +990,7 @@ Request query fields:
 
 - `page`: optional positive integer, default `1`.
 - `size`: optional positive integer, default `20`, capped at `100`.
-- `status`: optional `created`, `paid`, `cancelled`; omit or `all` means no status filter.
+- `status`: optional `created`, `paid`, `cancelled`, `shipped`, or `completed`; omit or `all` means no status filter.
 - `orderNo`: optional trimmed partial match.
 - `userId`: optional exact user filter inside trusted shop scope.
 - `fromTime` / `toTime`: optional ISO-8601 timestamp filters on `created_at`.
@@ -1025,6 +1025,7 @@ Rules:
 - Missing order or order outside trusted shop scope returns `ORDER_NOT_FOUND`.
 - DTOs must be snapshots, not `oms_order` entity objects.
 - MVP timeline is derived from order row timestamps: always include `created`; include current non-`created` status at `updatedAt`. A full immutable status history table is out of scope.
+- `completed` detail responses must expose `status=completed` and include a `statusTimeline[]` node whose `status` is `completed`; admin projection must not replace the main order status with payment, fulfillment, or review-derived statuses.
 
 ### `POST /api/admin/orders/{orderId}/cancel`
 
@@ -1066,8 +1067,8 @@ mvn -q "-Dmaven.repo.local=D:\02-WorkSpace\02-Java\SanguiShop\.m2\repository" "-
 
 Good/Base/Bad cases:
 
-- Good: admin list filters only within trusted `shopId` and exposes `itemCount`, `traceId`, and nullable `paymentNo`.
-- Good: admin detail exposes `reservationNo`, item snapshots, and a derived status timeline.
+- Good: admin list filters only within trusted `shopId` and exposes `itemCount`, `traceId`, nullable `paymentNo`, and the persisted main order `status` including terminal `completed`.
+- Good: admin detail exposes `reservationNo`, item snapshots, and a derived status timeline including `created -> completed` for completed orders.
 - Good: admin cancel releases inventory through the existing order cancellation path before returning `cancelled`.
 - Base: `paymentNo` stays nullable in order responses; payment status is read via payment-service admin API.
 - Bad: order-service directly reads `pay_*` payment tables or trusts a frontend `shopId`.

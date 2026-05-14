@@ -69,7 +69,7 @@ export interface OrderPageResponse {
   items: OrderResponse[]
 }
 
-export type AdminOrderStatusFilter = 'all' | 'created' | 'paid' | 'cancelled' | string
+export type AdminOrderStatusFilter = 'all' | 'created' | 'paid' | 'cancelled' | 'shipped' | 'completed' | string
 
 export interface AdminOrderQueryParams {
   page: number

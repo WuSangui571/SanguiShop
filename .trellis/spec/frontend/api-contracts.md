@@ -130,7 +130,7 @@ Frontend admin order management must use gateway routes through `services/orderA
 
 | Function | Route | Auth Context | Required UI Handling |
 | --- | --- | --- | --- |
-| `listAdminOrders({page,size,status,orderNo,userId,fromTime,toTime})` | `GET /api/admin/orders` | `ops` | Show loading, empty, error, retry, pagination; omit `status` when filter is `all`; omit blank text filters. |
+| `listAdminOrders({page,size,status,orderNo,userId,fromTime,toTime})` | `GET /api/admin/orders` | `ops` | Show loading, empty, error, retry, pagination; supported status filters are `created`, `paid`, `cancelled`, `shipped`, and `completed`; omit `status` when filter is `all`; omit blank text filters. |
 | `getAdminOrder(orderId)` | `GET /api/admin/orders/{orderId}` | `ops` | Load order snapshot, item snapshots, `reservationNo`, nullable `paymentNo`, and `traceId`. |
 | `cancelAdminOrder(orderId,{requestId})` | `POST /api/admin/orders/{orderId}/cancel` | `ops` | Enable only for `created`; generate `requestId`; disable duplicate clicks while pending. |
 | `getAdminPaymentByOrderId(orderId)` | `GET /api/admin/payments/by-order/{orderId}` | `ops` | Refresh payment status by order id; treat `PAYMENT_NOT_FOUND` as no payment row during automatic detail load. |
@@ -138,7 +138,8 @@ Frontend admin order management must use gateway routes through `services/orderA
 Admin order model rules:
 
 - Page copy must use `useAppPreferences().t()` and new colors must rely on semantic CSS variables.
-- Order status must display `created`, `paid`, and `cancelled` labels and fall back to raw unknown backend values.
+- Order status must display `created`, `paid`, `cancelled`, `shipped`, and `completed` labels and fall back to raw unknown backend values.
+- Order status timeline descriptions must recognize `created`, `paid`, `cancelled`, `shipped`, and `completed`; unknown timeline statuses must use the localized unknown-status description without dropping the node.
 - Admin deep links must support `/admin?workspace=order&orderId={orderId}` and load the selected order detail without requiring a list click.
 - Shareable admin order URL params are `workspace=order`, `orderId`, `status`, `orderNo`, `userId`, `from`, `to`, `page`, and `size`; blank text filters and `status=all` must be omitted from request payloads.
 - Admin order filter persistence uses `sessionStorage` key `sangui.admin.order.filters.v1` with versioned JSON. Invalid or unavailable storage must fall back to default filters.
@@ -155,7 +156,7 @@ Required tests:
 - Deep-link `orderId` parsing and persisted filter restore.
 - Admin order URL params omit empty filters and preserve page/size.
 - Pagination default/clamp behavior.
-- Status labels and timeline descriptions for `created`, `paid`, `cancelled`, `shipped`, and unknown raw values.
+- Status labels and timeline descriptions for `created`, `paid`, `cancelled`, `shipped`, `completed`, and unknown raw values.
 - Payment refresh display snapshot merge for current order detail/list item.
 - Backend error `code/message/traceId` preservation.
 - Duplicate cancel submit guard.

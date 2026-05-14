@@ -503,3 +503,45 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: 修复秒杀后台路由与创建幂等参数
+
+**Date**: 2026-05-14
+**Task**: 修复秒杀后台路由与创建幂等参数
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Item | Details |
+| --- | --- |
+| Commit | `838c00d fix:???????????????` |
+| Main modules | Gateway route/security, frontend admin seckill activity management, Trellis backend gateway spec |
+| Result | Fixed `/admin?workspace=seckill` admin seckill 404 by adding the gateway route and fixed activity create/update failure by sending frontend `requestId` in draft write payloads. Human manual smoke testing passed before recording. |
+| Updated files | `services/sangui-gateway/src/main/resources/application.yml`; `services/sangui-gateway/src/test/java/com/sangui/shop/gateway/security/GatewayJwtAuthenticationFilterTest.java`; `services/sangui-gateway/src/test/java/com/sangui/shop/gateway/SanguiGatewayApplicationSmokeTest.java`; `frontend/src/types/api/seckill.ts`; `frontend/src/composables/useSeckillActivityManagement.ts`; `frontend/src/views/admin/SeckillActivityManagementView.spec.ts`; `.trellis/spec/backend/gateway-security.md` |
+| Verification | `mvnw.cmd -q -pl services/sangui-gateway -am -Dtest=GatewayJwtAuthenticationFilterTest,SanguiGatewayApplicationSmokeTest -Dsurefire.failIfNoSpecifiedTests=false test` passed; `mvnw.cmd -q -pl services/sangui-seckill-service -am -Dtest=AdminSeckillActivityControllerTest -Dsurefire.failIfNoSpecifiedTests=false test` passed; `cmd /c npm run typecheck` passed; `cmd /c npm run lint` passed; `cmd /c npm test -- src/views/admin/SeckillActivityManagementView.spec.ts` passed 23/23; `cmd /c npm test` passed 20 files / 245 tests; `cmd /c npm run build` passed; `git diff --check` passed. |
+| Boundaries | Full backend reactor was not run because targeted backend modules covered the changed route/auth/controller surfaces. Runtime smoke was performed manually by the human and passed. Nacos remote `sangui-gateway.yml` route override remains an operational point: if remote `spring.cloud.gateway.routes` is used, it must include `sangui-seckill-admin`. |
+| Follow-up | Recommended next task: fix admin order status flow display where `completed` is recognized in the user frontend but shown as unknown in admin order management. |
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `838c00d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

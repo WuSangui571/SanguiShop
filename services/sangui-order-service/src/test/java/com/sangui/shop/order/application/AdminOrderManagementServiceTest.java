@@ -90,6 +90,29 @@ class AdminOrderManagementServiceTest {
     }
 
     @Test
+    void listAndDetailExposeCompletedMainStatusAndTimeline() {
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", "ord:10001:req-001", OrderStatus.COMPLETED, 59900L);
+        orderRepository.seedOrder(1L, "10002", "ORD-002", "req-002", "ord:10002:req-002", OrderStatus.SHIPPED, 129900L);
+
+        AdminOrderPageResponse listResponse = adminOrderManagementService.listOrders(
+                ORDER_ADMIN,
+                1,
+                20,
+                "completed",
+                null,
+                null,
+                null,
+                null
+        );
+        AdminOrderDetailResponse detailResponse = adminOrderManagementService.getOrder(ORDER_ADMIN, orderId);
+
+        assertThat(listResponse.total()).isEqualTo(1);
+        assertThat(listResponse.items()).extracting(AdminOrderSummaryResponse::status).containsExactly("completed");
+        assertThat(detailResponse.status()).isEqualTo("completed");
+        assertThat(detailResponse.statusTimeline()).extracting("status").containsExactly("created", "completed");
+    }
+
+    @Test
     void cancelCreatedOrderUsesSharedReleasePathWithoutUserOwnershipCheck() {
         Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", "ord:10001:req-001", OrderStatus.CREATED, 59900L);
 

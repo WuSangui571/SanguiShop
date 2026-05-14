@@ -1,8 +1,8 @@
 {
-  "id": "05-14-admin-seckill-workspace-404-create-failure",
-  "name": "05-14-admin-seckill-workspace-404-create-failure",
-  "title": "修复秒杀管理端 admin workspace 404 与活动创建失败",
-  "description": "Plan-only task for reproducing and fixing /admin?workspace=seckill 404 and admin activity create failures across frontend, gateway, seckill service, and auth chain.",
+  "id": "admin-order-completed-status-display",
+  "name": "admin-order-completed-status-display",
+  "title": "修复订单管理端状态流转展示错误",
+  "description": "",
   "status": "planning",
   "dev_type": "fullstack",
   "scope": null,

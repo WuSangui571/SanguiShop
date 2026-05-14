@@ -65,6 +65,8 @@ const statusOptions = computed(() => [
   { label: t('orderAdmin.statusCreated'), value: 'created' },
   { label: t('orderAdmin.statusPaid'), value: 'paid' },
   { label: t('orderAdmin.statusCancelled'), value: 'cancelled' },
+  { label: t('orderAdmin.statusShipped'), value: 'shipped' },
+  { label: t('orderAdmin.statusCompleted'), value: 'completed' },
 ])
 
 const statusLabels = computed(() => ({
@@ -72,6 +74,7 @@ const statusLabels = computed(() => ({
   paid: t('orderAdmin.statusPaid'),
   cancelled: t('orderAdmin.statusCancelled'),
   shipped: t('orderAdmin.statusShipped'),
+  completed: t('orderAdmin.statusCompleted'),
 }))
 
 const timelineLabels = computed(() => ({
@@ -79,6 +82,7 @@ const timelineLabels = computed(() => ({
   paid: t('orderAdmin.timelinePaidDescription'),
   cancelled: t('orderAdmin.timelineCancelledDescription'),
   shipped: t('orderAdmin.timelineShippedDescription'),
+  completed: t('orderAdmin.timelineCompletedDescription'),
   unknown: t('orderAdmin.timelineUnknownDescription'),
 }))
 

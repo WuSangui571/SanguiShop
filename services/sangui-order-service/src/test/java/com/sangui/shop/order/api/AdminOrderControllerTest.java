@@ -121,16 +121,18 @@ class AdminOrderControllerTest {
     @Test
     void detailReturnsAdminOrderEnvelope() throws Exception {
         when(adminOrderManagementService.getOrder(any(), eq(101L)))
-                .thenReturn(detail("created"));
+                .thenReturn(detail("completed"));
 
         mockMvc.perform(get("/api/admin/orders/101")
                         .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, adminPrincipal())
                         .header(TraceConstants.TRACE_ID_HEADER, "trace-admin-detail"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("ADMIN_ORDER_DETAIL"))
+                .andExpect(jsonPath("$.data.status").value("completed"))
                 .andExpect(jsonPath("$.data.reservationNo").value("ord:10001:req-101"))
                 .andExpect(jsonPath("$.data.traceId").value("trace-order"))
-                .andExpect(jsonPath("$.data.statusTimeline[0].status").value("created"));
+                .andExpect(jsonPath("$.data.statusTimeline[0].status").value("created"))
+                .andExpect(jsonPath("$.data.statusTimeline[1].status").value("completed"));
     }
 
     @Test
@@ -179,6 +181,12 @@ class AdminOrderControllerTest {
 
     private AdminOrderDetailResponse detail(String status) {
         OffsetDateTime timestamp = OffsetDateTime.parse("2026-05-01T10:00:00+08:00");
+        List<AdminOrderStatusTimelineResponse> timeline = "created".equals(status)
+                ? List.of(new AdminOrderStatusTimelineResponse("created", timestamp, "trace-order"))
+                : List.of(
+                        new AdminOrderStatusTimelineResponse("created", timestamp, "trace-order"),
+                        new AdminOrderStatusTimelineResponse(status, timestamp.plusMinutes(5), "trace-order")
+                );
         return new AdminOrderDetailResponse(
                 101L,
                 "ORD-101",
@@ -193,7 +201,7 @@ class AdminOrderControllerTest {
                 timestamp,
                 timestamp,
                 List.of(new OrderItemResponse(301L, 401L, "Sneaker 42", 59900L, 1, 59900L)),
-                List.of(new AdminOrderStatusTimelineResponse("created", timestamp, "trace-order"))
+                timeline
         );
     }
 

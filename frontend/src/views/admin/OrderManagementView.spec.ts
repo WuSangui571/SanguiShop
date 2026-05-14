@@ -270,6 +270,75 @@ describe('OrderManagementView empty list success', () => {
   })
 })
 
+// --- Completed Status Display ---
+
+describe('OrderManagementView completed status display', () => {
+  beforeEach(() => {
+    vi.mocked(listAdminOrders).mockResolvedValue({
+      data: {
+        items: [createOrderSummary({ orderId: 1, orderNo: 'ORD-001', status: 'completed', paymentNo: null })],
+        total: 1,
+        page: 1,
+        size: 20,
+      },
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminOrder).mockResolvedValue({
+      data: createOrderDetail({
+        orderId: 1,
+        orderNo: 'ORD-001',
+        status: 'completed',
+        statusTimeline: [
+          { status: 'created', occurredAt: '2026-05-08T10:00:00+08:00', traceId: 'trace-created' },
+          { status: 'paid', occurredAt: '2026-05-08T11:00:00+08:00', traceId: 'trace-paid' },
+          { status: 'shipped', occurredAt: '2026-05-08T12:00:00+08:00', traceId: 'trace-shipped' },
+          { status: 'completed', occurredAt: '2026-05-09T10:00:00+08:00', traceId: 'trace-completed' },
+        ],
+      }),
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminPaymentByOrderId).mockRejectedValue(
+      new HttpClientError('Payment not found', { code: 'PAYMENT_NOT_FOUND', status: 404, traceId: 'trace-pay' }),
+    )
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+    resetBrowserState()
+  })
+
+  it('displays completed label in list item', async () => {
+    const w = await mountView()
+    expect(w.text()).toContain('orderAdmin.statusCompleted')
+  })
+
+  it('displays completed label and timeline description in detail', async () => {
+    const w = await mountView()
+    await selectOrderFromList(w)
+
+    expect(w.text()).toContain('orderAdmin.statusCompleted')
+    expect(w.text()).toContain('orderAdmin.timelineCompletedDescription')
+  })
+
+  it('completed order cannot be cancelled', async () => {
+    const w = await mountView()
+    await selectOrderFromList(w)
+
+    const cancelBtn = w.find('.detail-actions .danger')
+    expect(cancelBtn.attributes('disabled')).toBe('')
+  })
+
+  it('includes completed in status filter dropdown', async () => {
+    const w = await mountView()
+    const statusSelect = w.find('.filters select')
+    const options = statusSelect.findAll('option')
+    const optionValues = options.map((opt) => opt.attributes('value'))
+    expect(optionValues).toContain('completed')
+  })
+})
+
 // --- Filter Query / Reset ---
 
 describe('OrderManagementView search and reset filters', () => {

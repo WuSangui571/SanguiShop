@@ -31,6 +31,7 @@ export interface AdminOrderStatusLabels {
   paid: string
   cancelled: string
   shipped?: string
+  completed?: string
 }
 
 export interface AdminOrderTimelineLabels {
@@ -38,6 +39,7 @@ export interface AdminOrderTimelineLabels {
   paid: string
   cancelled: string
   shipped: string
+  completed: string
   unknown: string
 }
 
@@ -125,6 +127,9 @@ export function getAdminOrderStatusLabel(status: OrderStatus, labels: AdminOrder
   if (status === 'shipped' && labels.shipped) {
     return labels.shipped
   }
+  if (status === 'completed' && labels.completed) {
+    return labels.completed
+  }
   return status
 }
 
@@ -157,6 +162,9 @@ export function getAdminOrderTimelineDescription(
   }
   if (status === 'shipped') {
     return labels.shipped
+  }
+  if (status === 'completed') {
+    return labels.completed
   }
   return labels.unknown
 }

@@ -63,6 +63,7 @@ describe('orderManagementModel', () => {
     expect(getAdminOrderStatusLabel('created', labels)).toBe('Unpaid')
     expect(getAdminOrderStatusLabel('paid', labels)).toBe('Paid')
     expect(getAdminOrderStatusLabel('shipped', { ...labels, shipped: 'Shipped' })).toBe('Shipped')
+    expect(getAdminOrderStatusLabel('completed', { ...labels, completed: 'Completed' })).toBe('Completed')
     expect(getAdminOrderStatusLabel('refunding', labels)).toBe('refunding')
   })
 
@@ -109,16 +110,19 @@ describe('orderManagementModel', () => {
       paid: 'Paid',
       cancelled: 'Cancelled',
       shipped: 'Shipped',
+      completed: 'Completed',
     }
     const timelineLabels = {
       created: 'Order was created and is awaiting payment.',
       paid: 'Payment was confirmed.',
       cancelled: 'Order was cancelled and release work should be complete.',
       shipped: 'Shipment was confirmed.',
+      completed: 'Receipt was confirmed and the transaction is complete.',
       unknown: 'Backend returned an unrecognized status.',
     }
 
     expect(getAdminOrderTimelineDescription('paid', timelineLabels)).toBe('Payment was confirmed.')
+    expect(getAdminOrderTimelineDescription('completed', timelineLabels)).toBe('Receipt was confirmed and the transaction is complete.')
     expect(getAdminOrderTimelineDescription('refunding', timelineLabels)).toBe('Backend returned an unrecognized status.')
     expect(deriveAdminOrderTimeline([
       { status: 'created', occurredAt: '2026-05-01T10:00:00+08:00', traceId: 'trace-created' },
@@ -137,6 +141,17 @@ describe('orderManagementModel', () => {
         occurredAt: '2026-05-02T10:00:00+08:00',
         traceId: 'trace-shipped',
         description: 'Shipment was confirmed.',
+      },
+    ])
+    expect(deriveAdminOrderTimeline([
+      { status: 'completed', occurredAt: '2026-05-03T10:00:00+08:00', traceId: 'trace-completed' },
+    ], statusLabels, timelineLabels)).toEqual([
+      {
+        status: 'completed',
+        statusLabel: 'Completed',
+        occurredAt: '2026-05-03T10:00:00+08:00',
+        traceId: 'trace-completed',
+        description: 'Receipt was confirmed and the transaction is complete.',
       },
     ])
   })
@@ -226,5 +241,6 @@ describe('orderManagementModel', () => {
     expect(canCancelAdminOrder('created')).toBe(true)
     expect(canCancelAdminOrder('paid')).toBe(false)
     expect(canCancelAdminOrder('cancelled')).toBe(false)
+    expect(canCancelAdminOrder('completed')).toBe(false)
   })
 })
