@@ -1073,6 +1073,22 @@ Good/Base/Bad cases:
 - Base: `paymentNo` stays nullable in order responses; payment status is read via payment-service admin API.
 - Bad: order-service directly reads `pay_*` payment tables or trusts a frontend `shopId`.
 
+### Status Non-Overwrite Contract
+
+The admin order `status` field in list and detail responses is the persisted order main lifecycle status from `OrderStatus`. Derived states must not replace it.
+
+Contract assertion points:
+
+- Every `OrderStatus.values()` main status value is preserved 1:1 in admin list `AdminOrderSummaryResponse.status` and detail `AdminOrderDetailResponse.status`.
+- `paymentNo` / payment status may enrich display snapshots but must not override `completed`, `shipped`, `cancelled`, or unknown main statuses in admin projection.
+- `fulfillmentStatus` is derived from order lifecycle or fulfillment snapshot, but admin order list/detail `status` remains the main order status.
+- `reviewed` / review snapshots are separate and must not change admin order main `status`.
+- Timeline nodes must keep backend-provided status values; unknown status values use localized unknown description without dropping the node.
+- Backend regression coverage: parameterized service tests iterate `OrderStatus.values()` and assert list `status == status.value()` and detail `status == status.value()` for every enum member.
+- Backend regression coverage: controller serialization tests confirm the `status` JSON field preserves each known status string in the admin list and detail response envelope.
+- Frontend regression coverage: model unit tests assert localized labels for every known status, raw fallback for unknown values, and localized timeline descriptions for known statuses plus unknown fallback.
+- Frontend regression coverage: component tests verify each known status renders correct labels in list, detail, and timeline, and that unknown statuses preserve raw values plus localized unknown timeline description.
+
 ## Fulfillment / Shipment Addendum
 
 ### Persisted State

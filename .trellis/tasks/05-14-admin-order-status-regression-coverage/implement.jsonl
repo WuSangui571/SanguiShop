@@ -1,0 +1,20 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Backend API/DTO envelope and contract testing rules for admin order status projection."}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Admin Order Management Addendum defines list/detail status fields, timeline contract, and required tests."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Preserve existing validation/error mapping while adding backend regression coverage."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend targeted Maven reactor test shape and review quality requirements."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin order frontend API/status/timeline display contract and required tests."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Frontend enum compatibility and unknown fallback rule."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue component state/rendering test conventions."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend required test and quality gates."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer status field alignment and enum drift risk checklist."}
+{"file": "frontend/src/views/admin/orderManagementModel.ts", "reason": "Existing admin order status label, timeline, unknown fallback, and payment merge model patterns."}
+{"file": "frontend/src/views/admin/orderManagementModel.test.ts", "reason": "Existing model test style for status labels, timeline descriptions, and payment merge assertions."}
+{"file": "frontend/src/views/admin/OrderManagementView.spec.ts", "reason": "Existing component test helpers and mocked i18n/service patterns for admin order UI."}
+{"file": "frontend/src/types/api/order.ts", "reason": "OrderStatus/AdminOrder DTO type compatibility with unknown backend values."}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/application/AdminOrderManagementService.java", "reason": "Admin list/detail projection maps persisted OrderStatus to response status and builds timeline."}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/application/AdminOrderManagementServiceTest.java", "reason": "Existing in-memory repository and service test patterns for admin order list/detail projection."}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminOrderControllerTest.java", "reason": "Existing WebMvc admin order envelope serialization test pattern."}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/domain/OrderStatus.java", "reason": "Authoritative backend main order status enum for parameterized tests."}

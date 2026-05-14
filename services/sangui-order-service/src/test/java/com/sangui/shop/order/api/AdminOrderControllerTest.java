@@ -25,11 +25,14 @@ import com.sangui.shop.order.api.dto.AdminOrderSummaryResponse;
 import com.sangui.shop.order.api.dto.OrderItemResponse;
 import com.sangui.shop.order.application.AdminOrderManagementService;
 import com.sangui.shop.order.domain.OrderErrorCode;
+import com.sangui.shop.order.domain.OrderStatus;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -167,6 +170,63 @@ class AdminOrderControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ORDER_STATUS_INVALID"))
                 .andExpect(jsonPath("$.traceId").value("trace-admin-invalid"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(OrderStatus.class)
+    void listSerializesEveryMainStatus(OrderStatus status) throws Exception {
+        when(adminOrderManagementService.listOrders(any(), eq(1), eq(20), eq(status.value()), any(), any(), any(), any()))
+                .thenReturn(new AdminOrderPageResponse(1, 20, 1,
+                        List.of(new AdminOrderSummaryResponse(
+                                101L, "ORD-101", 1L, "10001", status.value(),
+                                59900L, null, 2, "trace-order",
+                                OffsetDateTime.parse("2026-05-01T10:00:00+08:00"),
+                                OffsetDateTime.parse("2026-05-01T10:00:00+08:00")
+                        ))
+                ));
+
+        mockMvc.perform(get("/api/admin/orders")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, adminPrincipal())
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-admin-list")
+                        .queryParam("page", "1")
+                        .queryParam("size", "20")
+                        .queryParam("status", status.value()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ADMIN_ORDER_LIST"))
+                .andExpect(jsonPath("$.data.items[0].status").value(status.value()));
+    }
+
+    @ParameterizedTest
+    @EnumSource(OrderStatus.class)
+    void detailSerializesEveryMainStatusAndTimeline(OrderStatus status) throws Exception {
+        OffsetDateTime timestamp = OffsetDateTime.parse("2026-05-01T10:00:00+08:00");
+        List<AdminOrderStatusTimelineResponse> timeline = status == OrderStatus.CREATED
+                ? List.of(new AdminOrderStatusTimelineResponse("created", timestamp, "trace-order"))
+                : List.of(
+                        new AdminOrderStatusTimelineResponse("created", timestamp, "trace-order"),
+                        new AdminOrderStatusTimelineResponse(status.value(), timestamp.plusMinutes(5), "trace-order")
+                );
+
+        when(adminOrderManagementService.getOrder(any(), eq(101L)))
+                .thenReturn(new AdminOrderDetailResponse(
+                        101L, "ORD-101", 1L, "10001", "req-101",
+                        "ord:10001:req-101", null, status.value(), 59900L,
+                        "trace-order", timestamp, timestamp,
+                        List.of(new OrderItemResponse(301L, 401L, "Sneaker 42", 59900L, 1, 59900L)),
+                        timeline
+                ));
+
+        org.springframework.test.web.servlet.ResultActions resultActions = mockMvc.perform(get("/api/admin/orders/101")
+                        .requestAttr(SanguiAuthenticationContextFilter.PRINCIPAL_ATTRIBUTE, adminPrincipal())
+                        .header(TraceConstants.TRACE_ID_HEADER, "trace-admin-detail"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ADMIN_ORDER_DETAIL"))
+                .andExpect(jsonPath("$.data.status").value(status.value()))
+                .andExpect(jsonPath("$.data.statusTimeline[0].status").value("created"));
+
+        if (status != OrderStatus.CREATED) {
+            resultActions.andExpect(jsonPath("$.data.statusTimeline[1].status").value(status.value()));
+        }
     }
 
     private SanguiPrincipal adminPrincipal() {

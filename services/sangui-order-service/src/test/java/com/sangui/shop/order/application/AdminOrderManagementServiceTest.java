@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class AdminOrderManagementServiceTest {
 
@@ -161,6 +163,34 @@ class AdminOrderManagementServiceTest {
                     assertThat(exception.errorCode().code()).isEqualTo("VALIDATION_FAILED");
                     assertThat(exception.httpStatus()).isEqualTo(400);
                 });
+    }
+
+    @ParameterizedTest
+    @EnumSource(OrderStatus.class)
+    void listExposesMainStatusForEveryKnownStatus(OrderStatus status) {
+        orderRepository.seedOrder(1L, "10001", "ORD-" + status.value(), "req-" + status.value(), "ord:10001:req-" + status.value(), status, 59900L);
+
+        AdminOrderPageResponse response = adminOrderManagementService.listOrders(
+                ORDER_ADMIN, 1, 20, status.value(), null, null, null, null
+        );
+
+        assertThat(response.total()).isEqualTo(1);
+        assertThat(response.items()).extracting(AdminOrderSummaryResponse::status).containsExactly(status.value());
+    }
+
+    @ParameterizedTest
+    @EnumSource(OrderStatus.class)
+    void detailExposesMainStatusAndTimelineForEveryKnownStatus(OrderStatus status) {
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-" + status.value(), "req-" + status.value(), "ord:10001:req-" + status.value(), status, 59900L);
+
+        AdminOrderDetailResponse response = adminOrderManagementService.getOrder(ORDER_ADMIN, orderId);
+
+        assertThat(response.status()).isEqualTo(status.value());
+
+        java.util.List<String> expectedTimelineStatuses = status == OrderStatus.CREATED
+                ? java.util.List.of("created")
+                : java.util.List.of("created", status.value());
+        assertThat(response.statusTimeline()).extracting("status").containsExactlyElementsOf(expectedTimelineStatuses);
     }
 
     private static final class InMemoryOrderRepository implements OrderRepository {

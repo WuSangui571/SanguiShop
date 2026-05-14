@@ -1,0 +1,12 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Check updated admin order contract and status non-overwrite assertion points."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check targeted backend test command and no root-reactor selector drift."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check frontend admin order display/timeline contract and test requirements."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check unknown enum fallback remains intact."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check frontend full npm test expectation and quality gates."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check cross-layer status field alignment and drift risk coverage."}
+{"file": "frontend/src/views/admin/orderManagementModel.test.ts", "reason": "Review frontend model matrix coverage for known and unknown statuses."}
+{"file": "frontend/src/views/admin/OrderManagementView.spec.ts", "reason": "Review component matrix coverage for list/detail/timeline rendering."}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/application/AdminOrderManagementServiceTest.java", "reason": "Review backend parameterized status projection coverage over OrderStatus.values()."}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminOrderControllerTest.java", "reason": "Review controller serialization coverage for admin order status/timeline response."}

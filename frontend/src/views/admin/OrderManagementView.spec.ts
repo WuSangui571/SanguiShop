@@ -154,6 +154,14 @@ function findRefreshPaymentButton(w: VueWrapper) {
   return button
 }
 
+function summaryValue(w: VueWrapper, label: string): string {
+  const card = w.findAll('.summary-grid > div').find((item) => item.find('span').text() === label)
+  if (!card) {
+    throw new Error(`summary value not found: ${label}`)
+  }
+  return card.find('strong').text()
+}
+
 function resetBrowserState() {
   window.sessionStorage.clear()
   window.history.replaceState(null, '', '/admin')
@@ -687,5 +695,121 @@ describe('OrderManagementView payment refresh', () => {
     await nextTick()
 
     expect(w.text()).toContain('PAY-201')
+  })
+})
+
+// --- Status Matrix Rendering ---
+
+describe('OrderManagementView status matrix rendering', () => {
+  const statusCases = [
+    { status: 'created', labelKey: 'orderAdmin.statusCreated', timelineDescKey: 'orderAdmin.timelineCreatedDescription', canCancel: true },
+    { status: 'paid', labelKey: 'orderAdmin.statusPaid', timelineDescKey: 'orderAdmin.timelinePaidDescription', canCancel: false },
+    { status: 'shipped', labelKey: 'orderAdmin.statusShipped', timelineDescKey: 'orderAdmin.timelineShippedDescription', canCancel: false },
+    { status: 'completed', labelKey: 'orderAdmin.statusCompleted', timelineDescKey: 'orderAdmin.timelineCompletedDescription', canCancel: false },
+    { status: 'cancelled', labelKey: 'orderAdmin.statusCancelled', timelineDescKey: 'orderAdmin.timelineCancelledDescription', canCancel: false },
+  ] as const
+
+  statusCases.forEach(({ status, labelKey, timelineDescKey, canCancel }) => {
+    it(`displays ${status} label in list and detail, timeline description, and correct cancel state`, async () => {
+      vi.mocked(listAdminOrders).mockResolvedValue({
+        data: {
+          items: [createOrderSummary({ orderId: 1, orderNo: `ORD-${status}`, status })],
+          total: 1,
+          page: 1,
+          size: 20,
+        },
+        meta: mockMeta,
+      })
+      vi.mocked(getAdminOrder).mockResolvedValue({
+        data: createOrderDetail({
+          orderId: 1,
+          orderNo: `ORD-${status}`,
+          status,
+          statusTimeline: status === 'created'
+            ? [{ status: 'created', occurredAt: '2026-05-08T10:00:00+08:00', traceId: 'trace-created' }]
+            : [
+                { status: 'created', occurredAt: '2026-05-08T10:00:00+08:00', traceId: 'trace-created' },
+                { status, occurredAt: '2026-05-08T11:00:00+08:00', traceId: `trace-${status}` },
+              ],
+        }),
+        meta: mockMeta,
+      })
+      vi.mocked(getAdminPaymentByOrderId).mockRejectedValue(
+        new HttpClientError('Payment not found', { code: 'PAYMENT_NOT_FOUND', status: 404, traceId: 'trace-pay' }),
+      )
+
+      const w = await mountView()
+      await selectOrderFromList(w)
+
+      expect(w.find('.list-item span').text()).toBe(labelKey)
+      expect(summaryValue(w, 'orderAdmin.status')).toBe(labelKey)
+
+      const matchingTimelineItem = w.findAll('.timeline-item').find((item) => item.find('strong').text() === labelKey)
+      if (!matchingTimelineItem) {
+        throw new Error(`timeline item not found: ${labelKey}`)
+      }
+      expect(matchingTimelineItem.text()).toContain(timelineDescKey)
+
+      const cancelBtn = w.find('.detail-actions .danger')
+      if (canCancel) {
+        expect(cancelBtn.attributes('disabled')).toBeUndefined()
+      } else {
+        expect(cancelBtn.attributes('disabled')).toBe('')
+      }
+    })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+    resetBrowserState()
+  })
+})
+
+describe('OrderManagementView unknown status display', () => {
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+    resetBrowserState()
+  })
+
+  it('preserves raw unknown status in list and detail, and unknown timeline description', async () => {
+    vi.mocked(listAdminOrders).mockResolvedValue({
+      data: {
+        items: [createOrderSummary({ orderId: 1, orderNo: 'ORD-UNKNOWN', status: 'refunding' })],
+        total: 1,
+        page: 1,
+        size: 20,
+      },
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminOrder).mockResolvedValue({
+      data: createOrderDetail({
+        orderId: 1,
+        orderNo: 'ORD-UNKNOWN',
+        status: 'refunding',
+        statusTimeline: [
+          { status: 'created', occurredAt: '2026-05-08T10:00:00+08:00', traceId: 'trace-created' },
+          { status: 'refunding', occurredAt: '2026-05-08T11:00:00+08:00', traceId: 'trace-refunding' },
+        ],
+      }),
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminPaymentByOrderId).mockRejectedValue(
+      new HttpClientError('Payment not found', { code: 'PAYMENT_NOT_FOUND', status: 404, traceId: 'trace-pay' }),
+    )
+
+    const w = await mountView()
+    await selectOrderFromList(w)
+
+    expect(w.find('.list-item span').text()).toBe('refunding')
+    expect(summaryValue(w, 'orderAdmin.status')).toBe('refunding')
+
+    const timelineItems = w.findAll('.timeline-item')
+    expect(timelineItems.length).toBe(2)
+    expect(timelineItems[1].find('strong').text()).toBe('refunding')
+    expect(timelineItems[1].text()).toContain('orderAdmin.timelineUnknownDescription')
   })
 })

@@ -62,6 +62,7 @@ describe('orderManagementModel', () => {
 
     expect(getAdminOrderStatusLabel('created', labels)).toBe('Unpaid')
     expect(getAdminOrderStatusLabel('paid', labels)).toBe('Paid')
+    expect(getAdminOrderStatusLabel('cancelled', labels)).toBe('Cancelled')
     expect(getAdminOrderStatusLabel('shipped', { ...labels, shipped: 'Shipped' })).toBe('Shipped')
     expect(getAdminOrderStatusLabel('completed', { ...labels, completed: 'Completed' })).toBe('Completed')
     expect(getAdminOrderStatusLabel('refunding', labels)).toBe('refunding')
@@ -121,7 +122,10 @@ describe('orderManagementModel', () => {
       unknown: 'Backend returned an unrecognized status.',
     }
 
+    expect(getAdminOrderTimelineDescription('created', timelineLabels)).toBe('Order was created and is awaiting payment.')
     expect(getAdminOrderTimelineDescription('paid', timelineLabels)).toBe('Payment was confirmed.')
+    expect(getAdminOrderTimelineDescription('cancelled', timelineLabels)).toBe('Order was cancelled and release work should be complete.')
+    expect(getAdminOrderTimelineDescription('shipped', timelineLabels)).toBe('Shipment was confirmed.')
     expect(getAdminOrderTimelineDescription('completed', timelineLabels)).toBe('Receipt was confirmed and the transaction is complete.')
     expect(getAdminOrderTimelineDescription('refunding', timelineLabels)).toBe('Backend returned an unrecognized status.')
     expect(deriveAdminOrderTimeline([
