@@ -44,7 +44,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(ProductCatalogController.class)
+@WebMvcTest(
+        controllers = ProductCatalogController.class,
+        properties = {
+                "spring.config.import=",
+                "spring.cloud.nacos.config.enabled=false",
+                "spring.cloud.nacos.discovery.enabled=false",
+                "spring.cloud.sentinel.enabled=false"
+        }
+)
 @Import({GlobalApiExceptionHandler.class, ProductCatalogControllerTest.ResolverConfig.class})
 class ProductCatalogControllerTest {
 

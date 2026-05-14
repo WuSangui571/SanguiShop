@@ -1,0 +1,11 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Review default tests for hermetic smoke coverage and no live external dependency assumptions"}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Verify smoke command/profile documentation and no secret/noisy output regression"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Confirm changes stay in service test/config/docs boundaries"}
+{"file": ".trellis/spec/backend/messaging-cache-guidelines.md", "reason": "Check default tests do not require live Redis/MQ"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Check smoke tests do not connect to live MySQL/Flyway"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review cross-layer config side effects and hidden live dependency access"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Quality review checklist for deployment/config/test boundary"}
+{"file": "services/sangui-gateway/src/test/java/com/sangui/shop/gateway/SanguiGatewayApplicationSmokeTest.java", "reason": "Reference pattern for Nacos/Sentinel-disabled context smoke review"}
+{"file": "services/sangui-user-service/src/test/java/com/sangui/shop/user/SanguiUserApplicationSmokeTest.java", "reason": "Reference pattern for DB-owning service smoke review"}
+{"file": "services/sangui-seckill-service/src/test/java/com/sangui/shop/seckill/api/AdminSeckillActivityControllerTest.java", "reason": "Review web slice tests do not trigger Nacos config import"}
+{"file": "scripts/smoke-local.ps1", "reason": "Verify smoke backend test command remains truthful and does not hide failures"}

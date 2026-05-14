@@ -150,7 +150,7 @@ Required assertion points:
 - Common tests assert `ApiResult` JSON fields: `code`, `message`, `data`, `traceId`, `timestamp`.
 - Redis tests assert key shape `sangui:{env}:{service}:{domain}:{identifier}`.
 - MQ tests assert event envelope fields: `eventId`, `eventType`, `version`, `occurredAt`, `shopId`, `traceId`, `payload`.
-- Smoke tests cover `sangui-gateway` and at least one business service with Nacos/Sentinel disabled for test scope.
+- Smoke tests cover all 11 service modules (gateway, seckill, user, product, order, payment, logistics, review, marketing, search-rec, ai) with Nacos/Sentinel disabled for test scope. Services with `spring.datasource.*` or `spring-boot-starter-jdbc` on classpath also exclude DataSource/Flyway auto-configuration.
 - Maven Enforcer requires Java 21 and Maven 3.9.9 or newer.
 
 如果 Windows PowerShell 执行 npm `.ps1` shim 被策略拦截，前端命令使用 `cmd /c npm ...`。

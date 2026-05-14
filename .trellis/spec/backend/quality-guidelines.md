@@ -138,6 +138,33 @@ Good/Base/Bad cases:
 - Bad: global `mvn` is not accepted in reproducible project docs or CI instructions.
 - Bad: compensation ops audit controller tests are added to the default `pull_request` CI gate before an explicit runtime tradeoff decision.
 
+## Default Test Isolation Contract
+
+Default `mvn test` runs must be hermetic: they must not require or attempt live Nacos, Redis, MQ, or MySQL connections. Real external dependencies are allowed only through an explicit opt-in integration profile or documented manual runtime path.
+
+Executable rules:
+
+- Every service `@SpringBootTest` smoke test must disable `spring.cloud.nacos.discovery`, `spring.cloud.nacos.config`, and `spring.cloud.sentinel`.
+- `@WebMvcTest` slices must set `spring.config.import=` and disable `spring.cloud.nacos.config`, `spring.cloud.nacos.discovery`, and `spring.cloud.sentinel` unless the test is intentionally validating config-client behavior.
+- Services that declare `spring.datasource.*` in `application.yml` must also exclude `DataSourceAutoConfiguration` and `FlywayAutoConfiguration`, and mock repository beans to prevent JDBC-dependent implementations from failing context load.
+- Services that bring `spring-boot-starter-jdbc` on the classpath but do not declare `spring.datasource.*` locally must still exclude `DataSourceAutoConfiguration` and `FlywayAutoConfiguration` in smoke tests, because Nacos remote config could supply `spring.datasource.*` at runtime.
+- Services without `spring-boot-starter-jdbc` on the classpath need only Nacos/Sentinel disabled; no DataSource exclusions are required.
+- Service context smoke tests should use `@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)` unless the service requires Spring web server infrastructure to create essential framework beans. Reactive gateway smoke tests may use `SpringBootTest.WebEnvironment.MOCK`; smoke tests must still avoid starting a live external runtime.
+- `sangui.security.jwt.secret` must be provided in test properties for services with security auto-configuration.
+
+Good/Base/Bad cases:
+
+- Good: `.\mvnw.cmd -q "-Dmaven.repo.local=<repo>\.m2\repository" test` passes without Docker or live Nacos and output contains no `localhost:9848 connection refused`.
+- Good: Every service smoke test disables Nacos config/discovery and Sentinel; DB-owning services additionally exclude DataSource/Flyway auto-config and mock repository beans.
+- Good: WebMvc slice tests do not print `NacosConfigDataLoader` noise because they clear `spring.config.import` and disable Nacos/Sentinel in test scope.
+- Good: A service without external dependencies starts its context test with only Nacos/Sentinel disabled.
+- Base: A shared test annotation or meta-annotation could reduce duplication across service smoke tests if it stays transparent and does not mask business test failures.
+- Bad: Default `mvn test` requires Nacos, Redis, RocketMQ, MySQL, or Docker to pass.
+- Bad: A smoke test connects to `localhost` services and accepts connection refused logs as harmless.
+- Bad: Test isolation is achieved by deleting production Nacos config from `application.yml`.
+- Bad: A catch-all `@TestPropertySource` skip disables meaningful context tests or hides Surefire failures.
+- Bad: A controller slice test loads Nacos config import and prints `NacosConfigDataLoader` noise during `mvn test`.
+
 ## Phase 1 Foundation Tests
 
 The minimum scaffold test suite must stay cheap and executable:
@@ -148,8 +175,17 @@ The minimum scaffold test suite must stay cheap and executable:
 | `common/sangui-common-core` | `CommonErrorCodeTest` | Baseline codes include auth, validation, rate-limit, secret-missing, downstream-timeout, idempotency, and internal errors. |
 | `common/sangui-common-redis` | `RedisKeyBuilderTest` | Key shape is `sangui:{env}:{service}:{domain}:{identifier}`. |
 | `common/sangui-common-mq` | `EventEnvelopeJsonTest` | MQ envelope fields match the event contract. |
-| `services/sangui-gateway` | smoke test | Startup class exists and Spring context loads with external config clients disabled. |
-| `services/sangui-user-service` | smoke test | Startup class exists and Spring context loads with external config clients disabled. |
+| `services/sangui-gateway` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled, using mock web environment for reactive gateway infrastructure. |
+| `services/sangui-seckill-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled, DataSource/Flyway excluded, repository and client beans mocked. |
+| `services/sangui-user-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled, DataSource/Flyway excluded, repository beans mocked. |
+| `services/sangui-product-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled, DataSource/Flyway excluded, repository beans mocked. |
+| `services/sangui-order-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled, DataSource/Flyway excluded, repository and client beans mocked. |
+| `services/sangui-payment-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled, DataSource/Flyway excluded, repository and client beans mocked. |
+| `services/sangui-logistics-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled, DataSource/Flyway excluded, repository and client beans mocked. |
+| `services/sangui-review-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled. |
+| `services/sangui-marketing-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled. |
+| `services/sangui-search-rec-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled. |
+| `services/sangui-ai-service` | smoke test | Startup class exists and Spring context loads with Nacos/Sentinel disabled. |
 
 Good/Base/Bad cases:
 
@@ -157,6 +193,7 @@ Good/Base/Bad cases:
 - Base: `.\scripts\verify.ps1 -SkipDocker` is allowed only for local machines without Docker.
 - Bad: A new common contract has no serialization or shape test.
 - Bad: A service smoke test depends on live Nacos, Redis, MQ, or MySQL.
+- Bad: A new service is added without an application smoke test.
 
 ## Phase 2 Persistence Tests
 

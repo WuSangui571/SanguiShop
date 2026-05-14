@@ -44,7 +44,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-@WebMvcTest(InternalPaymentCompensationController.class)
+@WebMvcTest(
+        controllers = InternalPaymentCompensationController.class,
+        properties = {
+                "spring.config.import=",
+                "spring.cloud.nacos.config.enabled=false",
+                "spring.cloud.nacos.discovery.enabled=false",
+                "spring.cloud.sentinel.enabled=false"
+        }
+)
 @Import({GlobalApiExceptionHandler.class, InternalPaymentCompensationControllerTest.ResolverConfig.class})
 class InternalPaymentCompensationControllerTest {
 

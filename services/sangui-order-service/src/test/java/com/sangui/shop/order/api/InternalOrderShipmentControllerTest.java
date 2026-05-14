@@ -23,7 +23,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(InternalOrderShipmentController.class)
+@WebMvcTest(
+        controllers = InternalOrderShipmentController.class,
+        properties = {
+                "spring.config.import=",
+                "spring.cloud.nacos.config.enabled=false",
+                "spring.cloud.nacos.discovery.enabled=false",
+                "spring.cloud.sentinel.enabled=false"
+        }
+)
 @Import(GlobalApiExceptionHandler.class)
 class InternalOrderShipmentControllerTest {
 

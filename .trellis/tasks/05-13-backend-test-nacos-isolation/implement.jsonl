@@ -1,0 +1,13 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Default backend test isolation contract, smoke test Good/Base/Bad cases, Maven test definition of done"}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Maven Wrapper, smoke-local backend mode, local dependency runtime boundaries"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Service module boundaries and where service config/test code belongs"}
+{"file": ".trellis/spec/backend/messaging-cache-guidelines.md", "reason": "Redis/MQ must stay out of default unit/smoke tests unless explicit integration profile"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Flyway/MySQL contract tests and explicit integration boundary"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "External config/dependency boundary thinking for test environment contract"}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Architecture/test review order for infra and observability changes"}
+{"file": "services/sangui-gateway/src/test/java/com/sangui/shop/gateway/SanguiGatewayApplicationSmokeTest.java", "reason": "Existing isolated gateway smoke pattern"}
+{"file": "services/sangui-user-service/src/test/java/com/sangui/shop/user/SanguiUserApplicationSmokeTest.java", "reason": "Existing isolated service smoke pattern with JDBC/Flyway excluded"}
+{"file": "services/sangui-seckill-service/src/test/java/com/sangui/shop/seckill/api/AdminSeckillActivityControllerTest.java", "reason": "Existing WebMvc test pattern clearing spring.config.import and disabling Nacos"}
+{"file": "scripts/smoke-local.ps1", "reason": "BackendMode test command entrypoint and repo-local Maven repository behavior"}

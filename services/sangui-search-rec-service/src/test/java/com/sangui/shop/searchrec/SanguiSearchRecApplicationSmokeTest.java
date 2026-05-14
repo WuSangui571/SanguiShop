@@ -1,4 +1,4 @@
-package com.sangui.shop.gateway;
+package com.sangui.shop.searchrec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -9,23 +9,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 
 @SpringBootTest(
-        classes = SanguiGatewayApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.MOCK,
+        classes = SanguiSearchRecApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {
                 "spring.cloud.nacos.discovery.enabled=false",
                 "spring.cloud.nacos.config.enabled=false",
-                "spring.cloud.sentinel.enabled=false",
-                "sangui.security.jwt.secret=test-secret-with-enough-entropy"
+                "spring.cloud.sentinel.enabled=false"
         }
 )
-class SanguiGatewayApplicationSmokeTest {
+class SanguiSearchRecApplicationSmokeTest {
 
     @Autowired
     private ApplicationContext applicationContext;
 
     @Test
     void startupClassExists() {
-        assertThat(SanguiGatewayApplication.class.getAnnotation(SpringBootApplication.class)).isNotNull();
+        assertThat(SanguiSearchRecApplication.class.getAnnotation(SpringBootApplication.class)).isNotNull();
     }
 
     @Test
