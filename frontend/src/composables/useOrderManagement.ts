@@ -45,7 +45,7 @@ export function useOrderManagement(
   const selectedItem = computed(() => items.value.find((item) => item.orderId === detail.value?.orderId) ?? null)
   const totalPages = computed(() => Math.max(1, Math.ceil(total.value / Math.max(1, filters.value.size))))
   const canCancelSelectedOrder = computed(() => Boolean(detail.value && canCancelAdminOrder(detail.value.status)))
-  const isActionPending = computed(() => actionGate.isPending())
+  const isActionPending = ref(false)
 
   async function bootstrap(orderId = options.initialOrderId ?? null) {
     if (!canAccessWorkspace.value || !session.value) {
@@ -147,6 +147,7 @@ export function useOrderManagement(
     if (!detail.value || !canCancelSelectedOrder.value || !actionGate.begin()) {
       return false
     }
+    isActionPending.value = true
     actionError.value = null
     const requestId = (options.createRequestId ?? createRequestId)()
     try {
@@ -163,6 +164,7 @@ export function useOrderManagement(
       return false
     } finally {
       actionGate.end()
+      isActionPending.value = false
     }
   }
 

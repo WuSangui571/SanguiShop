@@ -32,6 +32,13 @@ let mockPaymentError: { code: string; message: string; traceId: string } | null 
 let mockListError: { code: string; message: string; traceId: string } | null = null
 let mockDetailError: { code: string; message: string; traceId: string } | null = null
 let deferPaymentResponse = false
+let cancelApiCallCount = 0
+let cancelRequestAuthHeaders: string[] = []
+let cancelRequestPayloads: string[] = []
+let mockCancelSuccess: AdminOrderDetailResponse | null = null
+let mockCancelError: { code: string; message: string; traceId: string; httpStatus?: number } | null = null
+let deferCancelResponse = false
+let pendingCancelRoute: Route | null = null
 
 function resetMockState() {
   pendingPaymentRoute = null
@@ -45,6 +52,13 @@ function resetMockState() {
   mockListError = null
   mockDetailError = null
   deferPaymentResponse = false
+  cancelApiCallCount = 0
+  cancelRequestAuthHeaders = []
+  cancelRequestPayloads = []
+  mockCancelSuccess = null
+  mockCancelError = null
+  deferCancelResponse = false
+  pendingCancelRoute = null
 }
 
 function extractPath(rawUrl: string): string {
@@ -142,6 +156,48 @@ async function setupDefaultApiRoutes(page: Page) {
       return
     }
 
+    if (method === 'POST' && /^\/api\/admin\/orders\/\d+\/cancel$/.test(path)) {
+      recordAdminApiCall(route)
+      cancelApiCallCount++
+      cancelRequestAuthHeaders.push(request.headers().authorization ?? '')
+      try {
+        const body = request.postDataJSON()
+        cancelRequestPayloads.push(JSON.stringify(body ?? {}))
+      } catch {
+        cancelRequestPayloads.push('{}')
+      }
+
+      const cancelOrderId = Number(path.split('/')[4])
+
+      if (deferCancelResponse) {
+        pendingCancelRoute = route
+        return
+      }
+
+      if (mockCancelError) {
+        await route.fulfill({
+          status: mockCancelError.httpStatus ?? 409,
+          json: apiErrorEnvelope(mockCancelError.code, mockCancelError.message, mockCancelError.traceId),
+        })
+        return
+      }
+
+      if (mockCancelSuccess) {
+        applyMockCancelSuccess(cancelOrderId, mockCancelSuccess)
+        await route.fulfill({
+          status: 200,
+          json: apiEnvelope(mockCancelSuccess, 'ADMIN_ORDER_CANCELLED', 'trace-admin-cancel-success'),
+        })
+        return
+      }
+
+      await route.fulfill({
+        status: 409,
+        json: apiErrorEnvelope('ORDER_STATUS_INVALID', 'Only created orders can be cancelled.', 'trace-order-cancel-invalid'),
+      })
+      return
+    }
+
     await route.continue()
   })
 }
@@ -184,6 +240,21 @@ function useOrders(details: AdminOrderDetailResponse[]) {
 
 function useSingleOrder(detail: AdminOrderDetailResponse) {
   useOrders([detail])
+}
+
+function applyMockCancelSuccess(orderId: number, detail: AdminOrderDetailResponse) {
+  mockOrderById[orderId] = detail
+  mockOrderSummaries = mockOrderSummaries.map((s) =>
+    s.orderId === orderId
+      ? {
+          ...s,
+          status: detail.status,
+          paymentNo: detail.paymentNo,
+          traceId: detail.traceId,
+          updatedAt: detail.updatedAt,
+        }
+      : s,
+  )
 }
 
 const ALL_STATUS_ORDERS: AdminOrderDetailResponse[] = [
@@ -579,5 +650,181 @@ test.describe('Admin order payment browser smoke', () => {
     pendingPaymentRoute = null
 
     await expect(page.locator('button:has-text("Refresh payment")')).toBeVisible()
+  })
+
+  test.describe('Admin order cancel browser smoke', () => {
+    test('created order cancel button is visible and enabled', async ({ page }) => {
+      useSingleOrder(createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created', paymentNo: null }))
+      await seedOpsSession(page, createOpsSession())
+      await page.goto('/admin?workspace=order')
+
+      await page.locator('.list-item').click()
+      await expect(page.locator('.detail-panel')).toBeVisible()
+
+      const cancelBtn = page.locator('.detail-actions button.danger')
+      await expect(cancelBtn).toBeVisible()
+      await expect(cancelBtn).toBeEnabled()
+    })
+
+    test('first cancel click opens confirmation dialog without sending cancel request', async ({ page }) => {
+      useSingleOrder(createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created', paymentNo: null }))
+      await seedOpsSession(page, createOpsSession())
+      await page.goto('/admin?workspace=order')
+
+      await page.locator('.list-item').click()
+      await page.locator('.detail-actions button.danger').click()
+
+      await expect(page.locator('.confirm-dialog')).toBeVisible()
+      await expect(page.locator('.confirm-dialog')).toContainText('ADM-CRT-1001')
+      expect(cancelApiCallCount).toBe(0)
+
+      await page.locator('.confirm-actions button.secondary').click()
+      await expect(page.locator('.confirm-dialog')).not.toBeVisible()
+    })
+
+    test('confirm sends cancel request with ops auth header and requestId payload, then syncs status', async ({ page }) => {
+      useSingleOrder(createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created', paymentNo: null }))
+      mockCancelSuccess = createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'cancelled', paymentNo: null })
+      await seedOpsSession(page, createOpsSession())
+      await page.goto('/admin?workspace=order')
+
+      await page.locator('.list-item').click()
+      await page.locator('.detail-actions button.danger').click()
+      await expect(page.locator('.confirm-dialog')).toBeVisible()
+
+      const countBefore = cancelApiCallCount
+      await page.locator('.confirm-actions button.danger').click()
+
+      expect(cancelApiCallCount).toBe(countBefore + 1)
+      expect(cancelRequestAuthHeaders.some((h) => h === 'Bearer mock-ops-jwt-token')).toBe(true)
+
+      expect(cancelRequestPayloads.length).toBeGreaterThan(0)
+      const payload = JSON.parse(cancelRequestPayloads[0])
+      expect(payload.requestId).toBeTruthy()
+      expect(typeof payload.requestId).toBe('string')
+      expect(payload.requestId.trim().length).toBeGreaterThan(0)
+
+      await expect(page.locator('.confirm-dialog')).not.toBeVisible()
+      await expect(page.locator('.summary-grid')).toContainText('Cancelled')
+      await expect(page.locator('.list-item.active')).toContainText('Cancelled')
+      await expect(page.locator('.detail-actions button.danger')).toBeDisabled()
+    })
+
+    test('duplicate cancel confirm while pending sends exactly one request', async ({ page }) => {
+      useSingleOrder(createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created', paymentNo: null }))
+      mockCancelSuccess = createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'cancelled', paymentNo: null })
+      deferCancelResponse = true
+      await seedOpsSession(page, createOpsSession())
+      await page.goto('/admin?workspace=order')
+
+      await page.locator('.list-item').click()
+      await page.locator('.detail-actions button.danger').click()
+      await expect(page.locator('.confirm-dialog')).toBeVisible()
+
+      await page.locator('.confirm-actions button.danger').click()
+      await expect(page.locator('.confirm-actions button.danger')).toContainText('Cancelling')
+      await expect(page.locator('.confirm-actions button.danger')).toBeDisabled()
+
+      const countAfterFirst = cancelApiCallCount
+      expect(countAfterFirst).toBe(1)
+
+      await page.locator('.confirm-actions button.danger').dispatchEvent('click')
+      expect(cancelApiCallCount).toBe(countAfterFirst)
+
+      const cancelRoute = pendingCancelRoute
+      expect(cancelRoute).not.toBeNull()
+      if (!cancelRoute) {
+        throw new Error('Expected deferred cancel route to be captured.')
+      }
+      const cancelSuccess = mockCancelSuccess
+      expect(cancelSuccess).not.toBeNull()
+      if (!cancelSuccess) {
+        throw new Error('Expected cancel success mock to be configured.')
+      }
+      applyMockCancelSuccess(1001, cancelSuccess)
+      await cancelRoute.fulfill({
+        status: 200,
+        json: apiEnvelope(cancelSuccess, 'ADMIN_ORDER_CANCELLED', 'trace-admin-cancel-success'),
+      })
+      pendingCancelRoute = null
+
+      await expect(page.locator('.confirm-dialog')).not.toBeVisible()
+    })
+
+    test('non-created orders keep cancel disabled and send zero cancel requests', async ({ page }) => {
+      useOrders([
+        createAdminOrderDetail({ orderId: 1002, orderNo: 'ADM-PAI-1002', status: 'paid', paymentNo: 'ADM-PAY-2002' }),
+        createShippedOrder(),
+        createCompletedOrder(),
+        createCancelledOrder(),
+        createUnknownOrder(),
+      ])
+      await seedOpsSession(page, createOpsSession())
+      await page.goto('/admin?workspace=order')
+
+      const nonCreatedItems = ['ADM-PAI-1002', 'ADM-SHP-1003', 'ADM-CMP-1004', 'ADM-CNL-1005', 'ADM-UNK-1006']
+      for (const orderNo of nonCreatedItems) {
+        await page.locator(`.list-item:has-text("${orderNo}")`).click()
+        await expect(page.locator('.detail-panel')).toBeVisible()
+        await expect(page.locator('.detail-actions button.danger')).toBeDisabled()
+      }
+
+      expect(cancelApiCallCount).toBe(0)
+    })
+
+    test('cancel failure ORDER_STATUS_INVALID displays code message traceId and preserves detail snapshot', async ({ page }) => {
+      useSingleOrder(createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created', paymentNo: null }))
+      mockCancelError = {
+        code: 'ORDER_STATUS_INVALID',
+        message: 'Only created orders can be cancelled.',
+        traceId: 'trace-order-cancel-invalid',
+        httpStatus: 409,
+      }
+      await seedOpsSession(page, createOpsSession())
+      await page.goto('/admin?workspace=order')
+
+      await page.locator('.list-item').click()
+      await page.locator('.detail-actions button.danger').click()
+      await expect(page.locator('.confirm-dialog')).toBeVisible()
+
+      await page.locator('.confirm-actions button.danger').click()
+
+      await expect(page.locator('.detail-panel .banner.error')).toBeVisible()
+      const errorText = await page.locator('.detail-panel .banner.error').textContent()
+      expect(errorText).toContain('ORDER_STATUS_INVALID')
+      expect(errorText).toContain('Only created orders can be cancelled.')
+      expect(errorText).toContain('trace-order-cancel-invalid')
+
+      await expect(page.locator('.summary-grid')).toContainText('ADM-CRT-1001')
+      await expect(page.locator('.summary-grid')).toContainText('Unpaid')
+      await expect(page.locator('.list-item.active')).toContainText('Unpaid')
+    })
+
+    test('cancel failure DOWNSTREAM_TIMEOUT displays code message traceId and preserves detail snapshot', async ({ page }) => {
+      useSingleOrder(createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created', paymentNo: null }))
+      mockCancelError = {
+        code: 'DOWNSTREAM_TIMEOUT',
+        message: 'Order service unavailable during cancel.',
+        traceId: 'trace-order-cancel-timeout',
+        httpStatus: 503,
+      }
+      await seedOpsSession(page, createOpsSession())
+      await page.goto('/admin?workspace=order')
+
+      await page.locator('.list-item').click()
+      await page.locator('.detail-actions button.danger').click()
+      await expect(page.locator('.confirm-dialog')).toBeVisible()
+
+      await page.locator('.confirm-actions button.danger').click()
+
+      await expect(page.locator('.detail-panel .banner.error')).toBeVisible()
+      const errorText = await page.locator('.detail-panel .banner.error').textContent()
+      expect(errorText).toContain('DOWNSTREAM_TIMEOUT')
+      expect(errorText).toContain('Order service unavailable during cancel.')
+      expect(errorText).toContain('trace-order-cancel-timeout')
+
+      await expect(page.locator('.summary-grid')).toContainText('ADM-CRT-1001')
+      await expect(page.locator('.summary-grid')).toContainText('Unpaid')
+    })
   })
 })

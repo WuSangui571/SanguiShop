@@ -1,0 +1,25 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/05-16-admin-order-cancel-browser-smoke/prd.md", "reason": "Task PRD with API contract, error matrix, Good/Base/Bad cases, acceptance commands, and scope boundaries."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin order cancel frontend contract: ops auth, requestId, created-only cancel, duplicate guard, code/message/traceId preservation."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Confirmation dialog, reactive pending disabled state, component UI states."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "HTTP requests through service/composable boundaries and async loading/error/retry behavior."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Server-state vs client-state boundaries and backend error detail preservation."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "ApiResult envelope and DTO compatibility/unknown fallback rules."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend definition of done and required typecheck/lint/test/build gates."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Gateway envelope, write idempotency/requestId, and downstream timeout/error contract references for frontend smoke assertions."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Admin protected API and ops JWT/RBAC contract relevant to Authorization assertions."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Backend error code format and traceId response expectations used by browser mocks."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "TraceId and sensitive-data boundaries for admin error/audit expectations."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer checklist for API/payload/status/error consistency."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse existing smoke fixtures and avoid unnecessary abstractions."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Security, idempotency, and Good/Base/Bad review checklist."}
+{"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Existing real Chromium admin order/payment smoke suite to extend with cancel route/tests."}
+{"file": "frontend/e2e/fixtures/adminOrderPaymentSmoke.ts", "reason": "Existing admin smoke fixture helpers for ops session, orders, payments, envelopes."}
+{"file": "frontend/src/composables/useOrderManagement.ts", "reason": "Existing admin order cancel flow, requestId generation, action gate, and list/detail refresh behavior."}
+{"file": "frontend/src/views/admin/OrderManagementView.vue", "reason": "Existing admin order UI, cancel confirmation dialog, disabled/pending states, error banners."}
+{"file": "frontend/src/views/admin/orderManagementModel.ts", "reason": "Existing pure model helpers for cancel request, status eligibility, errors, duplicate gate."}
+{"file": "frontend/src/services/orderApi.ts", "reason": "Existing cancelAdminOrder service route and ops auth context."}
+{"file": "frontend/src/types/api/order.ts", "reason": "Existing AdminCancelOrderRequest and admin order DTO types."}
+{"file": "frontend/src/views/admin/OrderManagementView.spec.ts", "reason": "Existing component-level cancel tests to avoid duplicating unit coverage incorrectly."}
+{"file": "frontend/src/views/admin/orderManagementModel.test.ts", "reason": "Existing pure model tests for cancel requestId/status/duplicate gate patterns."}
