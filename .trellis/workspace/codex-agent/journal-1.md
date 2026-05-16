@@ -850,3 +850,48 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: 商城订单状态中心组件级回归覆盖收尾
+
+**Date**: 2026-05-16
+**Task**: 商城订单状态中心组件级回归覆盖收尾
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Item | Details |
+| --- | --- |
+| Task | ???????????????? |
+| Business commit | `7d16d40 test:??????????????` |
+| Main modules | Frontend mall order status regression coverage; `useMallOrderStatus` composable integration tests; `MallStorefrontView` component DOM regression tests |
+| Updated files | `frontend/tests/mallCheckoutModel.spec.ts`; `frontend/src/views/mall/MallStorefrontView.spec.ts`; `.trellis/tasks/archive/2026-05/05-16-mall-order-status-center-component-regression-coverage/` |
+| Verification | `cmd /c npx vitest run --reporter=verbose src/views/mall/MallStorefrontView.spec.ts tests/mallOrderStatusModel.spec.ts tests/mallCheckoutModel.spec.ts` -> 3 files / 80 tests passed; `cmd /c npm run typecheck` -> passed; `cmd /c npm run lint` -> passed; `cmd /c npm test` -> 21 files / 285 tests passed; `cmd /c npm run build` -> passed |
+| Result | Regression coverage now proves payment refresh/payment success preserves shipped/completed/cancelled/unknown order main lifecycle states and does not regress UI to awaiting shipment. Component tests verify DOM copy, disabled/loading payment refresh state, shipped snapshot preservation, and backend trace rendering after refresh failure. |
+| Boundaries | No backend, API route, DTO shape, DB, Redis, MQ, auth, Docker, or infra changes. `.trellis/spec/frontend/api-contracts.md` already contained the executable Mall Order Status contract, so no spec update was needed. |
+| Manual testing | Human confirmed manual testing passed before `$record-session`. |
+
+Archived Trellis task `05-16-mall-order-status-center-component-regression-coverage` after business code was committed and acceptance criteria were met.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7d16d40` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
