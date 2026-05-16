@@ -1,0 +1,23 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify receipt confirmation smoke follows frontend API contract and existing spec does not need expansion."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check DTO usage avoids any and preserves backend field names."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify no local-only completed transition before backend success and backend errors keep trace details."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Verify no component-level fetch and pending guard remains reactive/retryable."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check confirm receipt button state and rendered controls are not hidden by inert template wrappers."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify focused smoke, full smoke, Vitest, typecheck, lint, build, and diff hygiene expectations."}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Check no page-level ad hoc fetch or misplaced shared abstractions."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Verify smoke mocks preserve REST envelope and write idempotency assumptions."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Verify failure smoke asserts code/message/traceId display and no leaked internals."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Verify mall auth header is present for protected receipt/list/detail calls and absent calls when no session."}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Verify browser smoke aligns with backend receipt confirmation status and error matrix without backend changes."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check no cross-layer field drift, local-only state transition, or missing retry/failure handling."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Verify no unnecessary new abstraction or duplicated API client logic."}
+{"file": "frontend/e2e/mall-order-status-smoke.spec.ts", "reason": "Review new smoke cases for route mock correctness, request assertions, and hermetic behavior."}
+{"file": "frontend/e2e/fixtures/mallOrderStatusSmoke.ts", "reason": "Verify fixture changes keep order snapshots realistic and typed."}
+{"file": "frontend/src/composables/useMallOrderStatus.ts", "reason": "Check duplicate pending guard, error preservation, and backend-confirmed merge semantics if touched."}
+{"file": "frontend/src/views/mall/mallOrderStatusModel.ts", "reason": "Check status gating, completed merge/filter behavior, and unknown fallback if touched."}
+{"file": "frontend/src/views/mall/MallStorefrontView.vue", "reason": "Check rendered button disabled/loading states and no broader UI refactor if touched."}
+{"file": "frontend/tests/mallCheckoutModel.spec.ts", "reason": "Use as regression reference if production code changes."}
+{"file": "frontend/tests/mallOrderStatusModel.spec.ts", "reason": "Use as regression reference if model behavior changes."}
+{"file": "frontend/src/views/mall/MallStorefrontView.spec.ts", "reason": "Use as regression reference if Vue template or labels change."}

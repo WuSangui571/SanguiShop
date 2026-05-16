@@ -1081,3 +1081,46 @@ Captured the completed Mall order status center browser smoke work after human t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: 管理端履约发货浏览器冒烟覆盖收尾
+
+**Date**: 2026-05-16
+**Task**: 管理端履约发货浏览器冒烟覆盖收尾
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Item | Details |
+| --- | --- |
+| Commit | `502b9e8 test:???????????` |
+| Main modules | Frontend admin fulfillment management, Playwright Chromium smoke, fulfillment model/composable guard, Trellis task handoff/check metadata |
+| Updated files | `frontend/e2e/admin-order-payment-smoke.spec.ts`; `frontend/e2e/fixtures/adminOrderPaymentSmoke.ts`; `frontend/src/views/admin/fulfillmentManagementModel.ts`; `frontend/src/composables/useFulfillmentManagement.ts`; `frontend/src/views/admin/FulfillmentManagementView.spec.ts`; `frontend/src/views/admin/fulfillmentManagementModel.test.ts`; `.trellis/tasks/05-16-admin-fulfillment-shipping-browser-smoke/*` |
+| Verification | `npm run typecheck` passed; `npm run lint` passed; `npx vitest run src/views/admin/fulfillmentManagementModel.test.ts src/views/admin/FulfillmentManagementView.spec.ts` passed 21 tests; `npx playwright test e2e/admin-order-payment-smoke.spec.ts --project=chromium` passed 37 tests; `npm run test:smoke` passed 51 tests; `npm test` passed 286 tests; `npm run build` passed; `git diff --check` passed |
+| Result | Fulfillment shipping smoke now covers ops auth gating, route/header/payload assertions, `requestId`, trimmed carrier/tracking number, pending duplicate-submit guard, invalid lifecycle boundaries, error envelope display, failure snapshot preservation, success detail/list sync, and order-main-status integrity. |
+| Boundary | No backend Java, DB migration, gateway, Redis, MQ, Docker, dependency, or infra change. Existing frontend fulfillment API contract was used; no spec update was required because paid+unshipped, pending gate, requestId, and error-envelope behavior were already documented. |
+
+Codex check also fixed two direct task-scope issues before final validation: the shipment gate pending flag is reactive so Vue button text/disabled state updates while a ship request is pending, and the frontend ship eligibility guard now requires both `status=paid` and `fulfillmentStatus=unshipped`, including regression coverage for `created + unshipped` orders.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `502b9e8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

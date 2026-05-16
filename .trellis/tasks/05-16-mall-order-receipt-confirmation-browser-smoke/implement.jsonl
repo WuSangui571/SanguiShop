@@ -1,0 +1,23 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall order receipt confirmation route, requestId, success/failure merge, duplicate guard, and required tests."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Order DTO fields, unknown status fallback, completedAt and fulfillment fields must stay typed."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Order lifecycle state is server state; frontend only merges backend-confirmed receipt result."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Receipt confirmation uses service/composable boundaries and pending/error state conventions."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Button disabled/loading UI must be reactive and visible in browser smoke."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Defines required frontend test/typecheck/lint/build finish-work expectations."}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Keep smoke fixtures under e2e fixtures and business API calls in services/composables only."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Receipt confirmation is a write command requiring requestId and ApiResult envelope semantics."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Backend errors must expose sanitized code/message/traceId and frontend must preserve them."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "POST /api/orders/** is JWT-protected; unauthenticated smoke must not call protected APIs."}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Customer receipt confirmation addendum defines route, valid statuses, payload, and Good/Base/Bad cases."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Order lifecycle command crosses frontend/API contract boundaries; use guide for requestId, state, and failure risks."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse existing mall smoke route mocks, ApiResult envelope helpers, and order status fixtures."}
+{"file": "frontend/e2e/mall-order-status-smoke.spec.ts", "reason": "Primary Playwright browser smoke pattern for mall order status center."}
+{"file": "frontend/e2e/fixtures/mallOrderStatusSmoke.ts", "reason": "Existing mall order smoke fixtures and ApiResult envelope helpers to extend."}
+{"file": "frontend/src/composables/useMallOrderStatus.ts", "reason": "Existing receipt confirmation composable behavior and fallback only if smoke exposes a production gap."}
+{"file": "frontend/src/views/mall/mallOrderStatusModel.ts", "reason": "Existing lifecycle/action/filter model for confirm receipt button and list/filter sync."}
+{"file": "frontend/src/views/mall/MallStorefrontView.vue", "reason": "Existing UI button/detail/list/empty-state selectors that browser smoke exercises."}
+{"file": "frontend/tests/mallCheckoutModel.spec.ts", "reason": "Existing unit coverage for receipt confirmation requestId, duplicate guard, success, and failure preservation."}
+{"file": "frontend/tests/mallOrderStatusModel.spec.ts", "reason": "Existing model coverage for shipped/completed action and filter semantics."}
+{"file": "frontend/src/views/mall/MallStorefrontView.spec.ts", "reason": "Existing component harness for mall order status UI state."}

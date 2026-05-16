@@ -80,12 +80,22 @@ export function createShippedOrder(): OrderResponse {
   return createOrderResponse({
     orderId: 502,
     orderNo: 'ORD-SMOKE-502',
-    status: 'paid',
+    status: 'shipped',
     fulfillmentStatus: 'shipped',
     carrier: 'SF Express',
     trackingNo: 'SF123456789CN',
     shippedAt: '2026-05-15T12:00:00+08:00',
     updatedAt: '2026-05-16T08:05:00+08:00',
+  })
+}
+
+export function createCreatedOrder(): OrderResponse {
+  return createOrderResponse({
+    orderId: 506,
+    orderNo: 'ORD-SMOKE-506',
+    status: 'created',
+    fulfillmentStatus: null,
+    updatedAt: '2026-05-16T07:15:00+08:00',
   })
 }
 
@@ -133,6 +143,19 @@ export function createPaidUnshippedOrder(): OrderResponse {
     fulfillmentStatus: 'unshipped',
     updatedAt: '2026-05-16T08:00:00+08:00',
   })
+}
+
+export function createCompletedFromShippedOrder(
+  shippedOrder: OrderResponse,
+  overrides?: Partial<OrderResponse>,
+): OrderResponse {
+  return {
+    ...shippedOrder,
+    status: 'completed',
+    fulfillmentStatus: 'completed',
+    completedAt: '2026-05-16T10:00:00+08:00',
+    ...overrides,
+  }
 }
 
 function createReviewSnapshot(orderId: number): OrderReviewResponse {

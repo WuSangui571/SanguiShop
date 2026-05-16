@@ -3,6 +3,8 @@ import { createServer, type ViteDevServer } from 'vite'
 import {
   apiEnvelope,
   apiErrorEnvelope,
+  createCompletedFromShippedOrder,
+  createCreatedOrder,
   createLoginResponse,
   createShippedOrder,
   createCompletedOrder,
@@ -30,6 +32,11 @@ let mockOrders: OrderResponse[] = []
 let mockOrderById: Record<number, OrderResponse> = {}
 let mockPaymentError: { code: string; message: string; traceId: string } | null = null
 let deferPaymentResponse = false
+let receiptConfirmationRequestCount = 0
+let receiptPayloads: { body: unknown; headers: Record<string, string>; path: string }[] = []
+let deferReceiptConfirmationResponse = false
+let mockReceiptConfirmationError: { status: number; code: string; message: string; traceId: string } | null = null
+let pendingReceiptRoute: Route | null = null
 
 function resetMockState() {
   pendingPaymentRoute = null
@@ -40,6 +47,11 @@ function resetMockState() {
   mockOrderById = {}
   mockPaymentError = null
   deferPaymentResponse = false
+  receiptConfirmationRequestCount = 0
+  receiptPayloads = []
+  deferReceiptConfirmationResponse = false
+  mockReceiptConfirmationError = null
+  pendingReceiptRoute = null
 }
 
 function extractPath(rawUrl: string): string {
@@ -123,6 +135,43 @@ async function setupDefaultApiRoutes(page: Page) {
       return
     }
 
+    if (method === 'POST' && /^\/api\/orders\/\d+\/receipt-confirmations$/.test(path)) {
+      receiptConfirmationRequestCount++
+      recordProtectedAuthHeader(route)
+      const match = path.match(/^\/api\/orders\/(\d+)\/receipt-confirmations$/)
+      const orderId = match ? Number(match[1]) : 0
+      const rawBody = request.postData()
+      receiptPayloads.push({
+        body: rawBody ? JSON.parse(rawBody) : null,
+        headers: request.headers(),
+        path,
+      })
+      if (deferReceiptConfirmationResponse) {
+        pendingReceiptRoute = route
+        return
+      }
+      if (mockReceiptConfirmationError) {
+        await route.fulfill({
+          status: mockReceiptConfirmationError.status,
+          json: apiErrorEnvelope(mockReceiptConfirmationError.code, mockReceiptConfirmationError.message, mockReceiptConfirmationError.traceId),
+        })
+        return
+      }
+      const order = mockOrderById[orderId]
+      if (order) {
+        const completed = createCompletedFromShippedOrder(order)
+        mockOrders = mockOrders.map((o) => (o.orderId === orderId ? completed : o))
+        mockOrderById[orderId] = completed
+        await route.fulfill({ json: apiEnvelope(completed, 'ORDER_RECEIPT_CONFIRMED') })
+      } else {
+        await route.fulfill({
+          status: 404,
+          json: apiErrorEnvelope('ORDER_NOT_FOUND', 'Order not found', 'trace-receipt-404'),
+        })
+      }
+      return
+    }
+
     await route.continue()
   })
 }
@@ -188,6 +237,7 @@ test.describe('Mall order status center browser smoke', () => {
     await expect(page.locator('.session-strip')).not.toBeVisible()
     await expect(page.locator('.order-band')).not.toBeVisible()
     expect(orderRouteRequestCount).toBe(0)
+    expect(receiptConfirmationRequestCount).toBe(0)
   })
 
   test('login persists session and loads order list', async ({ page }) => {
@@ -409,5 +459,166 @@ test.describe('Mall order status center browser smoke', () => {
     await page.click('.order-card:has-text("ORD-SMOKE-502")')
     await expect(page.locator('.order-headline')).toContainText('ORD-SMOKE-502')
     await expect(page.locator('.order-detail')).toContainText('SF Express')
+  })
+
+  test('shipped order detail shows confirm receipt button enabled', async ({ page }) => {
+    useOrderSet([createShippedOrder()])
+    await seedMallSession(page)
+    await page.goto('/')
+
+    await page.locator('.order-card').click()
+    await expect(page.locator('.order-detail')).toBeVisible()
+
+    await expect(page.locator('.order-detail')).toContainText('Shipped')
+    await expect(page.locator('.order-detail')).toContainText('SF Express')
+    await expect(page.locator('.order-detail')).toContainText('SF123456789CN')
+
+    const receiptBtn = page.locator('button', { hasText: 'Confirm receipt' })
+    await expect(receiptBtn).toBeVisible()
+    await expect(receiptBtn).toBeEnabled()
+
+    expect(receiptConfirmationRequestCount).toBe(0)
+  })
+
+  test('non-shipped orders disable confirm receipt and send no POST', async ({ page }) => {
+    for (const orders of [
+      [createCreatedOrder()],
+      [createPaidUnshippedOrder()],
+      [createCancelledOrder()],
+      [createCompletedOrder()],
+      [createUnknownStatusOrder()],
+    ]) {
+      useOrderSet(orders)
+      receiptConfirmationRequestCount = 0
+      await seedMallSession(page)
+      await page.goto('/')
+      await page.locator('.order-card').click()
+
+      await expect(page.locator('.order-detail')).toBeVisible()
+      const receiptBtn = page.locator('.checkout-actions button', { hasText: 'Confirm receipt' })
+      await expect(receiptBtn).toBeVisible()
+      await expect(receiptBtn).toBeDisabled()
+      expect(receiptConfirmationRequestCount).toBe(0)
+    }
+  })
+
+  test('successful receipt confirmation asserts payload and syncs completed state', async ({ page }) => {
+    const shipped = createShippedOrder()
+    useOrderSet([shipped])
+    await seedMallSession(page)
+    await page.goto('/')
+
+    await page.click('.order-card:has-text("ORD-SMOKE-502")')
+    await expect(page.locator('.order-detail')).toBeVisible()
+
+    await page.locator('button:has-text("Confirm receipt")').click()
+
+    expect(receiptConfirmationRequestCount).toBe(1)
+    const lastPayload = receiptPayloads.at(-1)
+    expect(lastPayload).toBeDefined()
+    if (!lastPayload) {
+      throw new Error('Expected receipt confirmation payload to be captured.')
+    }
+    expect(lastPayload.path).toBe('/api/orders/502/receipt-confirmations')
+    expect(lastPayload.headers.authorization).toBe('Bearer mock-jwt-token')
+    const body = lastPayload.body as Record<string, unknown>
+    expect(body.requestId).toBeTruthy()
+    expect(typeof body.requestId).toBe('string')
+    expect((body.requestId as string).length).toBeGreaterThan(0)
+    expect(body.shopId).toBeUndefined()
+    expect(body.userId).toBeUndefined()
+
+    await expect(page.locator('.order-detail')).toContainText('Completed')
+    await expect(page.locator('.order-detail')).toContainText('SF Express')
+    await expect(page.locator('.order-detail')).toContainText('SF123456789CN')
+
+    await expect(page.locator('button', { hasText: 'Confirm receipt' })).toBeDisabled()
+
+    await expect(page.locator('.order-card:has-text("ORD-SMOKE-502")')).toContainText('Completed')
+    await page.click('.segment:has-text("Completed")')
+    await expect(page.locator('.order-card')).toHaveCount(1)
+    await expect(page.locator('.order-card:has-text("ORD-SMOKE-502")')).toContainText('Completed')
+  })
+
+  test('duplicate pending receipt confirmation sends only one POST', async ({ page }) => {
+    const shipped = createShippedOrder()
+    useOrderSet([shipped])
+    await seedMallSession(page)
+    await page.goto('/')
+
+    await page.click('.order-card:has-text("ORD-SMOKE-502")')
+    await expect(page.locator('.order-detail')).toBeVisible()
+
+    deferReceiptConfirmationResponse = true
+
+    await page.locator('button:has-text("Confirm receipt")').click()
+    await expect(page.locator('button:has-text("Confirming")')).toBeVisible()
+    await expect(page.locator('button:has-text("Confirming")')).toBeDisabled()
+
+    const countAfterClick = receiptConfirmationRequestCount
+
+    await page.locator('button:has-text("Confirming")').dispatchEvent('click')
+    expect(receiptConfirmationRequestCount).toBe(countAfterClick)
+
+    const receiptRoute = pendingReceiptRoute
+    expect(receiptRoute).not.toBeNull()
+    if (!receiptRoute) {
+      throw new Error('Expected deferred receipt route to be captured.')
+    }
+    await receiptRoute.fulfill({
+      json: apiEnvelope(createCompletedFromShippedOrder(shipped), 'ORDER_RECEIPT_CONFIRMED'),
+    })
+    pendingReceiptRoute = null
+
+    await expect(page.locator('button:has-text("Confirm receipt")')).toBeDisabled()
+  })
+
+  test('receipt confirmation failure shows code message traceId and preserves shipped snapshot', async ({ page }) => {
+    mockReceiptConfirmationError = {
+      status: 409,
+      code: 'ORDER_STATUS_INVALID',
+      message: 'Order status does not allow receipt confirmation.',
+      traceId: 'trace-receipt-409',
+    }
+    const shipped = createShippedOrder()
+    useOrderSet([shipped])
+    await seedMallSession(page)
+    await page.goto('/')
+
+    await page.click('.order-card:has-text("ORD-SMOKE-502")')
+    await expect(page.locator('.order-detail')).toBeVisible()
+
+    await page.locator('button:has-text("Confirm receipt")').click()
+
+    await expect(page.locator('.inline-feedback.danger')).toBeVisible()
+    const errorText = await page.locator('.inline-feedback.danger').textContent()
+    expect(errorText).toContain('ORDER_STATUS_INVALID')
+    expect(errorText).toContain('trace-receipt-409')
+
+    await expect(page.locator('.order-detail')).toContainText('Shipped')
+    await expect(page.locator('.order-detail')).toContainText('SF Express')
+    await expect(page.locator('.order-detail')).toContainText('SF123456789CN')
+
+    await expect(page.locator('button:has-text("Confirm receipt")')).toBeEnabled()
+  })
+
+  test('confirming receipt in shipped filter shows status-changed empty state', async ({ page }) => {
+    const shipped = createShippedOrder()
+    useOrderSet([shipped])
+    await seedMallSession(page)
+    await page.goto('/')
+
+    await page.click('.segment:has-text("Shipped")')
+    await expect(page.locator('.order-card')).toHaveCount(1)
+
+    await page.click('.order-card')
+    await expect(page.locator('.order-detail')).toBeVisible()
+
+    await page.locator('button:has-text("Confirm receipt")').click()
+
+    expect(receiptConfirmationRequestCount).toBe(1)
+
+    await expect(page.locator('.order-card')).toHaveCount(0)
+    await expect(page.locator('.order-list .status-block')).toContainText('status changed')
   })
 })
