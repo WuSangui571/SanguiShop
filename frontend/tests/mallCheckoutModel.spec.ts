@@ -400,6 +400,237 @@ describe('mall checkout model', () => {
     expect(orderStatus.paymentStatus.value).toBe('paid')
   })
 
+  it('preserves shipped order status and logistics after payment refresh returns paid', async () => {
+    const getPayment = vi.fn(async () => createPaymentResponse({ paymentNo: 'PAY-shipped' }))
+    const orderStatus = useMallOrderStatus({ getPayment })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      shippedAt: '2026-05-07T12:00:00+08:00',
+    }))
+    orderStatus.paymentNo.value = 'PAY-shipped'
+
+    await orderStatus.refreshPayment()
+
+    expect(getPayment).toHaveBeenCalledWith('PAY-shipped')
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      shippedAt: '2026-05-07T12:00:00+08:00',
+    })
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-shipped')
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+    })
+  })
+
+  it('preserves completed order status and review after payment refresh returns paid', async () => {
+    const review = createReviewResponse()
+    const getPayment = vi.fn(async () => createPaymentResponse({ paymentNo: 'PAY-completed' }))
+    const orderStatus = useMallOrderStatus({ getPayment })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      completedAt: '2026-05-07T13:00:00+08:00',
+      reviewed: true,
+      review,
+    }))
+    orderStatus.paymentNo.value = 'PAY-completed'
+
+    await orderStatus.refreshPayment()
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      completedAt: '2026-05-07T13:00:00+08:00',
+      reviewed: true,
+    })
+    expect(orderStatus.order.value?.review?.orderReviewId).toBe(9001)
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    })
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-completed')
+  })
+
+  it('preserves cancelled order status after payment refresh returns paid', async () => {
+    const getPayment = vi.fn(async () => createPaymentResponse({ paymentNo: 'PAY-cancelled' }))
+    const orderStatus = useMallOrderStatus({ getPayment })
+    orderStatus.acceptCreatedOrder(createOrderResponse({ status: 'cancelled' }))
+    orderStatus.paymentNo.value = 'PAY-cancelled'
+
+    await orderStatus.refreshPayment()
+
+    expect(orderStatus.order.value?.status).toBe('cancelled')
+    expect(orderStatus.orders.value[0]).toMatchObject({ status: 'cancelled' })
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-cancelled')
+  })
+
+  it('preserves unknown order status after payment refresh returns paid', async () => {
+    const getPayment = vi.fn(async () => createPaymentResponse({ paymentNo: 'PAY-unknown' }))
+    const orderStatus = useMallOrderStatus({ getPayment })
+    orderStatus.acceptCreatedOrder(createOrderResponse({ status: 'refunding' }))
+    orderStatus.paymentNo.value = 'PAY-unknown'
+
+    await orderStatus.refreshPayment()
+
+    expect(orderStatus.order.value?.status).toBe('refunding')
+    expect(orderStatus.orders.value[0]).toMatchObject({ status: 'refunding' })
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-unknown')
+  })
+
+  it('keeps shipped order snapshot and displays backend trace when payment refresh fails', async () => {
+    const getPayment = vi.fn(async () => {
+      throw new HttpClientError('Payment service unavailable.', {
+        code: 'PAYMENT_REFRESH_FAILED',
+        status: 503,
+        traceId: 'trace-payment-shipped',
+      })
+    })
+    const orderStatus = useMallOrderStatus({ getPayment })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      shippedAt: '2026-05-07T12:00:00+08:00',
+    }))
+    orderStatus.paymentNo.value = 'PAY-shipped-fail'
+
+    await orderStatus.refreshPayment()
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+    })
+    expect(orderStatus.errorMessage.value).toBe(
+      'PAYMENT_REFRESH_FAILED: Payment service unavailable. Trace ID trace-payment-shipped.',
+    )
+    expect(orderStatus.payment.value).toBeNull()
+    expect(orderStatus.paymentFailure.value).toBeNull()
+  })
+
+  it('acceptPayment merges created order to paid awaiting shipment', async () => {
+    const orderStatus = useMallOrderStatus()
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'created',
+      fulfillmentStatus: null,
+    }))
+
+    orderStatus.acceptPayment(createPaymentResponse({ paymentNo: 'PAY-accept-created' }))
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-accept-created')
+    expect(orderStatus.paymentFailure.value).toBeNull()
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+  })
+
+  it('acceptPayment preserves shipped order status and logistics', async () => {
+    const orderStatus = useMallOrderStatus()
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+      shippedAt: '2026-05-07T12:00:00+08:00',
+    }))
+
+    orderStatus.acceptPayment(createPaymentResponse({ paymentNo: 'PAY-accept-shipped' }))
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF999',
+    })
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-accept-shipped')
+    expect(orderStatus.orders.value[0]).toMatchObject({
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+    })
+  })
+
+  it('acceptPayment preserves completed order status and review', async () => {
+    const orderStatus = useMallOrderStatus()
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      completedAt: '2026-05-07T13:00:00+08:00',
+      reviewed: true,
+      review: createReviewResponse(),
+    }))
+
+    orderStatus.acceptPayment(createPaymentResponse({ paymentNo: 'PAY-accept-completed' }))
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      reviewed: true,
+    })
+    expect(orderStatus.orders.value[0]).toMatchObject({ status: 'completed' })
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-accept-completed')
+  })
+
+  it('acceptPayment preserves cancelled order status', async () => {
+    const orderStatus = useMallOrderStatus()
+    orderStatus.acceptCreatedOrder(createOrderResponse({ status: 'cancelled' }))
+
+    orderStatus.acceptPayment(createPaymentResponse({ paymentNo: 'PAY-accept-cancelled' }))
+
+    expect(orderStatus.order.value?.status).toBe('cancelled')
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-accept-cancelled')
+    expect(orderStatus.orders.value[0]).toMatchObject({ status: 'cancelled' })
+  })
+
+  it('acceptPayment preserves unknown order status', async () => {
+    const orderStatus = useMallOrderStatus()
+    orderStatus.acceptCreatedOrder(createOrderResponse({ status: 'refunding' }))
+
+    orderStatus.acceptPayment(createPaymentResponse({ paymentNo: 'PAY-accept-unknown' }))
+
+    expect(orderStatus.order.value?.status).toBe('refunding')
+    expect(orderStatus.payment.value?.paymentNo).toBe('PAY-accept-unknown')
+    expect(orderStatus.orders.value[0]).toMatchObject({ status: 'refunding' })
+  })
+
+  it('guards duplicate pending payment refreshes', async () => {
+    const deferredPayment = createDeferred<PaymentResponse>()
+    const getPayment = vi.fn(() => deferredPayment.promise)
+    const orderStatus = useMallOrderStatus({ getPayment })
+    orderStatus.acceptCreatedOrder(createOrderResponse({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    }))
+    orderStatus.paymentNo.value = 'PAY-pending-refresh'
+
+    const firstRefresh = orderStatus.refreshPayment()
+    const duplicateRefresh = orderStatus.refreshPayment()
+
+    expect(getPayment).toHaveBeenCalledTimes(1)
+    await expect(duplicateRefresh).resolves.toBeNull()
+
+    deferredPayment.resolve(createPaymentResponse({ paymentNo: 'PAY-pending-refresh' }))
+    await firstRefresh
+
+    expect(orderStatus.order.value).toMatchObject({
+      status: 'paid',
+      fulfillmentStatus: 'unshipped',
+    })
+  })
+
   it('blocks duplicate pending cancellation attempts', async () => {
     const deferredCancel = createDeferred<OrderResponse>()
     const cancelOrder = vi.fn(() => deferredCancel.promise)

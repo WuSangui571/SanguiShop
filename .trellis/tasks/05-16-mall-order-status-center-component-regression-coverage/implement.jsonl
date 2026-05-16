@@ -1,0 +1,18 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/tasks/05-16-mall-order-status-center-component-regression-coverage/prd.md", "reason": "Task requirements, acceptance criteria, boundaries, and DeepSeek handoff constraints"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall Order Status API/UI contract, payment refresh non-overwrite, error traceId requirements"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue component boundaries and required loading/error/disabled UI states"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "useMallOrderStatus composable expectations for loading/error/retry and service calls"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Order/payment status are server facts; backend code/message/traceId must be preserved"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "API enum unknown fallback and typed DTO builders for tests"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Required frontend checks and component regression expectations"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Boundary check confirming no API/DTO/DB/MQ expansion for this UI regression task"}
+{"file": "frontend/src/views/mall/MallStorefrontView.vue", "reason": "Primary mounted UI path for order detail, payment refresh button, status labels, and error rendering"}
+{"file": "frontend/src/composables/useMallOrderStatus.ts", "reason": "refreshPayment and acceptPayment integration behavior for detail/list state"}
+{"file": "frontend/src/views/mall/mallOrderStatusModel.ts", "reason": "Existing model helpers for lifecycle, fulfillment, payment refresh view, filters, and payment merge"}
+{"file": "frontend/tests/mallOrderStatusModel.spec.ts", "reason": "Existing mall order model fixtures and regression assertions to reuse"}
+{"file": "frontend/tests/mallCheckoutModel.spec.ts", "reason": "Existing useMallOrderStatus composable tests for refresh failure, duplicate guards, and payment submit"}
+{"file": "frontend/src/views/admin/OrderManagementView.spec.ts", "reason": "Reusable Vue component test pattern for service mocks, flushPromises, error banners, and payment refresh regressions"}
+{"file": "frontend/src/types/api/order.ts", "reason": "OrderResponse, status, fulfillment, review, and trace-related DTO fields"}
+{"file": "frontend/src/types/api/payment.ts", "reason": "PaymentResponse and payment status DTO fields"}
