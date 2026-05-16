@@ -1,4 +1,4 @@
-# Journal - codex-agent (Part 1)
+﻿# Journal - codex-agent (Part 1)
 
 > AI development session journal
 > Started: 2026-05-11
@@ -7,10 +7,10 @@
 
 
 
-## Session 1: 管理端秒杀活动后端合同收尾
+## Session 1: 绠＄悊绔鏉€娲诲姩鍚庣鍚堝悓鏀跺熬
 
 **Date**: 2026-05-11
-**Task**: 管理端秒杀活动后端合同收尾
+**Task**: 绠＄悊绔鏉€娲诲姩鍚庣鍚堝悓鏀跺熬
 **Branch**: `main`
 
 ### Summary
@@ -53,10 +53,10 @@
 - None - task complete
 
 
-## Session 2: 完成秒杀活动持久化与SKU快照适配
+## Session 2: 瀹屾垚绉掓潃娲诲姩鎸佷箙鍖栦笌SKU蹇収閫傞厤
 
 **Date**: 2026-05-12
-**Task**: 完成秒杀活动持久化与SKU快照适配
+**Task**: 瀹屾垚绉掓潃娲诲姩鎸佷箙鍖栦笌SKU蹇収閫傞厤
 **Branch**: `main`
 
 ### Summary
@@ -200,10 +200,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 4: 完善后台 Ops 权限登录白名单
+## Session 4: 瀹屽杽鍚庡彴 Ops 鏉冮檺鐧诲綍鐧藉悕鍗?
 
 **Date**: 2026-05-12
-**Task**: 完善后台 Ops 权限登录白名单
+**Task**: 瀹屽杽鍚庡彴 Ops 鏉冮檺鐧诲綍鐧藉悕鍗?
 **Branch**: `main`
 
 ### Summary
@@ -268,10 +268,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 5: 清理本地运行时产物与收尾手测任务状态
+## Session 5: 娓呯悊鏈湴杩愯鏃朵骇鐗╀笌鏀跺熬鎵嬫祴浠诲姟鐘舵€?
 
 **Date**: 2026-05-12
-**Task**: 清理本地运行时产物与收尾手测任务状态
+**Task**: 娓呯悊鏈湴杩愯鏃朵骇鐗╀笌鏀跺熬鎵嬫祴浠诲姟鐘舵€?
 **Branch**: `main`
 
 ### Summary
@@ -338,10 +338,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 6: 沉淀本地一键 smoke 验证
+## Session 6: 娌夋穩鏈湴涓€閿?smoke 楠岃瘉
 
 **Date**: 2026-05-13
-**Task**: 沉淀本地一键 smoke 验证
+**Task**: 娌夋穩鏈湴涓€閿?smoke 楠岃瘉
 **Branch**: `main`
 
 ### Summary
@@ -417,10 +417,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 7: 收敛后端测试中的 Nacos 连接噪音 / 测试环境隔离
+## Session 7: 鏀舵暃鍚庣娴嬭瘯涓殑 Nacos 杩炴帴鍣煶 / 娴嬭瘯鐜闅旂
 
 **Date**: 2026-05-14
-**Task**: 收敛后端测试中的 Nacos 连接噪音 / 测试环境隔离
+**Task**: 鏀舵暃鍚庣娴嬭瘯涓殑 Nacos 杩炴帴鍣煶 / 娴嬭瘯鐜闅旂
 **Branch**: `main`
 
 ### Summary
@@ -505,10 +505,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 8: 修复秒杀后台路由与创建幂等参数
+## Session 8: 淇绉掓潃鍚庡彴璺敱涓庡垱寤哄箓绛夊弬鏁?
 
 **Date**: 2026-05-14
-**Task**: 修复秒杀后台路由与创建幂等参数
+**Task**: 淇绉掓潃鍚庡彴璺敱涓庡垱寤哄箓绛夊弬鏁?
 **Branch**: `main`
 
 ### Summary
@@ -547,10 +547,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 9: 修复管理端订单 completed 状态展示
+## Session 9: 淇绠＄悊绔鍗?completed 鐘舵€佸睍绀?
 
 **Date**: 2026-05-14
-**Task**: 修复管理端订单 completed 状态展示
+**Task**: 淇绠＄悊绔鍗?completed 鐘舵€佸睍绀?
 **Branch**: `main`
 
 ### Summary
@@ -593,10 +593,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 10: 管理端订单状态回归覆盖收尾
+## Session 10: 绠＄悊绔鍗曠姸鎬佸洖褰掕鐩栨敹灏?
 
 **Date**: 2026-05-14
-**Task**: 管理端订单状态回归覆盖收尾
+**Task**: 绠＄悊绔鍗曠姸鎬佸洖褰掕鐩栨敹灏?
 **Branch**: `main`
 
 ### Summary
@@ -658,10 +658,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 11: 管理端履约状态回归覆盖收尾
+## Session 11: 绠＄悊绔饱绾︾姸鎬佸洖褰掕鐩栨敹灏?
 
 **Date**: 2026-05-14
-**Task**: 管理端履约状态回归覆盖收尾
+**Task**: 绠＄悊绔饱绾︾姸鎬佸洖褰掕鐩栨敹灏?
 **Branch**: `main`
 
 ### Summary
@@ -724,10 +724,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 12: 管理端支付刷新保留订单主状态
+## Session 12: 绠＄悊绔敮浠樺埛鏂颁繚鐣欒鍗曚富鐘舵€?
 
 **Date**: 2026-05-16
-**Task**: 管理端支付刷新保留订单主状态
+**Task**: 绠＄悊绔敮浠樺埛鏂颁繚鐣欒鍗曚富鐘舵€?
 **Branch**: `main`
 
 ### Summary
@@ -790,10 +790,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 13: 商城支付合并保留订单主状态收尾
+## Session 13: 鍟嗗煄鏀粯鍚堝苟淇濈暀璁㈠崟涓荤姸鎬佹敹灏?
 
 **Date**: 2026-05-16
-**Task**: 商城支付合并保留订单主状态收尾
+**Task**: 鍟嗗煄鏀粯鍚堝苟淇濈暀璁㈠崟涓荤姸鎬佹敹灏?
 **Branch**: `main`
 
 ### Summary
@@ -852,10 +852,10 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 - None - task complete
 
 
-## Session 14: 商城订单状态中心组件级回归覆盖收尾
+## Session 14: 鍟嗗煄璁㈠崟鐘舵€佷腑蹇冪粍浠剁骇鍥炲綊瑕嗙洊鏀跺熬
 
 **Date**: 2026-05-16
-**Task**: 商城订单状态中心组件级回归覆盖收尾
+**Task**: 鍟嗗煄璁㈠崟鐘舵€佷腑蹇冪粍浠剁骇鍥炲綊瑕嗙洊鏀跺熬
 **Branch**: `main`
 
 ### Summary
@@ -895,3 +895,81 @@ Archived Trellis task `05-16-mall-order-status-center-component-regression-cover
 ### Next Steps
 
 - None - task complete
+
+
+
+## Session 15: Mall order status browser smoke handoff
+
+**Date**: 2026-05-16
+**Task**: Mall order status browser smoke handoff
+**Branch**: `main`
+
+### Summary
+
+Captured the completed Mall order status center browser smoke work after human testing and commit `c37b6a6`. The task converted manually verified customer order-status paths into repeatable Playwright Chromium coverage, then completed Codex check and finish-work verification.
+
+### Main Changes
+
+| Area | Description |
+|------|-------------|
+| Commit | `c37b6a6 test:补充商城订单状态浏览器冒烟测试` |
+| Frontend tooling | Added Playwright dependency, smoke script, Playwright config, and Vitest e2e exclusion. |
+| Browser smoke | Added 14 real Chromium tests for mall login/session, order list/detail, lifecycle rendering, payment refresh, traceId errors, deep link, and reload restore. |
+| Typed fixtures | Added gateway-envelope mock factories using existing `ApiResult`, order, payment, and product DTO types. |
+| Trellis | Archived task `05-16-mall-order-status-center-browser-smoke`. |
+
+**Updated Files**:
+- `frontend/package.json`
+- `frontend/package-lock.json`
+- `frontend/playwright.config.ts`
+- `frontend/vitest.config.ts`
+- `frontend/e2e/mall-order-status-smoke.spec.ts`
+- `frontend/e2e/fixtures/mallOrderStatusSmoke.ts`
+- `.trellis/tasks/archive/2026-05/05-16-mall-order-status-center-browser-smoke/*`
+- `.trellis/workspace/codex-agent/index.md`
+- `.trellis/workspace/codex-agent/journal-1.md`
+
+**Codex Check Fixes**:
+- Added an assertion that protected mall API calls include `Authorization: Bearer mock-jwt-token`.
+- Added an assertion that no protected order route is called before mall login/session bootstrap.
+- Removed a non-essential TypeScript non-null assertion from the smoke spec.
+- Stabilized the smoke server lifecycle on Windows by starting and closing a real Vite dev server through the Vite API in Playwright `beforeAll` / `afterAll`.
+- Removed local Playwright `test-results/` artifacts before handoff.
+
+**Verification Commands**:
+- `cmd /c npm run test:smoke` -> 14 passed.
+- `cmd /c npx vitest run --reporter=verbose src/views/mall/MallStorefrontView.spec.ts tests/mallOrderStatusModel.spec.ts tests/mallCheckoutModel.spec.ts` -> 3 files / 80 tests passed.
+- `cmd /c npm run typecheck` -> passed.
+- `cmd /c npm run lint` -> passed.
+- `cmd /c npm test` -> 21 files / 285 tests passed.
+- `cmd /c npm run build` -> passed, Vite build succeeded.
+
+**Boundaries**:
+- No `frontend/src/**` business implementation changes.
+- No backend, DB migration, Redis/MQ, Docker/CI infra, or cross-service API contract changes.
+- Smoke mocks existing gateway envelope and frontend DTO contracts; it does not depend on live backend, DB, Redis, MQ, Nacos, or payment services.
+- User manually tested and committed the code before record-session.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c37b6a6` | test:补充商城订单状态浏览器冒烟测试 |
+
+### Testing
+
+- [OK] `cmd /c npm run test:smoke` -> 14 passed.
+- [OK] `cmd /c npx vitest run --reporter=verbose src/views/mall/MallStorefrontView.spec.ts tests/mallOrderStatusModel.spec.ts tests/mallCheckoutModel.spec.ts` -> 3 files / 80 tests passed.
+- [OK] `cmd /c npm run typecheck` -> passed.
+- [OK] `cmd /c npm run lint` -> passed.
+- [OK] `cmd /c npm test` -> 21 files / 285 tests passed.
+- [OK] `cmd /c npm run build` -> passed.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- Recommended next task: Admin payment/order browser smoke for cross-service status preservation.
