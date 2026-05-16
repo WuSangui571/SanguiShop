@@ -973,3 +973,65 @@ Captured the completed Mall order status center browser smoke work after human t
 ### Next Steps
 
 - Recommended next task: Admin payment/order browser smoke for cross-service status preservation.
+
+
+## Session 16: 管理端订单支付浏览器冒烟收尾
+
+**Date**: 2026-05-16
+**Task**: 管理端订单支付浏览器冒烟收尾
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| ?? | ?? |
+| --- | --- |
+| Frontend E2E | ???????/???? Chromium smoke ????? Vite + Playwright ??????? `/api/**` ???? mock envelope?? live backend ??? |
+| Admin Session / RBAC | ??? ops session ????`OPS_COMPENSATION_ADMIN` ??????????`ORDER_MANAGEMENT_ADMIN` ????? `Authorization: Bearer mock-ops-jwt-token`? |
+| Order / Payment Contract | ???????????????timeline?deep link/reload?????????? `paymentNo`?????????? |
+| Error Envelope | ?? `PAYMENT_NOT_FOUND`?`DOWNSTREAM_TIMEOUT`?`PAYMENT_REFRESH_FAILED` ? `code/message/traceId` ???? |
+| Codex Check Fixes | ?? list ????????? message ???ops refresh hermetic envelope mock?????? session ???????? Playwright ????? |
+
+**Commit**
+- `e1d7cdb test:?????????????`
+
+**Updated Files**
+- `frontend/e2e/admin-order-payment-smoke.spec.ts`
+- `frontend/e2e/fixtures/adminOrderPaymentSmoke.ts`
+- `.trellis/tasks/archive/2026-05/05-16-admin-order-payment-browser-smoke/`
+
+**Verification**
+- `cd frontend && cmd /c npm run typecheck` ? passed
+- `cd frontend && cmd /c npm run lint` ? passed
+- `cd frontend && cmd /c npx playwright test e2e/admin-order-payment-smoke.spec.ts --project=chromium` ? 18 passed
+- `cd frontend && cmd /c npm run test:smoke` ? 32 passed
+- `cd frontend && cmd /c npm test` ? 21 files / 285 tests passed
+- `cd frontend && cmd /c npm run build` ? passed
+- Human manual browser verification ? passed
+
+**Result And Boundaries**
+- Acceptance criteria for admin order/payment browser smoke are met and the task was archived.
+- No backend Java, DB migration, API DTO, Gateway, Redis/MQ, Docker, or infra changes were made.
+- No `$record-session` metadata was written before human testing and commit; this session records after manual verification and commit as requested.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e1d7cdb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
