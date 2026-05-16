@@ -598,6 +598,11 @@ export function applyMallPaymentToOrder(
     return order
   }
 
+  const currentStatus = normalizeText(order.status)
+  if (currentStatus !== 'created') {
+    return order
+  }
+
   return {
     ...order,
     status: 'paid',

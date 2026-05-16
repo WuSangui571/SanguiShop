@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
-- **Last Active**: 2026-05-14
+- **Total Sessions**: 12
+- **Last Active**: 2026-05-16
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~725 | Active |
+| `journal-1.md` | ~791 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-05-16 | 管理端支付刷新保留订单主状态 | `ff56b80` | `main` |
 | 11 | 2026-05-14 | 管理端履约状态回归覆盖收尾 | `434440c` | `main` |
 | 10 | 2026-05-14 | 管理端订单状态回归覆盖收尾 | `43c13f5` | `main` |
 | 9 | 2026-05-14 | 修复管理端订单 completed 状态展示 | `fd5d695` | `main` |

@@ -1,0 +1,22 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\tasks\\05-16-mall-payment-main-status-regression-coverage\\prd.md", "reason": "Task requirements, acceptance criteria, forbidden scope, and required tests."}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Mall Order Status APIs and payment/order merge contract."}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "OrderResponse and PaymentResponse typed DTO compatibility and unknown fallback rules."}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend verification, duplicate-submit, error, and regression test expectations."}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Mall storefront component state and reactive UI rules if component tests are touched."}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "useMallOrderStatus composable loading/error/retry/polling boundaries."}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Server-state vs client-state boundaries for order/payment status."}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Cross-layer order/payment status risk checklist and status ownership boundaries."}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Reuse existing mall/admin merge helpers and avoid unnecessary abstractions."}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Boundary reference for response envelope, idempotency, and DTO ownership; no backend edits expected."}
+{"file": ".trellis\\spec\\backend\\payment-pay-contracts.md", "reason": "Boundary reference for PaymentResponse status and payment status query semantics; no backend edits expected."}
+{"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Boundary reference for customer order lifecycle states, receipt confirmation, fulfillment, and review snapshots."}
+{"file": "frontend\\src\\views\\mall\\mallOrderStatusModel.ts", "reason": "Primary mall pure model helper containing applyMallPaymentToOrder and list merge behavior."}
+{"file": "frontend\\src\\composables\\useMallOrderStatus.ts", "reason": "Composable that calls payment refresh/payment success merge helpers into detail and list state."}
+{"file": "frontend\\tests\\mallOrderStatusModel.spec.ts", "reason": "Primary model regression test file for mall order status filters and merge behavior."}
+{"file": "frontend\\tests\\mallCheckoutModel.spec.ts", "reason": "Composable regression tests for payment refresh, receipt confirmation, review, and list/detail state."}
+{"file": "frontend\\src\\types\\api\\order.ts", "reason": "OrderResponse status, fulfillmentStatus, review, and customer/admin DTO fields."}
+{"file": "frontend\\src\\types\\api\\payment.ts", "reason": "PaymentResponse status and paymentNo DTO fields."}
+{"file": "frontend\\src\\views\\admin\\orderManagementModel.ts", "reason": "Reference implementation for admin payment merge non-overwrite behavior."}
+{"file": "frontend\\src\\views\\admin\\orderManagementModel.test.ts", "reason": "Reference regression pattern for terminal main status preservation after payment refresh."}

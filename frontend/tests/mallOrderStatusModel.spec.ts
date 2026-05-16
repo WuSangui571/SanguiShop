@@ -592,6 +592,78 @@ describe('mallOrderStatusModel', () => {
     expect(applyMallPaymentToOrder(unpaid, createPayment({ status: 'failed' }))).toEqual(unpaid)
   })
 
+  it('preserves shipped order main status and logistics fields after payment refresh returns paid', () => {
+    const shipped = createOrder({
+      orderId: 501,
+      status: 'shipped',
+      fulfillmentStatus: 'shipped',
+      carrier: 'SF Express',
+      trackingNo: 'SF123456789CN',
+      shippedAt: '2026-05-07T11:30:00+08:00',
+    })
+    const paidPayment = createPayment({ paymentNo: 'PAY-501' })
+    const otherOrder = createOrder({ orderId: 502, orderNo: 'ORD-502' })
+
+    expect(applyMallPaymentToOrder(shipped, paidPayment)).toEqual(shipped)
+    expect(applyMallPaymentToOrderList([shipped, otherOrder], paidPayment)).toEqual([shipped, otherOrder])
+    expect(filterMallOrders(applyMallPaymentToOrderList([shipped], paidPayment), 'shipped')).toHaveLength(1)
+    expect(filterMallOrders(applyMallPaymentToOrderList([shipped], paidPayment), 'paidAwaitingShipment')).toEqual([])
+  })
+
+  it('preserves completed order main status and review snapshot after payment refresh returns paid', () => {
+    const completed = createOrder({
+      orderId: 501,
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      carrier: 'SF Express',
+      trackingNo: 'SF123456789CN',
+      completedAt: '2026-05-07T13:00:00+08:00',
+      reviewed: true,
+    })
+    const paidPayment = createPayment({ paymentNo: 'PAY-501' })
+    const otherOrder = createOrder({ orderId: 502, orderNo: 'ORD-502' })
+
+    const detail = applyMallPaymentToOrder(completed, paidPayment)
+    expect(detail).toMatchObject({
+      orderId: 501,
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+      completedAt: '2026-05-07T13:00:00+08:00',
+      reviewed: true,
+    })
+    const listResult = applyMallPaymentToOrderList([completed, otherOrder], paidPayment)
+    expect(listResult[0]).toMatchObject({
+      orderId: 501,
+      status: 'completed',
+      fulfillmentStatus: 'completed',
+    })
+    expect(filterMallOrders(listResult, 'completed')).toHaveLength(1)
+    expect(filterMallOrders(listResult, 'paidAwaitingShipment')).toEqual([])
+  })
+
+  it('preserves cancelled order main status after payment refresh returns paid', () => {
+    const cancelled = createOrder({ orderId: 501, status: 'cancelled' })
+    const paidPayment = createPayment({ paymentNo: 'PAY-501' })
+    const otherOrder = createOrder({ orderId: 502, orderNo: 'ORD-502' })
+
+    expect(applyMallPaymentToOrder(cancelled, paidPayment)).toEqual(cancelled)
+    expect(applyMallPaymentToOrderList([cancelled, otherOrder], paidPayment)).toEqual([cancelled, otherOrder])
+    expect(filterMallOrders(applyMallPaymentToOrderList([cancelled], paidPayment), 'cancelled')).toHaveLength(1)
+    expect(filterMallOrders(applyMallPaymentToOrderList([cancelled], paidPayment), 'paidAwaitingShipment')).toEqual([])
+  })
+
+  it('preserves unknown order status after payment refresh returns paid', () => {
+    const unknown = createOrder({ orderId: 501, status: 'refunding' })
+    const paidPayment = createPayment({ paymentNo: 'PAY-501' })
+    const otherOrder = createOrder({ orderId: 502, orderNo: 'ORD-502' })
+
+    expect(applyMallPaymentToOrder(unknown, paidPayment)).toEqual(unknown)
+    const listResult = applyMallPaymentToOrderList([unknown, otherOrder], paidPayment)
+    expect(listResult).toEqual([unknown, otherOrder])
+    expect(filterMallOrders(listResult, 'unknown')).toHaveLength(1)
+    expect(filterMallOrders(listResult, 'paidAwaitingShipment')).toEqual([])
+  })
+
   it('finds loaded orders by order number or exact order id only on the current page', () => {
     const orders = [
       createOrder({ orderId: 501, orderNo: 'ORD-20260507-501' }),

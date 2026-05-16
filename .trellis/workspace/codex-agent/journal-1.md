@@ -722,3 +722,69 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: 管理端支付刷新保留订单主状态
+
+**Date**: 2026-05-16
+**Task**: 管理端支付刷新保留订单主状态
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Module | Summary |
+| --- | --- |
+| Admin order payment merge | Removed payment-status-to-order-status overwrite in `applyAdminPaymentToDetail` and `applyAdminPaymentToSummaries`; payment refresh now only merges `paymentNo` into admin order snapshots. |
+| Frontend regression tests | Added model and component coverage for `shipped`, `completed`, `cancelled`, unknown payment status fallback, `PAYMENT_NOT_FOUND`, and cancel-success follow-up payment refresh preserving main order status. |
+| Frontend spec | Updated `.trellis/spec/frontend/api-contracts.md` so admin payment refresh may merge `paymentNo` but must not assign payment `status` into order main `status`. |
+| Trellis task metadata | Archived the completed admin payment status/main-status regression task after human manual validation and commit. |
+
+**Commit**: `ff56b80 fix:??????????????`
+
+**Updated Files**:
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/05-15-admin-payment-status-main-status-regression-coverage/*`
+- `.trellis/tasks/archive/2026-05/05-15-admin-payment-status-main-status-regression-coverage/*`
+- `frontend/src/views/admin/orderManagementModel.ts`
+- `frontend/src/views/admin/orderManagementModel.test.ts`
+- `frontend/src/views/admin/OrderManagementView.spec.ts`
+
+**Verification**:
+- Human manual testing passed before record-session.
+- `cmd /c npx vitest run --reporter=verbose src/views/admin/orderManagementModel.test.ts src/views/admin/OrderManagementView.spec.ts` passed: 2 files, 45 tests.
+- `cmd /c npm run typecheck` passed.
+- `cmd /c npm run lint` passed.
+- `cmd /c npm test` passed: 20 files, 264 tests.
+- `cmd /c npm run build` passed: 94 modules transformed.
+- `.\mvnw.cmd -q -pl services/sangui-order-service -am "-Dtest=AdminOrderManagementServiceTest,AdminOrderControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed after sandbox network escalation: `AdminOrderManagementServiceTest` 16 tests and `AdminOrderControllerTest` 14 tests.
+- `git diff --check` passed with only Windows LF-to-CRLF warnings.
+
+**Result / Boundaries**:
+- Acceptance criteria met for frontend payment refresh merge behavior, terminal order main-status preservation, unknown payment status fallback, and `PAYMENT_NOT_FOUND` non-overwrite behavior.
+- Backend order-service admin projection/controller coverage was verified; no backend production logic changed.
+- No API routes, DTO shapes, database migrations, auth/gateway, Redis, MQ, Docker, CI, payment state machine, or customer mall payment/order behavior changed.
+- Optional `AdminPaymentControllerTest` was not run because payment-service behavior was not touched.
+- Current Trellis task was archived after code commit and manual validation.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ff56b80` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

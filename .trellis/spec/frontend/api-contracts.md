@@ -251,7 +251,8 @@ Order status display rules:
 - If `paymentNo` is unavailable for a historical order, the UI may derive the payment summary from order status but must not invent a `PaymentResponse`.
 - Failed `POST /api/payments` attempts must keep the current `paymentNo`, backend `code/message/traceId`, and a classified retry reason. Retry uses the same `paymentNo` unless the selected order changes, payment succeeds, or a new order is created.
 - While `POST /api/payments` is pending, the payment action must reject duplicate clicks without sending a second request.
-- A successful payment response with `status=paid` must immediately merge the current order detail and loaded order list item to `status=paid` and `fulfillmentStatus=unshipped` when no newer fulfillment status is available.
+- A successful payment response with `status=paid` must immediately merge the current order detail and loaded order list item to `status=paid` and `fulfillmentStatus=unshipped` only when the current order main status is `created`. When the current order is already in a terminal or later lifecycle main status (`paid`, `shipped`, `completed`, `cancelled`, or an unknown status), the payment merge must preserve the existing main `status`, `fulfillmentStatus`, and logistics/review snapshots without regression to `paid`.
+- Payment refresh (`GET /api/payments/{paymentNo}`) must use the same non-overwrite merge behavior: the returned `PaymentResponse.status` is a payment-domain fact and must not overwrite order main lifecycle states that have progressed beyond `created`.
 - Fulfillment display uses order detail fields: `fulfillmentStatus`, `carrier`, `trackingNo`, and `shippedAt`.
 - `paid` with `fulfillmentStatus=unshipped` displays "待发货" / "Awaiting shipment".
 - `shipped` displays carrier and tracking number without calling a tracking API.
@@ -281,7 +282,8 @@ Required tests:
 - Payment refresh by `paymentNo`.
 - Failed payment preserves `paymentNo`, backend `traceId`, and retry classification.
 - Duplicate pending payment submit does not send a second request.
-- Payment success and payment refresh merge paid/awaiting-shipment state into detail and list.
+- Payment success and payment refresh merge paid/awaiting-shipment state into detail and list only for `created` orders.
+- Payment refresh preserves `shipped`, `completed`, `cancelled`, and unknown main order statuses without regressing to `paid`.
 - Paid awaiting-shipment order refresh merges shipped logistics snapshot into detail/list/filter.
 - Order refresh failure keeps the current paid detail/list snapshot.
 - Duplicate pending order refresh sends no second request, and failure permits retry.
