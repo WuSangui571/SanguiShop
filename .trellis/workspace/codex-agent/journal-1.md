@@ -788,3 +788,65 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: 商城支付合并保留订单主状态收尾
+
+**Date**: 2026-05-16
+**Task**: 商城支付合并保留订单主状态收尾
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Module | Summary |
+| --- | --- |
+| Mall order payment merge | `applyMallPaymentToOrder` now treats `PaymentResponse.status` as a payment-domain fact and promotes only `created` orders to `paid` / `unshipped`; paid refresh no longer overwrites `shipped`, `completed`, `cancelled`, or unknown order main statuses. |
+| Mall order regression tests | Added model coverage for shipped, completed, cancelled, and unknown statuses across detail merge, list merge, and filter classification; Codex tightened the unknown-status list preservation assertion during check. |
+| Frontend API contract | Updated Mall Order Status API contract so payment success/refresh merge behavior is explicitly non-overwrite outside current `created` orders. |
+| Trellis task lifecycle | Human manual testing passed, code was committed, and the completed task `05-16-mall-payment-main-status-regression-coverage` was archived. |
+
+**Updated Files**:
+- `.trellis/spec/frontend/api-contracts.md`
+- `.trellis/tasks/05-16-mall-payment-main-status-regression-coverage/*`
+- `.trellis/tasks/archive/2026-05/05-16-mall-payment-main-status-regression-coverage/*`
+- `frontend/src/views/mall/mallOrderStatusModel.ts`
+- `frontend/tests/mallOrderStatusModel.spec.ts`
+
+**Verification**:
+- Human manual testing passed before record-session.
+- `cmd /c npx vitest run --reporter=verbose tests/mallOrderStatusModel.spec.ts tests/mallCheckoutModel.spec.ts` passed: 2 files, 63 tests.
+- `cmd /c npm run typecheck` passed.
+- `cmd /c npm run lint` passed.
+- `cmd /c npm test` passed: 20 files, 268 tests.
+- `cmd /c npm run build` passed: 94 modules transformed.
+- `git diff --check` passed with only Windows LF-to-CRLF warnings.
+
+**Result / Boundaries**:
+- Acceptance criteria met for preserving mall order main lifecycle state after payment refresh and for keeping existing `created -> paid` behavior.
+- `refreshPayment` and `acceptPayment` both reuse the guarded model helper, so refresh and immediate payment success paths stay consistent.
+- Existing `createMallPaymentRefreshView` terminal-state disabling remains as UI protection while the model helper provides the final state-merge guard.
+- No backend code, API route, DTO shape, database migration, Redis/MQ behavior, Docker/infra config, payment state machine, or order state machine was changed.
+- Backend Maven tests were not run because this task only changed frontend model/tests/spec and PRD marked backend tests unnecessary unless backend code changed.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0fde0ed` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
