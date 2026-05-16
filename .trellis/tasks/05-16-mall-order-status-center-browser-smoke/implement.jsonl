@@ -1,0 +1,27 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Mall Order Status API contract: order list/detail, payment refresh, traceId, deep link, non-overwrite behavior."}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "MallStorefrontView browser smoke must verify loading/disabled/error UI states without hiding controls."}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "useMallOrderStatus request flow, loading/error/retry and bounded interaction behavior."}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Mall session bootstrap and sessionStorage boundaries."}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Typed API envelopes, unknown fallback and DTO compatibility."}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend DoD and required smoke/typecheck/lint/build checks."}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Boundary check: no API/DTO/DB/state-machine change while mocking existing gateway contracts."}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Avoid duplicate abstractions; use existing services/composable/model patterns."}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Existing response envelope, traceId, auth and validation/error expectations for mocked routes."}
+{"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Existing customer order list/detail/status/fulfillment contract used by browser mocks."}
+{"file": ".trellis\\spec\\backend\\payment-pay-contracts.md", "reason": "Existing payment refresh/status contract used by browser mocks."}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Login/JWT/session expectations for protected mall routes."}
+{"file": "frontend\\package.json", "reason": "Existing frontend scripts and dependency baseline; add only smoke-test tooling/script if needed."}
+{"file": "frontend\\src\\App.vue", "reason": "Mall surface routing entry: non-admin path renders MallStorefrontView."}
+{"file": "frontend\\src\\views\\mall\\MallStorefrontView.vue", "reason": "Primary browser interaction target for login, order list, detail, refresh and deep-link restore."}
+{"file": "frontend\\src\\composables\\useMallSession.ts", "reason": "Mall login/session bootstrap behavior and persisted session mapping."}
+{"file": "frontend\\src\\services\\mallSessionStorage.ts", "reason": "SessionStorage key and access token source for browser smoke assertions."}
+{"file": "frontend\\src\\composables\\useMallOrderStatus.ts", "reason": "Order detail/list/payment refresh state flow and duplicate guard behavior."}
+{"file": "frontend\\src\\services\\httpClient.ts", "reason": "Gateway fetch wrapper, Authorization header and ApiResult traceId error handling."}
+{"file": "frontend\\src\\services\\orderApi.ts", "reason": "Customer order route wrappers and authContext=mall behavior."}
+{"file": "frontend\\src\\services\\paymentApi.ts", "reason": "Customer payment route wrappers and authContext=mall behavior."}
+{"file": "frontend\\src\\views\\mall\\MallStorefrontView.spec.ts", "reason": "Existing DOM regression coverage to avoid duplicating happy-dom assertions."}
+{"file": "frontend\\tests\\mallCheckoutModel.spec.ts", "reason": "Existing composable/model regression coverage for payment refresh failure and duplicate guards."}
+{"file": "frontend\\tests\\mallOrderStatusModel.spec.ts", "reason": "Existing pure model coverage for status labels, filters, deep link and non-overwrite merge."}
+{"file": ".trellis\\tasks\\05-16-mall-order-status-center-browser-smoke\\prd.md", "reason": "Task PRD, acceptance criteria, forbidden scope and required tests."}
