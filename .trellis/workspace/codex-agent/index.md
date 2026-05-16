@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
+- **Total Sessions**: 17
 - **Last Active**: 2026-05-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1038 | Active |
+| `journal-1.md` | ~1084 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-05-16 | 管理端订单取消浏览器冒烟收尾 | `f081cd5` | `main` |
 | 16 | 2026-05-16 | 管理端订单支付浏览器冒烟收尾 | `e1d7cdb` | `main` |
 | 15 | 2026-05-16 | Mall order status browser smoke handoff | `c37b6a6` | `main` |
 | 14 | 2026-05-16 | 鍟嗗煄璁㈠崟鐘舵€佷腑蹇冪粍浠剁骇鍥炲綊瑕嗙洊鏀跺熬 | `7d16d40` | `main` |
