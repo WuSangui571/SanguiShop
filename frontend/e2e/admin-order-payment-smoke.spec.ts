@@ -1,0 +1,583 @@
+import { test, expect, type Page, type Route } from '@playwright/test'
+import { createServer, type ViteDevServer } from 'vite'
+import {
+  apiEnvelope,
+  apiErrorEnvelope,
+  createOpsSession,
+  createOpsSessionResponse,
+  createOpsCompensationSession,
+  createAdminOrderDetail,
+  createAdminOrderPage,
+  createAdminPaymentResponse,
+  createShippedOrder,
+  createCompletedOrder,
+  createCancelledOrder,
+  createUnknownOrder,
+  OPS_SESSION_KEY,
+} from './fixtures/adminOrderPaymentSmoke'
+import type { AdminOrderSummaryResponse, AdminOrderDetailResponse } from '../src/types/api/order'
+import type { PaymentResponse } from '../src/types/api/payment'
+
+const LOCALE_STORAGE_KEY = 'sangui.app.locale.v1'
+
+let viteServer: ViteDevServer | null = null
+let pendingPaymentRoute: Route | null = null
+let adminApiCallCount = 0
+let adminApiAuthHeaders: string[] = []
+let adminOrderListQueries: URLSearchParams[] = []
+let mockOrderSummaries: AdminOrderSummaryResponse[] = []
+let mockOrderById: Record<number, AdminOrderDetailResponse> = {}
+let mockPaymentStatus: PaymentResponse | null = null
+let mockPaymentError: { code: string; message: string; traceId: string } | null = null
+let mockListError: { code: string; message: string; traceId: string } | null = null
+let mockDetailError: { code: string; message: string; traceId: string } | null = null
+let deferPaymentResponse = false
+
+function resetMockState() {
+  pendingPaymentRoute = null
+  adminApiCallCount = 0
+  adminApiAuthHeaders = []
+  adminOrderListQueries = []
+  mockOrderSummaries = []
+  mockOrderById = {}
+  mockPaymentStatus = null
+  mockPaymentError = null
+  mockListError = null
+  mockDetailError = null
+  deferPaymentResponse = false
+}
+
+function extractPath(rawUrl: string): string {
+  const questionIndex = rawUrl.indexOf('?')
+  const baseUrl = questionIndex >= 0 ? rawUrl.substring(0, questionIndex) : rawUrl
+  if (baseUrl.startsWith('http://') || baseUrl.startsWith('https://')) {
+    const afterProtocol = baseUrl.substring(baseUrl.indexOf('://') + 3)
+    const pathStart = afterProtocol.indexOf('/')
+    return pathStart >= 0 ? afterProtocol.substring(pathStart) : '/'
+  }
+  return baseUrl
+}
+
+function recordAdminApiCall(route: Route) {
+  adminApiCallCount++
+  adminApiAuthHeaders.push(route.request().headers().authorization ?? '')
+}
+
+async function setupDefaultApiRoutes(page: Page) {
+  await page.route('**/api/**', async (route) => {
+    const request = route.request()
+    const path = extractPath(request.url())
+    const method = request.method()
+
+    if (method === 'POST' && path === '/api/users/ops/login') {
+      await route.fulfill({
+        status: 401,
+        json: apiErrorEnvelope('AUTH_CREDENTIALS_INVALID', 'Invalid credentials', 'trace-login-401'),
+      })
+      return
+    }
+
+    if (method === 'POST' && path === '/api/users/ops/session/refresh') {
+      await route.fulfill({ json: apiEnvelope(createOpsSessionResponse(), 'OPS_SESSION_REFRESHED') })
+      return
+    }
+
+    if (method === 'GET' && path === '/api/admin/orders') {
+      recordAdminApiCall(route)
+      adminOrderListQueries.push(new URL(request.url()).searchParams)
+      if (mockListError) {
+        await route.fulfill({
+          status: 503,
+          json: apiErrorEnvelope(mockListError.code, mockListError.message, mockListError.traceId),
+        })
+        return
+      }
+      await route.fulfill({ json: apiEnvelope(createAdminOrderPage(mockOrderSummaries), 'ADMIN_ORDER_LIST') })
+      return
+    }
+
+    if (method === 'GET' && /^\/api\/admin\/orders\/\d+$/.test(path)) {
+      recordAdminApiCall(route)
+      const orderId = Number(path.split('/').pop())
+      if (mockDetailError && orderId === mockOrderById[orderId]?.orderId) {
+        await route.fulfill({
+          status: 503,
+          json: apiErrorEnvelope(mockDetailError.code, mockDetailError.message, mockDetailError.traceId),
+        })
+        return
+      }
+      const detail = mockOrderById[orderId]
+      if (detail) {
+        await route.fulfill({ json: apiEnvelope(detail, 'ADMIN_ORDER_DETAIL') })
+      } else {
+        await route.fulfill({
+          status: 404,
+          json: apiErrorEnvelope('ORDER_NOT_FOUND', 'Order not found', 'trace-order-404'),
+        })
+      }
+      return
+    }
+
+    if (method === 'GET' && /^\/api\/admin\/payments\/by-order\/\d+$/.test(path)) {
+      recordAdminApiCall(route)
+      if (deferPaymentResponse) {
+        pendingPaymentRoute = route
+        return
+      }
+      if (mockPaymentError) {
+        await route.fulfill({
+          status: mockPaymentError.code === 'PAYMENT_NOT_FOUND' ? 404 : 503,
+          json: apiErrorEnvelope(mockPaymentError.code, mockPaymentError.message, mockPaymentError.traceId),
+        })
+        return
+      }
+      if (mockPaymentStatus) {
+        await route.fulfill({ json: apiEnvelope(mockPaymentStatus, 'ADMIN_PAYMENT_STATUS') })
+      } else {
+        await route.fulfill({
+          status: 404,
+          json: apiErrorEnvelope('PAYMENT_NOT_FOUND', 'No payment row for this order', 'trace-payment-404'),
+        })
+      }
+      return
+    }
+
+    await route.continue()
+  })
+}
+
+async function setEnglishLocale(page: Page) {
+  await page.addInitScript((key: string) => {
+    window.localStorage.setItem(key, 'en')
+  }, LOCALE_STORAGE_KEY)
+}
+
+async function seedOpsSession(page: Page, session: ReturnType<typeof createOpsSession>) {
+  await page.addInitScript(
+    ([key, data]) => {
+      window.sessionStorage.setItem(key, JSON.stringify(data))
+    },
+    [OPS_SESSION_KEY, session],
+  )
+}
+
+function useOrders(details: AdminOrderDetailResponse[]) {
+  mockOrderById = {}
+  mockOrderSummaries = []
+  for (const detail of details) {
+    mockOrderById[detail.orderId] = detail
+    mockOrderSummaries.push({
+      orderId: detail.orderId,
+      orderNo: detail.orderNo,
+      shopId: detail.shopId,
+      userId: detail.userId,
+      status: detail.status,
+      totalAmountCent: detail.totalAmountCent,
+      paymentNo: detail.paymentNo,
+      itemCount: detail.items.reduce((sum, item) => sum + item.quantity, 0),
+      traceId: detail.traceId,
+      createdAt: detail.createdAt,
+      updatedAt: detail.updatedAt,
+    })
+  }
+}
+
+function useSingleOrder(detail: AdminOrderDetailResponse) {
+  useOrders([detail])
+}
+
+const ALL_STATUS_ORDERS: AdminOrderDetailResponse[] = [
+  createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created', paymentNo: null }),
+  createAdminOrderDetail({ orderId: 1002, orderNo: 'ADM-PAI-1002', status: 'paid', paymentNo: 'ADM-PAY-2002' }),
+  createShippedOrder(),
+  createCompletedOrder(),
+  createCancelledOrder(),
+  createUnknownOrder(),
+]
+
+test.describe('Admin order payment browser smoke', () => {
+  test.beforeAll(async () => {
+    viteServer = await createServer({
+      logLevel: 'error',
+      server: {
+        host: '127.0.0.1',
+        port: 5173,
+        strictPort: true,
+      },
+    })
+    await viteServer.listen()
+  })
+
+  test.afterAll(async () => {
+    await viteServer?.close()
+    viteServer = null
+  })
+
+  test.beforeEach(async ({ page }) => {
+    resetMockState()
+    await setupDefaultApiRoutes(page)
+    await setEnglishLocale(page)
+  })
+
+  test('shows login form when no ops session exists', async ({ page }) => {
+    await page.goto('/admin?workspace=order')
+    await expect(page.locator('.login-shell')).toBeVisible()
+    await expect(page.locator('.order-admin-shell')).not.toBeVisible()
+    expect(adminApiCallCount).toBe(0)
+  })
+
+  test('OPS_COMPENSATION_ADMIN-only session cannot access order workspace', async ({ page }) => {
+    await seedOpsSession(page, createOpsCompensationSession())
+    await page.goto('/admin?workspace=order')
+    await expect(page.locator('.workspace-tab.active')).not.toContainText('Order management')
+    await expect(page.locator('.order-admin-shell')).not.toBeVisible()
+    expect(adminApiCallCount).toBe(0)
+  })
+
+  test('authorized session loads order list with auth headers', async ({ page }) => {
+    useSingleOrder(createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created' }))
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await expect(page.locator('.order-admin-shell')).toBeVisible()
+    await expect(page.locator('.workspace-tab.active')).toContainText('Order management')
+    await expect(page.locator('.list-item')).toHaveCount(1)
+    await expect(page.locator('.list-item')).toContainText('ADM-CRT-1001')
+    await expect(page.locator('.list-item')).toContainText('Unpaid')
+    expect(adminApiAuthHeaders).toContain('Bearer mock-ops-jwt-token')
+    expect(adminOrderListQueries.length).toBeGreaterThan(0)
+    const firstQuery = adminOrderListQueries[0]
+    expect(firstQuery.get('page')).toBe('1')
+    expect(firstQuery.get('size')).toBe('20')
+    expect(firstQuery.has('status')).toBe(false)
+    expect(firstQuery.has('orderNo')).toBe(false)
+    expect(firstQuery.has('userId')).toBe(false)
+  })
+
+  test('empty list renders empty state without crash', async ({ page }) => {
+    mockOrderSummaries = []
+    mockOrderById = {}
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await expect(page.locator('.order-admin-shell')).toBeVisible()
+    await expect(page.locator('section.banner.empty')).toBeVisible()
+    await expect(page.locator('section.banner.empty')).toContainText('No orders match')
+    await expect(page.locator('.list-item')).toHaveCount(0)
+  })
+
+  test('selects order detail from list click', async ({ page }) => {
+    useSingleOrder(createAdminOrderDetail({
+      orderId: 1001,
+      orderNo: 'ADM-CRT-1001',
+      status: 'created',
+      paymentNo: null,
+    }))
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await expect(page.locator('.list-item')).toBeVisible()
+    await page.locator('.list-item').click()
+
+    await expect(page.locator('.detail-panel')).toBeVisible()
+    await expect(page.locator('.detail-panel')).toContainText('ADM-CRT-1001')
+    await expect(page.locator('.summary-grid')).toContainText('Unpaid')
+    await expect(page.locator('.summary-grid')).toContainText('ord:10001:req-smoke-1001')
+    await expect(page.locator('.summary-grid')).toContainText('trace-order-1001')
+  })
+
+  test('renders all known status labels in list and detail', async ({ page }) => {
+    useOrders(ALL_STATUS_ORDERS)
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await expect(page.locator('.list-item')).toHaveCount(6)
+    const listText = await page.locator('.list-panel').textContent()
+    expect(listText).toContain('Unpaid')
+    expect(listText).toContain('Paid')
+    expect(listText).toContain('Shipped')
+    expect(listText).toContain('Completed')
+    expect(listText).toContain('Cancelled')
+    expect(listText).toContain('refunding')
+
+    await page.locator('.list-item').first().click()
+    await expect(page.locator('.summary-grid')).toContainText('Unpaid')
+  })
+
+  test('timeline preserves known and unknown status nodes', async ({ page }) => {
+    useOrders([createShippedOrder(), createUnknownOrder()])
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item:has-text("ADM-SHP-1003")').click()
+    await expect(page.locator('.timeline')).toBeVisible()
+    const timelineItems = page.locator('.timeline-item')
+    await expect(timelineItems).toHaveCount(3)
+
+    const timelineText = await page.locator('.timeline').textContent()
+    expect(timelineText).toContain('Unpaid')
+    expect(timelineText).toContain('Paid')
+    expect(timelineText).toContain('Shipped')
+
+    await page.locator('.list-item:has-text("ADM-UNK-1006")').click()
+    await expect(page.locator('.timeline-item')).toHaveCount(2)
+    const unknownTimelineText = await page.locator('.timeline').textContent()
+    expect(unknownTimelineText).toContain('refunding')
+    expect(unknownTimelineText).toContain('unrecognized status')
+  })
+
+  test('payment refresh updates paymentNo for created order without overwriting status', async ({ page }) => {
+    useSingleOrder(createAdminOrderDetail({
+      orderId: 1001,
+      orderNo: 'ADM-CRT-1001',
+      status: 'created',
+      paymentNo: null,
+    }))
+    mockPaymentStatus = createAdminPaymentResponse({
+      orderId: 1001,
+      paymentNo: 'ADM-PAY-NEW',
+      status: 'paid',
+    })
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item').click()
+    await expect(page.locator('.detail-panel')).toContainText('ADM-CRT-1001')
+    await expect(page.locator('.summary-grid')).toContainText('Unpaid')
+
+    await page.locator('button:has-text("Refresh payment")').click()
+    await expect(page.locator('.summary-grid')).toContainText('Payment No')
+    await expect(page.locator('.summary-grid')).toContainText('ADM-PAY-NEW')
+    await expect(page.locator('.summary-grid')).toContainText('Unpaid')
+  })
+
+  test('payment refresh preserves shipped main status', async ({ page }) => {
+    useSingleOrder(createShippedOrder())
+    mockPaymentStatus = createAdminPaymentResponse({
+      orderId: 1003,
+      orderNo: 'ADM-SHP-1003',
+      paymentNo: 'ADM-PAY-NEW-2',
+      status: 'paid',
+    })
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item').click()
+    await expect(page.locator('.summary-grid')).toContainText('Shipped')
+
+    await page.locator('button:has-text("Refresh payment")').click()
+    await expect(page.locator('.summary-grid')).toContainText('Payment No')
+    await expect(page.locator('.summary-grid')).toContainText('ADM-PAY-NEW-2')
+    await expect(page.locator('.summary-grid')).toContainText('Shipped')
+    const listItem = page.locator('.list-item.active')
+    await expect(listItem).toContainText('Shipped')
+  })
+
+  test('payment refresh preserves completed main status', async ({ page }) => {
+    useSingleOrder(createCompletedOrder())
+    mockPaymentStatus = createAdminPaymentResponse({
+      orderId: 1004,
+      orderNo: 'ADM-CMP-1004',
+      paymentNo: 'ADM-PAY-NEW-3',
+      status: 'paid',
+    })
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item').click()
+    await expect(page.locator('.summary-grid')).toContainText('Completed')
+
+    await page.locator('button:has-text("Refresh payment")').click()
+    await expect(page.locator('.summary-grid')).toContainText('Completed')
+    const listItem = page.locator('.list-item.active')
+    await expect(listItem).toContainText('Completed')
+  })
+
+  test('payment refresh preserves cancelled main status', async ({ page }) => {
+    useSingleOrder(createCancelledOrder())
+    mockPaymentStatus = createAdminPaymentResponse({
+      orderId: 1005,
+      orderNo: 'ADM-CNL-1005',
+      paymentNo: 'ADM-PAY-NEW-4',
+      status: 'paid',
+    })
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item').click()
+    await expect(page.locator('.summary-grid')).toContainText('Cancelled')
+
+    await page.locator('button:has-text("Refresh payment")').click()
+    await expect(page.locator('.summary-grid')).toContainText('Cancelled')
+    const listItem = page.locator('.list-item.active')
+    await expect(listItem).toContainText('Cancelled')
+  })
+
+  test('payment refresh preserves unknown order main status', async ({ page }) => {
+    useSingleOrder(createUnknownOrder())
+    mockPaymentStatus = createAdminPaymentResponse({
+      orderId: 1006,
+      orderNo: 'ADM-UNK-1006',
+      paymentNo: 'ADM-PAY-NEW-5',
+      status: 'paid',
+    })
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item').click()
+    await expect(page.locator('.summary-grid')).toContainText('refunding')
+
+    await page.locator('button:has-text("Refresh payment")').click()
+    await expect(page.locator('.summary-grid')).toContainText('refunding')
+  })
+
+  test('explicit payment refresh displays PAYMENT_NOT_FOUND with code message traceId', async ({ page }) => {
+    useSingleOrder(createAdminOrderDetail({
+      orderId: 1001,
+      orderNo: 'ADM-CRT-1001',
+      status: 'created',
+      paymentNo: null,
+    }))
+    mockPaymentError = {
+      code: 'PAYMENT_NOT_FOUND',
+      message: 'No payment row for this order',
+      traceId: 'trace-payment-missing',
+    }
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item').click()
+    await expect(page.locator('.detail-panel')).toBeVisible()
+
+    await page.locator('button:has-text("Refresh payment")').click()
+
+    await expect(page.locator('.banner.error')).toBeVisible()
+    const errorText = await page.locator('.banner.error').textContent()
+    expect(errorText).toContain('PAYMENT_NOT_FOUND')
+    expect(errorText).toContain('No payment row for this order')
+    expect(errorText).toContain('trace-payment-missing')
+    await expect(page.locator('.detail-panel')).toContainText('ADM-CRT-1001')
+    await expect(page.locator('.summary-grid')).toContainText('Unpaid')
+  })
+
+  test('backend list error displays code message traceId', async ({ page }) => {
+    mockListError = {
+      code: 'DOWNSTREAM_TIMEOUT',
+      message: 'Order service unavailable.',
+      traceId: 'trace-list-503',
+    }
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await expect(page.locator('.banner.error')).toBeVisible()
+    const errorText = await page.locator('.banner.error').textContent()
+    expect(errorText).toContain('DOWNSTREAM_TIMEOUT')
+    expect(errorText).toContain('Order service unavailable.')
+    expect(errorText).toContain('trace-list-503')
+  })
+
+  test('backend detail error displays code message traceId', async ({ page }) => {
+    useSingleOrder(createAdminOrderDetail({ orderId: 1001, orderNo: 'ADM-CRT-1001', status: 'created' }))
+    mockDetailError = {
+      code: 'PAYMENT_REFRESH_FAILED',
+      message: 'Payment service unavailable during detail load.',
+      traceId: 'trace-detail-503',
+    }
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item').click()
+    await expect(page.locator('.banner.error')).toBeVisible()
+    const errorText = await page.locator('.detail-panel .banner.error').textContent()
+    expect(errorText).toContain('PAYMENT_REFRESH_FAILED')
+    expect(errorText).toContain('Payment service unavailable during detail load.')
+    expect(errorText).toContain('trace-detail-503')
+  })
+
+  test('restores order detail from deep link URL', async ({ page }) => {
+    useSingleOrder(createAdminOrderDetail({
+      orderId: 9001,
+      orderNo: 'ADM-DEEP-9001',
+      status: 'paid',
+      paymentNo: 'ADM-PAY-DEEP',
+    }))
+    mockPaymentStatus = createAdminPaymentResponse({
+      orderId: 9001,
+      paymentNo: 'ADM-PAY-DEEP',
+      status: 'paid',
+    })
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order&orderId=9001')
+
+    await expect(page.locator('.detail-panel')).toBeVisible()
+    await expect(page.locator('.detail-panel')).toContainText('ADM-DEEP-9001')
+    await expect(page.locator('.summary-grid')).toContainText('Paid')
+    await expect(page.locator('.summary-grid')).toContainText('ADM-PAY-DEEP')
+  })
+
+  test('restores order detail after page reload', async ({ page }) => {
+    useSingleOrder(createAdminOrderDetail({
+      orderId: 9001,
+      orderNo: 'ADM-DEEP-9001',
+      status: 'paid',
+      paymentNo: 'ADM-PAY-DEEP',
+    }))
+    mockPaymentStatus = createAdminPaymentResponse({
+      orderId: 9001,
+      paymentNo: 'ADM-PAY-DEEP',
+      status: 'paid',
+    })
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order&orderId=9001')
+
+    await expect(page.locator('.detail-panel')).toBeVisible()
+    await expect(page.locator('.detail-panel')).toContainText('ADM-DEEP-9001')
+
+    await page.reload()
+    await expect(page.locator('.detail-panel')).toBeVisible()
+    await expect(page.locator('.detail-panel')).toContainText('ADM-DEEP-9001')
+    await expect(page.locator('.summary-grid')).toContainText('Paid')
+  })
+
+  test('shows payment refresh loading state and guards duplicate clicks', async ({ page }) => {
+    useSingleOrder(createAdminOrderDetail({
+      orderId: 1001,
+      orderNo: 'ADM-CRT-1001',
+      status: 'created',
+      paymentNo: null,
+    }))
+    mockPaymentStatus = createAdminPaymentResponse({
+      orderId: 1001,
+      paymentNo: 'ADM-PAY-1001',
+      status: 'paid',
+    })
+    await seedOpsSession(page, createOpsSession())
+    await page.goto('/admin?workspace=order')
+
+    await page.locator('.list-item').click()
+    await expect(page.locator('button:has-text("Refresh payment")')).toBeVisible()
+
+    deferPaymentResponse = true
+
+    await page.locator('button:has-text("Refresh payment")').click()
+    await expect(page.locator('button:has-text("Refreshing")')).toBeVisible()
+    await expect(page.locator('button:has-text("Refreshing")')).toBeDisabled()
+
+    const countAfterClick = adminApiCallCount
+
+    await page.locator('button:has-text("Refreshing")').dispatchEvent('click')
+    expect(adminApiCallCount).toBe(countAfterClick)
+
+    const paymentRoute = pendingPaymentRoute
+    expect(paymentRoute).not.toBeNull()
+    if (!paymentRoute) {
+      throw new Error('Expected deferred payment route to be captured.')
+    }
+    await paymentRoute.fulfill({
+      json: apiEnvelope(createAdminPaymentResponse({ orderId: 1001, paymentNo: 'ADM-PAY-NEW' }), 'ADMIN_PAYMENT_STATUS'),
+    })
+    pendingPaymentRoute = null
+
+    await expect(page.locator('button:has-text("Refresh payment")')).toBeVisible()
+  })
+})

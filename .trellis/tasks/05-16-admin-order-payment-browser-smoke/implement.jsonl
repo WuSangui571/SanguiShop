@@ -1,0 +1,26 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin order/payment browser smoke must honor admin order list/detail/payment contracts, payment refresh non-overwrite behavior, traceId/code/message error display, and deep-link restore expectations."}
+{"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "The admin smoke should exercise actual loading/error/empty/pending UI states and duplicate-click guards through the rendered browser DOM."}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Smoke fixtures and browser assertions must stay aligned with ApiResult<T>, order/payment DTO shapes, and unknown enum fallback rules."}
+{"file": ".trellis\\spec\\frontend\\hook-guidelines.md", "reason": "The smoke must reflect the existing service/composable auth and async handling model, including cleanup-friendly browser-driven polling/refresh behavior."}
+{"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "The task crosses browser, auth, gateway envelope, and order/payment contract boundaries, so cross-layer risk checks are mandatory."}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Smoke coverage must verify core interactions, backend traceId/code/message display, and no forbidden live-service dependencies."}
+{"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Admin browser smoke must respect /admin JWT/RBAC boundaries and the ORDER_MANAGEMENT_ADMIN vs OPS_COMPENSATION_ADMIN distinction."}
+{"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "Backend error envelope semantics drive the smoke's code/message/traceId assertions."}
+{"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Admin order smoke must preserve main order status, fulfilled/detail snapshots, deep-link behavior, and terminal-state non-overwrite rules from the order contract."}
+{"file": ".trellis\\spec\\backend\\payment-pay-contracts.md", "reason": "Admin payment smoke must validate payment refresh by order id, PAYMENT_NOT_FOUND handling, and payment-status refresh without overwriting terminal order status."}
+{"file": ".trellis\\tasks\\05-16-admin-order-payment-browser-smoke\\prd.md", "reason": "Primary requirements, scope boundaries, API/error matrix, Good/Base/Bad cases, and required smoke assertions."}
+{"file": "frontend\\e2e\\mall-order-status-smoke.spec.ts", "reason": "Existing Playwright/Vite browser smoke pattern to mirror for server lifecycle, route mocks, auth header assertions, and deep-link/reload checks."}
+{"file": "frontend\\e2e\\fixtures\\mallOrderStatusSmoke.ts", "reason": "Existing typed fixture factory and ApiResult envelope pattern for the new admin smoke fixtures."}
+{"file": "frontend\\src\\App.vue", "reason": "Admin workspace routing, permission gates, session bootstrap, and initial orderId handling for /admin deep links."}
+{"file": "frontend\\src\\composables\\useOrderManagement.ts", "reason": "Admin order list/detail/payment orchestration and explicit-vs-automatic PAYMENT_NOT_FOUND behavior."}
+{"file": "frontend\\src\\views\\admin\\OrderManagementView.vue", "reason": "Rendered DOM surface for order list, detail, filters, payment refresh, errors, timeline, and cancel controls."}
+{"file": "frontend\\src\\views\\admin\\orderManagementModel.ts", "reason": "Status labels, timeline descriptions, URL/filter helpers, and payment merge helpers that must preserve main order status."}
+{"file": "frontend\\src\\services\\httpClient.ts", "reason": "Authorization header and ApiResult envelope/error parsing behavior used by browser assertions."}
+{"file": "frontend\\src\\services\\opsSessionStorage.ts", "reason": "Ops session storage key and persistence contract for browser session seeding."}
+{"file": "frontend\\src\\services\\orderApi.ts", "reason": "Admin order service routes and ops auth context."}
+{"file": "frontend\\src\\services\\paymentApi.ts", "reason": "Admin payment-by-order route and ops auth context."}
+{"file": ".trellis\\spec\\frontend\\directory-structure.md", "reason": "New smoke and fixture files should follow existing frontend/e2e and typed DTO/service layout conventions."}
+{"file": ".trellis\\spec\\frontend\\state-management.md", "reason": "Ops session storage, token boundaries, and backend error data preservation are relevant to browser session seeding and assertions."}
+{"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Gateway ApiResult envelope, traceId, and admin route contract assumptions guide the mocked responses."}
