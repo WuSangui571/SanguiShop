@@ -147,7 +147,8 @@ Admin order model rules:
 - Time filters from `datetime-local` inputs must be normalized to ISO-8601 values before sending.
 - API errors must preserve and display backend `code`, `message`, and `traceId`.
 - `paymentNo` in order responses is nullable because order-service must not read payment tables. Payment status is loaded from the payment-service admin route by `orderId`.
-- Refreshing admin payment status must write the returned `paymentNo` and `paid` status into the current order detail/list display snapshot while preserving unknown status fallback.
+- Refreshing admin payment status may write the returned `paymentNo` into the current order detail/list display snapshot, but must not assign payment response `status` into admin order main `status`.
+- Payment refresh must preserve admin order main-status labels for `created`, `paid`, `cancelled`, `shipped`, `completed`, and raw unknown order statuses. Payment-specific status display must use payment fields separately.
 - `OPS_COMPENSATION_ADMIN` alone must not show the order management workspace; require `ADMIN` role or `ORDER_MANAGEMENT_ADMIN`.
 
 Required tests:
@@ -157,7 +158,7 @@ Required tests:
 - Admin order URL params omit empty filters and preserve page/size.
 - Pagination default/clamp behavior.
 - Status labels and timeline descriptions for `created`, `paid`, `cancelled`, `shipped`, `completed`, and unknown raw values.
-- Payment refresh display snapshot merge for current order detail/list item.
+- Payment refresh display snapshot merge for current order detail/list item, including terminal `shipped`, `completed`, and `cancelled` orders where a returned payment `status=paid` must not change the order main status.
 - Backend error `code/message/traceId` preservation.
 - Duplicate cancel submit guard.
 - Cancel confirmation must prevent accidental cancellation before the request is sent.

@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Admin order status non-overwrite contract for debugging regressions"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin payment refresh merge contract for debugging frontend regressions"}
+{"file": "frontend/src/views/admin/orderManagementModel.ts", "reason": "Payment refresh merge helpers for debugging status overwrite failures"}

@@ -160,7 +160,7 @@ describe('orderManagementModel', () => {
     ])
   })
 
-  it('writes refreshed payment number back into current detail and list item snapshots', () => {
+  it('writes refreshed payment number into current detail and list item while preserving main status', () => {
     const detail: AdminOrderDetailResponse = {
       orderId: 101,
       orderNo: 'ORD-101',
@@ -169,7 +169,7 @@ describe('orderManagementModel', () => {
       requestId: 'req-101',
       reservationNo: 'RSV-101',
       paymentNo: null,
-      status: 'created',
+      status: 'paid',
       totalAmountCent: 9900,
       traceId: 'trace-101',
       createdAt: '2026-05-01T10:00:00+08:00',
@@ -183,11 +183,24 @@ describe('orderManagementModel', () => {
         orderNo: 'ORD-101',
         shopId: 1,
         userId: '10001',
-        status: 'created',
+        status: 'paid',
         totalAmountCent: 9900,
         paymentNo: null,
         itemCount: 1,
         traceId: 'trace-101',
+        createdAt: '2026-05-01T10:00:00+08:00',
+        updatedAt: '2026-05-01T10:00:00+08:00',
+      },
+      {
+        orderId: 102,
+        orderNo: 'ORD-102',
+        shopId: 1,
+        userId: '10001',
+        status: 'created',
+        totalAmountCent: 59900,
+        paymentNo: null,
+        itemCount: 1,
+        traceId: 'trace-102',
         createdAt: '2026-05-01T10:00:00+08:00',
         updatedAt: '2026-05-01T10:00:00+08:00',
       },
@@ -204,13 +217,82 @@ describe('orderManagementModel', () => {
       amountCent: 9900,
     }
 
-    expect(applyAdminPaymentToDetail(detail, payment)).toMatchObject({
+    const mergedDetail = applyAdminPaymentToDetail(detail, payment)
+    expect(mergedDetail).toMatchObject({
       paymentNo: 'PAY-201',
       status: 'paid',
     })
-    expect(applyAdminPaymentToSummaries(summaries, payment)[0]).toMatchObject({
-      paymentNo: 'PAY-201',
-      status: 'paid',
+
+    const mergedSummaries = applyAdminPaymentToSummaries(summaries, payment)
+    expect(mergedSummaries[0].paymentNo).toBe('PAY-201')
+    expect(mergedSummaries[0].status).toBe('paid')
+    expect(mergedSummaries[1].paymentNo).toBeNull()
+    expect(mergedSummaries[1].status).toBe('created')
+  })
+
+  it('preserves shipped completed and cancelled main statuses after payment refresh returns paid or unknown status', () => {
+    const testCases: { status: string; paymentNo: string | null; paymentStatus: string }[] = [
+      { status: 'shipped', paymentNo: null, paymentStatus: 'paid' },
+      { status: 'completed', paymentNo: null, paymentStatus: 'paid' },
+      { status: 'cancelled', paymentNo: null, paymentStatus: 'paid' },
+      { status: 'completed', paymentNo: 'PAY-EXISTING', paymentStatus: 'settling' },
+    ]
+
+    testCases.forEach(({ status, paymentNo, paymentStatus }) => {
+      const detail: AdminOrderDetailResponse = {
+        orderId: 101,
+        orderNo: `ORD-${status}`,
+        shopId: 1,
+        userId: '10001',
+        requestId: 'req-101',
+        reservationNo: 'RSV-101',
+        paymentNo,
+        status,
+        totalAmountCent: 9900,
+        traceId: 'trace-101',
+        createdAt: '2026-05-01T10:00:00+08:00',
+        updatedAt: '2026-05-01T10:00:00+08:00',
+        items: [],
+        statusTimeline: [],
+      }
+
+      const summaries: AdminOrderSummaryResponse[] = [
+        {
+          orderId: 101,
+          orderNo: `ORD-${status}`,
+          shopId: 1,
+          userId: '10001',
+          status,
+          totalAmountCent: 9900,
+          paymentNo,
+          itemCount: 1,
+          traceId: 'trace-101',
+          createdAt: '2026-05-01T10:00:00+08:00',
+          updatedAt: '2026-05-01T10:00:00+08:00',
+        },
+      ]
+
+      const payment: PaymentResponse = {
+        paymentId: 201,
+        paymentNo: 'PAY-201',
+        orderId: 101,
+        orderNo: `ORD-${status}`,
+        shopId: 1,
+        userId: '10001',
+        channel: 'mock',
+        status: paymentStatus,
+        amountCent: 9900,
+      }
+
+      const mergedDetail = applyAdminPaymentToDetail(detail, payment)
+      expect(mergedDetail).toMatchObject({
+        status,
+        paymentNo: 'PAY-201',
+      })
+
+      const mergedSummaries = applyAdminPaymentToSummaries(summaries, payment)
+      expect(mergedSummaries[0].status).toBe(status)
+      expect(mergedSummaries[0].paymentNo).toBe('PAY-201')
     })
   })
 

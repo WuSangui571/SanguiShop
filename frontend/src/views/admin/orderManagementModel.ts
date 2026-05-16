@@ -292,7 +292,6 @@ export function applyAdminPaymentToDetail(
   return {
     ...detail,
     paymentNo: payment.paymentNo,
-    status: payment.status === 'paid' ? 'paid' : detail.status,
   }
 }
 
@@ -305,7 +304,6 @@ export function applyAdminPaymentToSummaries(
       ? {
           ...item,
           paymentNo: payment.paymentNo,
-          status: payment.status === 'paid' ? 'paid' : item.status,
         }
       : item
   ))

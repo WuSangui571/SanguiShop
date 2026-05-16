@@ -656,3 +656,69 @@ Recorded user-completed manual full-stack verification for SanguiShop existing f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: 管理端履约状态回归覆盖收尾
+
+**Date**: 2026-05-14
+**Task**: 管理端履约状态回归覆盖收尾
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Module | Summary |
+| --- | --- |
+| Backend order fulfillment tests | Added regression coverage proving fulfillment detail/controller JSON keeps order main `status` separate from `fulfillmentStatus`, including `completed` + `shipped` and all known `OrderStatus` values. |
+| Frontend fulfillment view tests | Added component coverage for successful ship transition, completed main-status with shipped fulfillment display, and unknown fulfillment-status raw fallback. |
+| Frontend fulfillment view | Added `completed` order main-status label mapping in the fulfillment workspace so completed orders do not fall back to raw text. |
+| Frontend spec | Documented that fulfillment responses displaying order main `status` must use admin order main-status labels and must not derive that label from `fulfillmentStatus`. |
+
+**Commit**: `434440c fix:??????????`
+
+**Updated Files**:
+- `.trellis/spec/frontend/api-contracts.md`
+- `frontend/src/views/admin/FulfillmentManagementView.vue`
+- `frontend/src/views/admin/FulfillmentManagementView.spec.ts`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/api/InternalOrderShipmentControllerTest.java`
+- `services/sangui-order-service/src/test/java/com/sangui/shop/order/application/OrderShipmentServiceTest.java`
+
+**Verification**:
+- Human manual testing passed before record-session.
+- `git diff --check` passed with only Windows LF-to-CRLF warnings.
+- `cmd /c npx vitest run --reporter=verbose src/views/admin/fulfillmentManagementModel.test.ts src/views/admin/FulfillmentManagementView.spec.ts src/views/admin/orderManagementModel.test.ts src/views/admin/OrderManagementView.spec.ts` passed: 4 files, 59 tests.
+- `.\mvnw.cmd -q -pl services/sangui-order-service -am "-Dtest=AdminOrderManagementServiceTest,AdminOrderControllerTest,*Fulfillment*Test" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed after sandbox dependency-resolution escalation.
+- `.\mvnw.cmd -q -pl services/sangui-order-service -am "-Dtest=AdminOrderManagementServiceTest,AdminOrderControllerTest,OrderShipmentServiceTest,InternalOrderShipmentControllerTest,OrderShipmentMigrationContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` passed: 45 tests, 0 failures.
+- `cmd /c npm run typecheck` passed.
+- `cmd /c npm run lint` passed.
+- `cmd /c npm test` passed outside sandbox path mirroring: 20 files, 258 tests.
+- `cmd /c npm run build` passed: 94 modules transformed.
+
+**Result / Boundaries**:
+- Acceptance criteria met for backend fulfillment status projection/controller serialization and frontend fulfillment display consistency.
+- Codex fixed the completed order-label gap found during check and synced the frontend API contract spec.
+- No backend production logic, API route, database schema, Redis/MQ, gateway, auth, Docker, or CI changes were made.
+- The receipt-confirmation `fulfillmentStatus=completed` behavior remains aligned with the existing order-create contract; this task only guards non-overwrite display/projection behavior.
+- Current Trellis task was archived after commit and manual validation.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `434440c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

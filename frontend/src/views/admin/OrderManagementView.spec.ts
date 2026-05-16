@@ -589,6 +589,53 @@ describe('OrderManagementView cancel order', () => {
     expect(vi.mocked(cancelAdminOrder)).toHaveBeenCalledTimes(2)
   })
 
+  it('cancel success keeps cancelled main status when follow-up payment refresh returns paid', async () => {
+    vi.mocked(listAdminOrders)
+      .mockResolvedValueOnce({
+        data: {
+          items: [createOrderSummary({ orderId: 1, orderNo: 'ORD-001', status: 'created', paymentNo: null })],
+          total: 1,
+          page: 1,
+          size: 20,
+        },
+        meta: mockMeta,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          items: [createOrderSummary({ orderId: 1, orderNo: 'ORD-001', status: 'cancelled', paymentNo: 'PAY-201' })],
+          total: 1,
+          page: 1,
+          size: 20,
+        },
+        meta: mockMeta,
+      })
+    vi.mocked(getAdminPaymentByOrderId)
+      .mockRejectedValueOnce(
+        new HttpClientError('Payment not found', { code: 'PAYMENT_NOT_FOUND', status: 404, traceId: 'trace-pay' }),
+      )
+      .mockResolvedValueOnce({ data: createPayment({ paymentNo: 'PAY-201', status: 'paid' }), meta: mockMeta })
+    vi.mocked(cancelAdminOrder).mockResolvedValue({
+      data: createOrderDetail({ orderId: 1, orderNo: 'ORD-001', status: 'cancelled', paymentNo: null }),
+      meta: mockMeta,
+    })
+
+    const w = await mountView()
+    await selectOrderFromList(w)
+
+    const cancelBtn = w.find('.detail-actions .danger')
+    await cancelBtn.trigger('click')
+    await nextTick()
+
+    const confirmBtn = w.find('.confirm-dialog .danger')
+    await confirmBtn.trigger('click')
+    await flushPromises()
+    await nextTick()
+
+    expect(summaryValue(w, 'orderAdmin.status')).toBe('orderAdmin.statusCancelled')
+    expect(summaryValue(w, 'orderAdmin.paymentNo')).toBe('PAY-201')
+    expect(w.find('.list-item span').text()).toBe('orderAdmin.statusCancelled')
+  })
+
   it('duplicate confirm click while pending does not send second request', async () => {
     const controlled = createControlledApiResponse()
     vi.mocked(cancelAdminOrder).mockReturnValue(controlled.promise as ReturnType<typeof cancelAdminOrder>)
@@ -651,6 +698,8 @@ describe('OrderManagementView payment refresh', () => {
     const paymentBanner = w.findAll('.banner.error').filter((b) => b.text().includes('trace-pay'))
     expect(paymentBanner.length).toBe(0)
     expect(w.text()).toContain('ORD-001')
+    expect(summaryValue(w, 'orderAdmin.status')).toBe('orderAdmin.statusCreated')
+    expect(w.find('.list-item span').text()).toBe('orderAdmin.statusCreated')
   })
 
   it('manual refresh failure preserves current snapshot and displays backend error', async () => {
@@ -679,7 +728,7 @@ describe('OrderManagementView payment refresh', () => {
     expect(w.text()).toContain('RSV-001')
   })
 
-  it('manual refresh success merges payment status into detail and list item', async () => {
+  it('manual refresh success merges payment number and preserves order main status', async () => {
     vi.mocked(getAdminPaymentByOrderId)
       .mockRejectedValueOnce(
         new HttpClientError('Payment not found', { code: 'PAYMENT_NOT_FOUND', status: 404, traceId: 'trace-pay' }),
@@ -695,6 +744,8 @@ describe('OrderManagementView payment refresh', () => {
     await nextTick()
 
     expect(w.text()).toContain('PAY-201')
+    expect(summaryValue(w, 'orderAdmin.status')).toBe('orderAdmin.statusCreated')
+    expect(w.find('.list-item span').text()).toBe('orderAdmin.statusCreated')
   })
 })
 
@@ -757,6 +808,103 @@ describe('OrderManagementView status matrix rendering', () => {
         expect(cancelBtn.attributes('disabled')).toBe('')
       }
     })
+  })
+
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+    vi.clearAllMocks()
+    resetBrowserState()
+  })
+})
+
+describe('OrderManagementView terminal status preserved after payment refresh', () => {
+  const terminalStatuses = ['shipped', 'completed', 'cancelled'] as const
+
+  terminalStatuses.forEach((status) => {
+    it(`preserves ${status} label after payment refresh returns paid`, async () => {
+      const labelKey = `orderAdmin.status${status.charAt(0).toUpperCase() + status.slice(1)}`
+      vi.mocked(listAdminOrders).mockResolvedValue({
+        data: {
+          items: [createOrderSummary({ orderId: 1, orderNo: `ORD-${status}`, status, paymentNo: null })],
+          total: 1,
+          page: 1,
+          size: 20,
+        },
+        meta: mockMeta,
+      })
+      vi.mocked(getAdminOrder).mockResolvedValue({
+        data: createOrderDetail({
+          orderId: 1,
+          orderNo: `ORD-${status}`,
+          status,
+          statusTimeline: [
+            { status: 'created', occurredAt: '2026-05-08T10:00:00+08:00', traceId: 'trace-created' },
+            { status, occurredAt: '2026-05-08T11:00:00+08:00', traceId: `trace-${status}` },
+          ],
+        }),
+        meta: mockMeta,
+      })
+      vi.mocked(getAdminPaymentByOrderId)
+        .mockRejectedValueOnce(
+          new HttpClientError('Payment not found', { code: 'PAYMENT_NOT_FOUND', status: 404, traceId: 'trace-pay' }),
+        )
+        .mockResolvedValueOnce({ data: createPayment({ paymentNo: 'PAY-201', status: 'paid' }), meta: mockMeta })
+
+      const w = await mountView()
+      await selectOrderFromList(w)
+
+      const refreshPaymentBtn = findRefreshPaymentButton(w)
+      await refreshPaymentBtn.trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(w.find('.list-item span').text()).toBe(labelKey)
+      expect(summaryValue(w, 'orderAdmin.status')).toBe(labelKey)
+      expect(w.text()).toContain('PAY-201')
+    })
+  })
+
+  it('preserves main label and shows raw fallback when payment refresh returns unknown status', async () => {
+    vi.mocked(listAdminOrders).mockResolvedValue({
+      data: {
+        items: [createOrderSummary({ orderId: 1, orderNo: 'ORD-completed', status: 'completed', paymentNo: null })],
+        total: 1,
+        page: 1,
+        size: 20,
+      },
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminOrder).mockResolvedValue({
+      data: createOrderDetail({
+        orderId: 1,
+        orderNo: 'ORD-completed',
+        status: 'completed',
+        statusTimeline: [
+          { status: 'created', occurredAt: '2026-05-08T10:00:00+08:00', traceId: 'trace-created' },
+          { status: 'completed', occurredAt: '2026-05-08T11:00:00+08:00', traceId: 'trace-completed' },
+        ],
+      }),
+      meta: mockMeta,
+    })
+    vi.mocked(getAdminPaymentByOrderId)
+      .mockRejectedValueOnce(
+        new HttpClientError('Payment not found', { code: 'PAYMENT_NOT_FOUND', status: 404, traceId: 'trace-pay' }),
+      )
+      .mockResolvedValueOnce({ data: createPayment({ paymentNo: 'PAY-202', status: 'settling' }), meta: mockMeta })
+
+    const w = await mountView()
+    await selectOrderFromList(w)
+
+    const refreshPaymentBtn = findRefreshPaymentButton(w)
+    await refreshPaymentBtn.trigger('click')
+    await flushPromises()
+    await nextTick()
+
+    expect(w.find('.list-item span').text()).toBe('orderAdmin.statusCompleted')
+    expect(summaryValue(w, 'orderAdmin.status')).toBe('orderAdmin.statusCompleted')
+    expect(summaryValue(w, 'orderAdmin.paymentStatus')).toBe('settling')
+    expect(w.text()).toContain('PAY-202')
   })
 
   afterEach(() => {

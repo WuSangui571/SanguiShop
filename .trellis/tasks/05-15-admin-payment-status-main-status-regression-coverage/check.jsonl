@@ -1,0 +1,20 @@
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Admin order list/detail contract and status non-overwrite assertion points"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Admin payment by order id contract, PAYMENT_NOT_FOUND behavior, payment status ownership"}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Cross-service DTO/envelope rules and validation/error matrix conventions"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Backend error code and HTTP mapping expectations"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Targeted Maven reactor test and review requirements"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin order/payment refresh merge contract and required frontend tests"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "DTO compatibility and unknown enum fallback rules"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue component state and scoped test behavior"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend test/typecheck/build completion requirements"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer order/payment state and field ownership risks"}
+{"file": "frontend/src/views/admin/orderManagementModel.ts", "reason": "Payment-to-order merge helpers; current high-risk status overwrite location"}
+{"file": "frontend/src/composables/useOrderManagement.ts", "reason": "Admin detail load and payment refresh orchestration including PAYMENT_NOT_FOUND handling"}
+{"file": "frontend/src/views/admin/orderManagementModel.test.ts", "reason": "Existing model test patterns for status labels, timeline, payment merge"}
+{"file": "frontend/src/views/admin/OrderManagementView.spec.ts", "reason": "Existing component tests for payment refresh, status matrix, unknown fallback"}
+{"file": "frontend/src/types/api/order.ts", "reason": "Admin order DTO status/paymentNo field types"}
+{"file": "frontend/src/types/api/payment.ts", "reason": "Payment response status/paymentNo field types"}
+{"file": "frontend/src/services/paymentApi.ts", "reason": "getAdminPaymentByOrderId route and ops auth context"}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/application/AdminOrderManagementService.java", "reason": "Admin order projection maps persisted order status and nullable paymentNo"}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/application/AdminOrderManagementServiceTest.java", "reason": "Existing service regression matrix for main status preservation"}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/api/AdminOrderControllerTest.java", "reason": "Existing controller serialization matrix for main status preservation"}
