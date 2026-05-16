@@ -1,6 +1,7 @@
 import type { ApiResult } from '../../src/types/api/common'
 import type { OpsSessionResponse, PersistedOpsSession } from '../../src/types/api/auth'
 import type {
+  AdminFulfillmentResponse,
   AdminOrderDetailResponse,
   AdminOrderPageResponse,
   AdminOrderSummaryResponse,
@@ -208,4 +209,30 @@ export function createUnknownOrder(): AdminOrderDetailResponse {
       { status: 'refunding', occurredAt: '2026-05-16T08:10:00+08:00', traceId: 'trace-order-1006' },
     ],
   })
+}
+
+export function createFulfillmentSession(overrides?: Partial<PersistedOpsSession>): PersistedOpsSession {
+  return createOpsSession({
+    username: 'ops-fulfillment-admin',
+    permissions: ['LOGISTICS_FULFILLMENT_ADMIN'],
+    ...overrides,
+  })
+}
+
+export function createAdminFulfillmentResponse(overrides?: Partial<AdminFulfillmentResponse>): AdminFulfillmentResponse {
+  return {
+    orderId: overrides?.orderId ?? 1001,
+    orderNo: overrides?.orderNo ?? 'FUL-ORD-1001',
+    shopId: overrides?.shopId ?? 1,
+    userId: overrides?.userId ?? '10001',
+    status: overrides?.status ?? 'paid',
+    fulfillmentStatus: overrides?.fulfillmentStatus ?? 'unshipped',
+    totalAmountCent: overrides?.totalAmountCent ?? 59900,
+    carrier: overrides?.carrier ?? null,
+    trackingNo: overrides?.trackingNo ?? null,
+    shippedAt: overrides?.shippedAt ?? null,
+    traceId: overrides?.traceId ?? null,
+    createdAt: overrides?.createdAt ?? '2026-05-16T08:00:00+08:00',
+    updatedAt: overrides?.updatedAt ?? '2026-05-16T08:00:00+08:00',
+  }
 }

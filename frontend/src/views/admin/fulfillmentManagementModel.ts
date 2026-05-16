@@ -1,7 +1,9 @@
 import { HttpClientError } from '../../services/httpClient'
+import { ref } from 'vue'
 import type {
   AdminFulfillmentQueryParams,
   FulfillmentStatus,
+  OrderStatus,
   ShipFulfillmentRequest,
 } from '../../types/api/order'
 
@@ -84,8 +86,8 @@ export function getFulfillmentStatusLabel(status: FulfillmentStatus, labels: Ful
   return status
 }
 
-export function canShipFulfillment(status: FulfillmentStatus): boolean {
-  return status === 'unshipped'
+export function canShipFulfillment(fulfillmentStatus: FulfillmentStatus, orderStatus: OrderStatus): boolean {
+  return orderStatus === 'paid' && fulfillmentStatus === 'unshipped'
 }
 
 export function toFulfillmentError(
@@ -109,22 +111,22 @@ export function toFulfillmentError(
 }
 
 export function createShipmentGate() {
-  let pending = false
+  const pending = ref(false)
 
   function begin(): boolean {
-    if (pending) {
+    if (pending.value) {
       return false
     }
-    pending = true
+    pending.value = true
     return true
   }
 
   function end() {
-    pending = false
+    pending.value = false
   }
 
   function isPending() {
-    return pending
+    return pending.value
   }
 
   return {

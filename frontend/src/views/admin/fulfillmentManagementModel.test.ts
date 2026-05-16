@@ -65,14 +65,15 @@ describe('fulfillmentManagementModel', () => {
     })
   })
 
-  it('guards duplicate ship submissions and only allows unshipped rows', () => {
+  it('guards duplicate ship submissions and only allows paid unshipped rows', () => {
     const gate = createShipmentGate()
 
     expect(gate.begin()).toBe(true)
     expect(gate.begin()).toBe(false)
     gate.end()
     expect(gate.begin()).toBe(true)
-    expect(canShipFulfillment('unshipped')).toBe(true)
-    expect(canShipFulfillment('shipped')).toBe(false)
+    expect(canShipFulfillment('unshipped', 'paid')).toBe(true)
+    expect(canShipFulfillment('unshipped', 'created')).toBe(false)
+    expect(canShipFulfillment('shipped', 'paid')).toBe(false)
   })
 })

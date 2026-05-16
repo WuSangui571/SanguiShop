@@ -398,6 +398,24 @@ describe('FulfillmentManagementView ship action failure recovery', () => {
     controlled.resolve({ data: createFulfillment({ orderId: 1, fulfillmentStatus: 'shipped' }), meta: mockMeta })
     await flushPromises()
   })
+
+  it('keeps ship action disabled for created orders even when fulfillment status is unshipped', async () => {
+    vi.mocked(getAdminFulfillment).mockResolvedValue({
+      data: createFulfillment({ orderId: 1, orderNo: 'ORD-001', status: 'created', fulfillmentStatus: 'unshipped' }),
+      meta: mockMeta,
+    })
+
+    const w = await mountView()
+
+    const shipForm = w.find('.ship-form')
+    const submitBtn = shipForm.find('.primary')
+    await shipForm.trigger('submit')
+    await flushPromises()
+    await nextTick()
+
+    expect(submitBtn.attributes('disabled')).toBeDefined()
+    expect(vi.mocked(shipAdminFulfillment)).not.toHaveBeenCalled()
+  })
 })
 
 describe('FulfillmentManagementView successful ship', () => {

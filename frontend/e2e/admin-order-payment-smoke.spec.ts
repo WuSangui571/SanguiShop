@@ -13,9 +13,11 @@ import {
   createCompletedOrder,
   createCancelledOrder,
   createUnknownOrder,
+  createFulfillmentSession,
+  createAdminFulfillmentResponse,
   OPS_SESSION_KEY,
 } from './fixtures/adminOrderPaymentSmoke'
-import type { AdminOrderSummaryResponse, AdminOrderDetailResponse } from '../src/types/api/order'
+import type { AdminOrderSummaryResponse, AdminOrderDetailResponse, AdminFulfillmentResponse } from '../src/types/api/order'
 import type { PaymentResponse } from '../src/types/api/payment'
 
 const LOCALE_STORAGE_KEY = 'sangui.app.locale.v1'
@@ -39,6 +41,18 @@ let mockCancelSuccess: AdminOrderDetailResponse | null = null
 let mockCancelError: { code: string; message: string; traceId: string; httpStatus?: number } | null = null
 let deferCancelResponse = false
 let pendingCancelRoute: Route | null = null
+let shipApiCallCount = 0
+let shipApiAuthHeaders: string[] = []
+let shipApiPayloads: string[] = []
+let mockFulfillments: AdminFulfillmentResponse[] = []
+let mockFulfillmentById: Record<number, AdminFulfillmentResponse> = {}
+let mockFulfillmentShipSuccess: AdminFulfillmentResponse | null = null
+let mockFulfillmentShipError: { code: string; message: string; traceId: string; httpStatus?: number } | null = null
+let mockFulfillmentListError: { code: string; message: string; traceId: string } | null = null
+let mockFulfillmentDetailError: { code: string; message: string; traceId: string } | null = null
+let deferFulfillmentShip = false
+let pendingFulfillmentShipRoute: Route | null = null
+let mockSessionRefresh: ReturnType<typeof createOpsSessionResponse> | null = null
 
 function resetMockState() {
   pendingPaymentRoute = null
@@ -59,6 +73,18 @@ function resetMockState() {
   mockCancelError = null
   deferCancelResponse = false
   pendingCancelRoute = null
+  shipApiCallCount = 0
+  shipApiAuthHeaders = []
+  shipApiPayloads = []
+  mockFulfillments = []
+  mockFulfillmentById = {}
+  mockFulfillmentShipSuccess = null
+  mockFulfillmentShipError = null
+  mockFulfillmentListError = null
+  mockFulfillmentDetailError = null
+  deferFulfillmentShip = false
+  pendingFulfillmentShipRoute = null
+  mockSessionRefresh = null
 }
 
 function extractPath(rawUrl: string): string {
@@ -92,7 +118,7 @@ async function setupDefaultApiRoutes(page: Page) {
     }
 
     if (method === 'POST' && path === '/api/users/ops/session/refresh') {
-      await route.fulfill({ json: apiEnvelope(createOpsSessionResponse(), 'OPS_SESSION_REFRESHED') })
+      await route.fulfill({ json: apiEnvelope(mockSessionRefresh ?? createOpsSessionResponse(), 'OPS_SESSION_REFRESHED') })
       return
     }
 
@@ -198,6 +224,86 @@ async function setupDefaultApiRoutes(page: Page) {
       return
     }
 
+    if (method === 'GET' && path === '/api/admin/fulfillments') {
+      recordAdminApiCall(route)
+      if (mockFulfillmentListError) {
+        await route.fulfill({
+          status: 503,
+          json: apiErrorEnvelope(mockFulfillmentListError.code, mockFulfillmentListError.message, mockFulfillmentListError.traceId),
+        })
+        return
+      }
+      await route.fulfill({ json: apiEnvelope({ page: 1, size: 20, total: mockFulfillments.length, items: mockFulfillments }, 'ADMIN_FULFILLMENT_LIST') })
+      return
+    }
+
+    if (method === 'GET' && /^\/api\/admin\/fulfillments\/\d+$/.test(path)) {
+      recordAdminApiCall(route)
+      const orderId = Number(path.split('/').pop())
+      if (mockFulfillmentDetailError && orderId === mockFulfillmentById[orderId]?.orderId) {
+        await route.fulfill({
+          status: 503,
+          json: apiErrorEnvelope(mockFulfillmentDetailError.code, mockFulfillmentDetailError.message, mockFulfillmentDetailError.traceId),
+        })
+        return
+      }
+      const detail = mockFulfillmentById[orderId]
+      if (detail) {
+        await route.fulfill({ json: apiEnvelope(detail, 'ADMIN_FULFILLMENT_DETAIL') })
+      } else {
+        await route.fulfill({
+          status: 404,
+          json: apiErrorEnvelope('FULFILLMENT_NOT_FOUND', 'Fulfillment not found', 'trace-fulfillment-404'),
+        })
+      }
+      return
+    }
+
+    if (method === 'POST' && /^\/api\/admin\/fulfillments\/\d+\/ship$/.test(path)) {
+      recordAdminApiCall(route)
+      shipApiCallCount++
+      shipApiAuthHeaders.push(request.headers().authorization ?? '')
+      try {
+        const body = request.postDataJSON()
+        shipApiPayloads.push(JSON.stringify(body ?? {}))
+      } catch {
+        shipApiPayloads.push('{}')
+      }
+
+      if (deferFulfillmentShip) {
+        pendingFulfillmentShipRoute = route
+        return
+      }
+
+      if (mockFulfillmentShipError) {
+        await route.fulfill({
+          status: mockFulfillmentShipError.httpStatus ?? 409,
+          json: apiErrorEnvelope(mockFulfillmentShipError.code, mockFulfillmentShipError.message, mockFulfillmentShipError.traceId),
+        })
+        return
+      }
+
+      if (mockFulfillmentShipSuccess) {
+        const shipOrderId = Number(path.split('/')[4])
+        const shippedFulfillment = mockFulfillmentShipSuccess
+        mockFulfillmentById[shipOrderId] = shippedFulfillment
+        mockFulfillments = mockFulfillments.map((f) =>
+          f.orderId === shipOrderId ? shippedFulfillment : f,
+        )
+        await route.fulfill({
+          status: 200,
+          json: apiEnvelope(shippedFulfillment, 'ADMIN_FULFILLMENT_SHIPPED', 'trace-admin-ship-success'),
+        })
+        return
+      }
+
+      await route.fulfill({
+        status: 409,
+        json: apiErrorEnvelope('ORDER_STATUS_INVALID', 'Only paid unshipped orders can be shipped.', 'trace-admin-ship-invalid'),
+      })
+      return
+    }
+
     await route.continue()
   })
 }
@@ -240,6 +346,19 @@ function useOrders(details: AdminOrderDetailResponse[]) {
 
 function useSingleOrder(detail: AdminOrderDetailResponse) {
   useOrders([detail])
+}
+
+function useFulfillments(details: AdminFulfillmentResponse[]) {
+  mockFulfillmentById = {}
+  mockFulfillments = []
+  for (const detail of details) {
+    mockFulfillmentById[detail.orderId] = detail
+    mockFulfillments.push(detail)
+  }
+}
+
+function useSingleFulfillment(detail: AdminFulfillmentResponse) {
+  useFulfillments([detail])
 }
 
 function applyMockCancelSuccess(orderId: number, detail: AdminOrderDetailResponse) {
@@ -825,6 +944,268 @@ test.describe('Admin order payment browser smoke', () => {
 
       await expect(page.locator('.summary-grid')).toContainText('ADM-CRT-1001')
       await expect(page.locator('.summary-grid')).toContainText('Unpaid')
+    })
+  })
+
+  test.describe('Admin fulfillment shipping browser smoke', () => {
+    async function seedFulfillmentTest(page: Page) {
+      mockSessionRefresh = createOpsSessionResponse(createFulfillmentSession())
+      await seedOpsSession(page, createFulfillmentSession())
+    }
+
+    test('shows login form when no ops session exists', async ({ page }) => {
+      await page.goto('/admin?workspace=fulfillment')
+      await expect(page.locator('.login-shell')).toBeVisible()
+      await expect(page.locator('.fulfillment-shell')).not.toBeVisible()
+      expect(adminApiCallCount).toBe(0)
+    })
+
+    test('OPS_COMPENSATION_ADMIN-only session cannot access fulfillment workspace', async ({ page }) => {
+      await seedOpsSession(page, createOpsCompensationSession())
+      await page.goto('/admin?workspace=fulfillment')
+      await expect(page.locator('.fulfillment-shell')).not.toBeVisible()
+      expect(adminApiCallCount).toBe(0)
+    })
+
+    test('authorized session loads fulfillment list with auth headers', async ({ page }) => {
+      useSingleFulfillment(createAdminFulfillmentResponse({ orderId: 1001, orderNo: 'FUL-ORD-1001', fulfillmentStatus: 'unshipped' }))
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      await expect(page.locator('.fulfillment-shell')).toBeVisible()
+      await expect(page.locator('.workspace-tab.active')).toContainText('Fulfillment')
+      await expect(page.locator('.list-item')).toHaveCount(1)
+      await expect(page.locator('.list-item')).toContainText('FUL-ORD-1001')
+      expect(adminApiAuthHeaders).toContain('Bearer mock-ops-jwt-token')
+    })
+
+    test('empty list renders empty state without crash', async ({ page }) => {
+      mockFulfillments = []
+      mockFulfillmentById = {}
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      await expect(page.locator('.fulfillment-shell')).toBeVisible()
+      await expect(page.locator('section.banner.empty')).toBeVisible()
+      await expect(page.locator('section.banner.empty')).toContainText('No fulfillment orders')
+      await expect(page.locator('.list-item')).toHaveCount(0)
+    })
+
+    test('paid unshipped order shows ship form and button enabled, no ship API call before submit', async ({ page }) => {
+      useSingleFulfillment(createAdminFulfillmentResponse({ orderId: 1001, orderNo: 'FUL-ORD-1001', fulfillmentStatus: 'unshipped' }))
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      await expect(page.locator('.ship-form')).toBeVisible()
+      const shipBtn = page.locator('.ship-form .primary')
+      await expect(shipBtn).toBeVisible()
+      await expect(shipBtn).toBeEnabled()
+      expect(shipApiCallCount).toBe(0)
+    })
+
+    test('submits ship with ops auth header, requestId, trimmed carrier and trackingNo, then syncs detail and list', async ({ page }) => {
+      useSingleFulfillment(createAdminFulfillmentResponse({ orderId: 1001, orderNo: 'FUL-ORD-1001', fulfillmentStatus: 'unshipped' }))
+      mockFulfillmentShipSuccess = createAdminFulfillmentResponse({
+        orderId: 1001,
+        orderNo: 'FUL-ORD-1001',
+        status: 'shipped',
+        fulfillmentStatus: 'shipped',
+        carrier: 'SF Express',
+        trackingNo: 'SF123456789CN',
+        shippedAt: '2026-05-16T09:00:00+08:00',
+      })
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      const inputs = page.locator('.ship-form input')
+      await inputs.nth(0).fill(' SF Express ')
+      await inputs.nth(1).fill(' SF123456789CN ')
+
+      await page.locator('.ship-form .primary').click()
+
+      expect(shipApiCallCount).toBe(1)
+      expect(shipApiAuthHeaders).toContain('Bearer mock-ops-jwt-token')
+
+      expect(shipApiPayloads.length).toBeGreaterThan(0)
+      const payload = JSON.parse(shipApiPayloads[0])
+      expect(payload.requestId).toBeTruthy()
+      expect(typeof payload.requestId).toBe('string')
+      expect(payload.requestId.trim().length).toBeGreaterThan(0)
+      expect(payload.carrier).toBe('SF Express')
+      expect(payload.trackingNo).toBe('SF123456789CN')
+
+      await expect(page.locator('.summary-grid')).toContainText('Shipped')
+      await expect(page.locator('.summary-grid')).toContainText('SF Express')
+      await expect(page.locator('.summary-grid')).toContainText('SF123456789CN')
+      await expect(page.locator('.list-item.active')).toContainText('Shipped')
+    })
+
+    test('duplicate ship click while pending sends exactly one request and shows pending state', async ({ page }) => {
+      useSingleFulfillment(createAdminFulfillmentResponse({ orderId: 1001, orderNo: 'FUL-ORD-1001', fulfillmentStatus: 'unshipped' }))
+      mockFulfillmentShipSuccess = createAdminFulfillmentResponse({
+        orderId: 1001,
+        orderNo: 'FUL-ORD-1001',
+        status: 'shipped',
+        fulfillmentStatus: 'shipped',
+        carrier: 'SF Express',
+        trackingNo: 'SF123456789CN',
+      })
+      deferFulfillmentShip = true
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      const inputs = page.locator('.ship-form input')
+      await inputs.nth(0).fill('SF Express')
+      await inputs.nth(1).fill('SF123456789CN')
+
+      await page.locator('.ship-form .primary').click()
+      await expect(page.locator('.ship-form .primary')).toContainText('Shipping...')
+      await expect(page.locator('.ship-form .primary')).toBeDisabled()
+
+      const countAfterFirst = shipApiCallCount
+      expect(countAfterFirst).toBe(1)
+
+      await page.locator('.ship-form .primary').dispatchEvent('click')
+      expect(shipApiCallCount).toBe(countAfterFirst)
+
+      const shipRoute = pendingFulfillmentShipRoute
+      expect(shipRoute).not.toBeNull()
+      if (!shipRoute) {
+        throw new Error('Expected deferred fulfillment ship route to be captured.')
+      }
+      await shipRoute.fulfill({
+        status: 200,
+        json: apiEnvelope(mockFulfillmentShipSuccess, 'ADMIN_FULFILLMENT_SHIPPED', 'trace-admin-ship-success'),
+      })
+      pendingFulfillmentShipRoute = null
+
+      await expect(page.locator('.ship-form .primary')).toContainText('Ship order')
+    })
+
+    test('non-shippable lifecycle statuses keep ship button disabled and send zero ship requests', async ({ page }) => {
+      useFulfillments([
+        createAdminFulfillmentResponse({ orderId: 1006, orderNo: 'FUL-CRT-1006', status: 'created', fulfillmentStatus: 'unshipped' }),
+        createAdminFulfillmentResponse({ orderId: 1002, orderNo: 'FUL-SHP-1002', fulfillmentStatus: 'shipped', status: 'shipped' }),
+        createAdminFulfillmentResponse({ orderId: 1003, orderNo: 'FUL-CMP-1003', fulfillmentStatus: 'completed', status: 'completed' }),
+        createAdminFulfillmentResponse({ orderId: 1004, orderNo: 'FUL-CNL-1004', fulfillmentStatus: 'cancelled', status: 'cancelled' }),
+        createAdminFulfillmentResponse({ orderId: 1005, orderNo: 'FUL-UNK-1005', fulfillmentStatus: 'refunding', status: 'refunding' }),
+      ])
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      const nonShippableItems = ['FUL-CRT-1006', 'FUL-SHP-1002', 'FUL-CMP-1003', 'FUL-CNL-1004', 'FUL-UNK-1005']
+      for (const orderNo of nonShippableItems) {
+        await page.locator(`.list-item:has-text("${orderNo}")`).click()
+        await expect(page.locator('.detail-panel')).toBeVisible()
+        const shipBtn = page.locator('.ship-form .primary')
+        await expect(shipBtn).toBeDisabled()
+      }
+
+      expect(shipApiCallCount).toBe(0)
+    })
+
+    test('ORDER_STATUS_INVALID failure displays code message traceId and preserves detail and list snapshot', async ({ page }) => {
+      useSingleFulfillment(createAdminFulfillmentResponse({ orderId: 1001, orderNo: 'FUL-ORD-1001', fulfillmentStatus: 'unshipped' }))
+      mockFulfillmentShipError = {
+        code: 'ORDER_STATUS_INVALID',
+        message: 'Only paid unshipped orders can be shipped.',
+        traceId: 'trace-admin-ship-invalid',
+        httpStatus: 409,
+      }
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      const inputs = page.locator('.ship-form input')
+      await inputs.nth(0).fill('SF Express')
+      await inputs.nth(1).fill('SF123456789CN')
+
+      await page.locator('.ship-form .primary').click()
+
+      await expect(page.locator('.detail-panel .banner.error')).toBeVisible()
+      const errorText = await page.locator('.detail-panel .banner.error').textContent()
+      expect(errorText).toContain('ORDER_STATUS_INVALID')
+      expect(errorText).toContain('Only paid unshipped orders can be shipped.')
+      expect(errorText).toContain('trace-admin-ship-invalid')
+
+      await expect(page.locator('.detail-panel')).toContainText('FUL-ORD-1001')
+      await expect(page.locator('.summary-grid')).toContainText('Awaiting shipment')
+      await expect(page.locator('.list-item.active')).toContainText('Awaiting shipment')
+    })
+
+    test('DOWNSTREAM_TIMEOUT failure displays code message traceId and preserves detail snapshot', async ({ page }) => {
+      useSingleFulfillment(createAdminFulfillmentResponse({ orderId: 1001, orderNo: 'FUL-ORD-1001', fulfillmentStatus: 'unshipped' }))
+      mockFulfillmentShipError = {
+        code: 'DOWNSTREAM_TIMEOUT',
+        message: 'Fulfillment service unavailable.',
+        traceId: 'trace-admin-ship-timeout',
+        httpStatus: 503,
+      }
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      const inputs = page.locator('.ship-form input')
+      await inputs.nth(0).fill('SF Express')
+      await inputs.nth(1).fill('SF123456789CN')
+
+      await page.locator('.ship-form .primary').click()
+
+      await expect(page.locator('.detail-panel .banner.error')).toBeVisible()
+      const errorText = await page.locator('.detail-panel .banner.error').textContent()
+      expect(errorText).toContain('DOWNSTREAM_TIMEOUT')
+      expect(errorText).toContain('Fulfillment service unavailable.')
+      expect(errorText).toContain('trace-admin-ship-timeout')
+
+      await expect(page.locator('.detail-panel')).toContainText('FUL-ORD-1001')
+      await expect(page.locator('.summary-grid')).toContainText('Awaiting shipment')
+    })
+
+    test('generic fulfillment failure preserves detail snapshot without optimistic shipped state', async ({ page }) => {
+      useSingleFulfillment(createAdminFulfillmentResponse({ orderId: 1001, orderNo: 'FUL-ORD-1001', fulfillmentStatus: 'unshipped' }))
+      mockFulfillmentShipError = {
+        code: 'FULFILLMENT_FAILED',
+        message: 'Logistics provider error.',
+        traceId: 'trace-fulfillment-failed',
+        httpStatus: 500,
+      }
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      await page.locator('.ship-form input').nth(0).fill('SF Express')
+      await page.locator('.ship-form input').nth(1).fill('SF123456789CN')
+      await page.locator('.ship-form .primary').click()
+
+      await expect(page.locator('.detail-panel .banner.error')).toBeVisible()
+      const errorText = await page.locator('.detail-panel .banner.error').textContent()
+      expect(errorText).toContain('FULFILLMENT_FAILED')
+      expect(errorText).toContain('Logistics provider error.')
+      expect(errorText).toContain('trace-fulfillment-failed')
+
+      await expect(page.locator('.detail-panel')).toContainText('FUL-ORD-1001')
+      await expect(page.locator('.summary-grid')).toContainText('Awaiting shipment')
+      await expect(page.locator('.list-item.active')).toContainText('Awaiting shipment')
+    })
+
+    test('successful ship does not overwrite order main status with payment status', async ({ page }) => {
+      useSingleFulfillment(createAdminFulfillmentResponse({ orderId: 1001, orderNo: 'FUL-ORD-1001', status: 'paid', fulfillmentStatus: 'unshipped' }))
+      mockFulfillmentShipSuccess = createAdminFulfillmentResponse({
+        orderId: 1001,
+        orderNo: 'FUL-ORD-1001',
+        status: 'shipped',
+        fulfillmentStatus: 'shipped',
+        carrier: 'SF Express',
+        trackingNo: 'SF123456789CN',
+        shippedAt: '2026-05-16T09:00:00+08:00',
+      })
+      await seedFulfillmentTest(page)
+      await page.goto('/admin?workspace=fulfillment')
+
+      await page.locator('.ship-form input').nth(0).fill('SF Express')
+      await page.locator('.ship-form input').nth(1).fill('SF123456789CN')
+      await page.locator('.ship-form .primary').click()
+
+      const summaryText = await page.locator('.summary-grid').textContent()
+      expect(summaryText).toContain('Shipped')
+      expect(summaryText).not.toContain('Paid')
     })
   })
 })

@@ -1,0 +1,23 @@
+{"file": ".trellis/tasks/05-16-admin-fulfillment-shipping-browser-smoke/prd.md", "reason": "Check acceptance criteria and out-of-scope constraints."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify route/auth/requestId/error-envelope behavior against frontend contract."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review DTO use and unknown fallback behavior."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Check async state and duplicate-submit guard."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check browser-visible disabled/loading states."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check status snapshots are not fabricated or overwritten incorrectly."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Final frontend quality checklist."}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Review file placement and avoid direct component fetches."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Check mocked API contract assertions preserve envelope/idempotency shape."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Check permission/auth boundary assertions."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Check UI preserves backend error envelope."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check request fields, status boundaries, retries, and duplicate shipment risks."}
+{"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Review smoke implementation against established route mock and assertion patterns."}
+{"file": "frontend/e2e/fixtures/adminOrderPaymentSmoke.ts", "reason": "Check fixture types and helper consistency."}
+{"file": "frontend/src/services/fulfillmentApi.ts", "reason": "Verify tests assert the actual route and auth context."}
+{"file": "frontend/src/types/api/order.ts", "reason": "Verify smoke fixtures stay type-compatible."}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.vue", "reason": "Review UI behavior only if smoke exposes a real implementation bug."}
+{"file": "frontend/src/composables/useFulfillmentManagement.ts", "reason": "Review duplicate guard, failure preservation, and success synchronization."}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.ts", "reason": "Check payload/status/error helper expectations."}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.spec.ts", "reason": "Use as baseline; do not duplicate lower-level unit checks unnecessarily."}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.test.ts", "reason": "Verify browser smoke complements rather than replaces unit coverage."}
+{"file": "frontend/src/App.vue", "reason": "Check LOGISTICS_FULFILLMENT_ADMIN access and OPS_COMPENSATION_ADMIN isolation."}
+{"file": "frontend/src/App.spec.ts", "reason": "Use as baseline for browser smoke permission expectations."}

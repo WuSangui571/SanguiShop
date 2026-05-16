@@ -1,0 +1,25 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/tasks/05-16-admin-fulfillment-shipping-browser-smoke/prd.md", "reason": "Implementation requirements, API matrix, acceptance criteria, and boundaries."}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin fulfillment route, ops auth context, requestId, error envelope, and required tests."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Use typed DTOs and unknown-status fallbacks."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Fulfillment composable/loading/error/retry/pending rules."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue UI state and reactive pending controls."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Server state vs client state and backend error preservation."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend verification commands and forbidden patterns."}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "Expected frontend/e2e, services, types, and views boundaries."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Gateway envelope, requestId idempotency, and downstream timeout matrix."}
+{"file": ".trellis/spec/backend/gateway-security.md", "reason": "Admin protected route and ops/admin auth expectations."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Error code/message/traceId preservation."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Order/payment/fulfillment lifecycle cross-layer risk checklist."}
+{"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Existing Chromium smoke route mock, auth capture, deferred route, and cancel/payment patterns."}
+{"file": "frontend/e2e/fixtures/adminOrderPaymentSmoke.ts", "reason": "Existing admin smoke envelope/session/order fixture helpers to extend or reuse."}
+{"file": "frontend/src/services/fulfillmentApi.ts", "reason": "Existing fulfillment service route and ops auth context."}
+{"file": "frontend/src/types/api/order.ts", "reason": "AdminFulfillmentResponse and ShipFulfillmentRequest DTO fields."}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.vue", "reason": "Current fulfillment UI selectors, form, list/detail sync surface, and disabled states."}
+{"file": "frontend/src/composables/useFulfillmentManagement.ts", "reason": "Current load/select/ship flow, refreshList after success, pending gate, and draft reset behavior."}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.ts", "reason": "Payload trimming, status label fallback, canShip, and error mapping helpers."}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.spec.ts", "reason": "Existing unit coverage for fulfillment failures, retry, duplicate submit, and success."}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.test.ts", "reason": "Existing model coverage for trim/requestId/gate/status/error."}
+{"file": "frontend/src/App.vue", "reason": "Fulfillment workspace permission gate and URL workspace routing."}
+{"file": "frontend/src/App.spec.ts", "reason": "Existing app-level fulfillment permission and workspace isolation tests."}

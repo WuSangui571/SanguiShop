@@ -39,7 +39,7 @@ export function useFulfillmentManagement(
   })
   const selectedItem = computed(() => items.value.find((item) => item.orderId === detail.value?.orderId) ?? null)
   const totalPages = computed(() => Math.max(1, Math.ceil(total.value / Math.max(1, filters.value.size))))
-  const canShipSelected = computed(() => Boolean(detail.value && canShipFulfillment(detail.value.fulfillmentStatus)))
+  const canShipSelected = computed(() => Boolean(detail.value && canShipFulfillment(detail.value.fulfillmentStatus, detail.value.status)))
   const isActionPending = computed(() => actionGate.isPending())
 
   async function bootstrap() {
