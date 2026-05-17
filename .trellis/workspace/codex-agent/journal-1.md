@@ -1702,3 +1702,48 @@ Outcome: task acceptance criteria were satisfied for the approved scope, so the 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: Repair legacy context archive paths
+
+**Date**: 2026-05-17
+**Task**: Repair legacy context archive paths
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Item | Details |
+| --- | --- |
+| Commit | `e12556c chore:???????????` |
+| Task | `05-17-repair-legacy-context-format-upgrade-archive-paths` |
+| Main module | Trellis task metadata / archived JSONL context hygiene |
+| Result | Repaired four missing archived context paths in `.trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/{check,implement}.jsonl`, replacing stale active-task `prd.md` and `research.md` paths with archived paths while preserving `reason` text exactly. |
+| Updated files | `.trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/check.jsonl`; `.trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/implement.jsonl`; current task metadata under `.trellis/tasks/archive/2026-05/05-17-repair-legacy-context-format-upgrade-archive-paths/`. |
+| Verification | `python ./.trellis/scripts/task.py validate .trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade` passed with implement/check/debug context valid; `python ./.trellis/scripts/task.py validate .trellis/tasks/05-17-repair-legacy-context-format-upgrade-archive-paths` passed before archive; full JSONL audit reported `INVALID_JSON_COUNT=5`, `MISSING_PATH_COUNT=4`, `LEGACY_PATH_COUNT=0`, `STALE_COMMAND_COUNT=0`; stale command scan had 0 matches; `git diff --check` had no whitespace errors, only the known LF to CRLF warning. |
+| Boundaries | Backend, frontend, API, DB, MQ, Redis, auth, storage, infra, and runtime code were not changed. The 5 historical invalid JSON lines and 4 remaining missing paths from `05-17-repair-previous-hygiene-task-archive-context-paths` remain out of scope. |
+| Human testing | User reported manual testing passed and committed the implementation. |
+
+Outcome: task acceptance criteria were satisfied and the task was archived during record-session.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e12556c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
