@@ -1376,3 +1376,66 @@ Codex check also fixed two direct task-scope issues before final validation: the
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: E2E smoke mock state reset audit
+
+**Date**: 2026-05-17
+**Task**: E2E smoke mock state reset audit
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Item | Details |
+| --- | --- |
+| Commit | `4709301 test:??E2E mock????????` |
+| Modules | Frontend E2E smoke test quality/spec sync; Trellis task context cleanup. |
+| Updated files | `.trellis/spec/frontend/quality-guidelines.md`; `.trellis/tasks/05-17-e2e-smoke-mock-state-reset-audit/check.jsonl`; `.trellis/tasks/05-17-e2e-smoke-mock-state-reset-audit/debug.jsonl`; current task archived after human testing and commit. |
+| Implementation result | Added the reusable `E2E Mock State Reset` rule after auditing admin and mall smoke suites. Confirmed both target smoke files already reset all module-level mutable mock state and preserve deferred Playwright route lifecycle cleanup. |
+| Codex check fix | Replaced stale `.claude/commands/trellis/*.md` references in task check/debug context with existing `.agents/skills/check/SKILL.md` and `.agents/skills/finish-work/SKILL.md`, restoring `task.py validate`. |
+| Verification | `python ./.trellis/scripts/task.py validate .trellis/tasks/05-17-e2e-smoke-mock-state-reset-audit` passed; `git diff --check` passed with LF/CRLF warning only; `cd frontend && cmd /c npm run lint` passed; `cd frontend && cmd /c npm run typecheck` passed; five focused Playwright smoke commands passed; `cd frontend && cmd /c npm run test:smoke` passed 57/57; `cd frontend && cmd /c npm run build` passed; `cd frontend && cmd /c npm test` passed 21 files / 286 tests. |
+| Human acceptance | Human manually tested after Codex check and confirmed all tests passed, then committed the work. |
+| Boundaries | No production frontend source, backend, API DTO, database, Redis/MQ, infra, auth, or deployment contract changed. `$record-session` was executed only after human testing and commit. |
+
+### Verification Commands
+
+- `[OK]` `python ./.trellis/scripts/task.py validate .trellis/tasks/05-17-e2e-smoke-mock-state-reset-audit`
+- `[OK]` `git diff --check` (LF/CRLF warning only)
+- `[OK]` `cd frontend && cmd /c npm run lint`
+- `[OK]` `cd frontend && cmd /c npm run typecheck`
+- `[OK]` `cd frontend && cmd /c npx playwright test e2e/admin-order-payment-smoke.spec.ts --project=chromium -g "shows payment refresh loading state and guards duplicate clicks"`
+- `[OK]` `cd frontend && cmd /c npx playwright test e2e/admin-order-payment-smoke.spec.ts --project=chromium -g "duplicate cancel confirm while pending sends exactly one request"`
+- `[OK]` `cd frontend && cmd /c npx playwright test e2e/admin-order-payment-smoke.spec.ts --project=chromium -g "duplicate ship click while pending sends exactly one request and shows pending state"`
+- `[OK]` `cd frontend && cmd /c npx playwright test e2e/mall-order-status-smoke.spec.ts --project=chromium -g "shows payment refresh loading state"`
+- `[OK]` `cd frontend && cmd /c npx playwright test e2e/mall-order-status-smoke.spec.ts --project=chromium -g "duplicate pending receipt confirmation sends only one POST"`
+- `[OK]` `cd frontend && cmd /c npm run test:smoke` -> 57/57 passed
+- `[OK]` `cd frontend && cmd /c npm run build`
+- `[OK]` `cd frontend && cmd /c npm test` -> 21 files / 286 tests passed
+
+### Next Candidate
+
+Recommended next task: `E2E Smoke Task Metadata Hygiene Audit`.
+Reason: recent sessions exposed stale Trellis context references and repeated task/archive metadata churn. A small focused audit can prevent future handoff/check failures before starting broader feature work.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4709301` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
