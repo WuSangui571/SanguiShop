@@ -1575,3 +1575,85 @@ Reason: recent sessions exposed stale Trellis context references and repeated ta
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: Trellis Legacy Context Format Upgrade
+
+**Date**: 2026-05-17
+**Task**: Trellis Legacy Context Format Upgrade
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+**Main Changes**
+
+- Upgraded the archived 2026-04 `04-29-phase-1-foundation` Trellis context JSONL files from legacy `path` fields to current `file` fields.
+- Updated the Trellis task context hygiene guide with legacy `path` recognition, safe upgrade rules, audit classification, and Good/Base/Bad cases.
+- Codex check pass added `LEGACY_PATH_COUNT` reporting to the guide's full JSONL audit snippet so the executable guidance matches the PRD and acceptance criteria.
+- Archived the completed `05-17-trellis-legacy-context-format-upgrade` task after human testing and commit confirmation.
+
+**Commit Recorded**
+
+- `372aa80fe9d9c9b87ad67070b044b534b2c3cb55` - `docs:??Trellis legacy context??`
+
+**Main Change Modules**
+
+- Trellis archived task context metadata under `.trellis/tasks/archive/2026-04/04-29-phase-1-foundation/`.
+- Trellis context hygiene guide under `.trellis/spec/guides/`.
+- Current task planning/check context under `.trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/`.
+
+**Updated Files**
+
+- `.trellis/tasks/archive/2026-04/04-29-phase-1-foundation/implement.jsonl`
+- `.trellis/tasks/archive/2026-04/04-29-phase-1-foundation/check.jsonl`
+- `.trellis/tasks/archive/2026-04/04-29-phase-1-foundation/debug.jsonl`
+- `.trellis/spec/guides/trellis-task-context-hygiene.md`
+- `.trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/`
+
+**Verification Commands and Results**
+
+- `python ./.trellis/scripts/task.py validate .trellis/tasks/archive/2026-04/04-29-phase-1-foundation` - PASS, 14 implement + 12 check + 2 debug entries valid.
+- `python ./.trellis/scripts/task.py validate .trellis/tasks/05-17-trellis-legacy-context-format-upgrade` - PASS before archive, 11 implement + 9 check + 1 debug entries valid.
+- `rg -n '"path"' .trellis/tasks/archive/2026-04/04-29-phase-1-foundation -g "*.jsonl"` - PASS, no legacy `path` fields remain in the target task.
+- `rg -n "\.claude/commands/trellis|\.claude\\commands\\trellis" .trellis/tasks -g "*.jsonl"` - PASS, no stale command paths found.
+- Full JSONL audit - PASS for current task boundary: `LEGACY_PATH_COUNT=0`, `STALE_COMMAND_COUNT=0`, with out-of-scope `INVALID_JSON_COUNT=5` and `MISSING_PATH_COUNT=4` remaining documented.
+- Conversion integrity script - PASS: `CONVERTED=28`, `DIRECTORY_TARGETS=0`, `PROBLEMS=0`.
+- `git diff --check` - PASS, only Windows LF to CRLF warnings.
+- Human manual testing - PASS, confirmed by user before record-session.
+
+**Result and Boundaries**
+
+- All 28 target legacy `path` entries were converted to `file` while preserving original `reason` values.
+- Every converted target exists from repo root, and no `type: "directory"` entry was needed because all targets are files.
+- No backend/frontend business source, API contract, database schema, Redis/MQ config, Docker/runtime config, Maven/Vite setup, or Trellis runtime script was changed.
+- Remaining full-audit noise is intentionally out of scope: 4 missing paths from the previous 2026-05 archived hygiene task and 5 pre-existing invalid JSON lines in older 2026-05 archive tasks.
+
+**Next Candidate**
+
+- Recommended next task: `Repair Previous Hygiene Task Archive Context Paths`.
+- Reason: the current full JSONL audit is now blocked primarily by 4 concrete, provable missing path entries in `.trellis/tasks/archive/2026-05/05-17-archived-trellis-context-jsonl-full-hygiene-sweep/{implement,check}.jsonl`; fixing these is smaller and safer than tackling the 5 unrecoverable invalid JSON fragments.
+- Suggested modules: update archived 2026-05 task context paths from active-task locations to archived-task locations, validate that archived task, run full JSONL audit, and update hygiene notes only if a new reusable rule is discovered.
+- Complexity estimate: low to medium, because the change is metadata-only and localized, but still needs evidence-based validation to avoid guessing archived paths.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `372aa80fe9d9c9b87ad67070b044b534b2c3cb55` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
