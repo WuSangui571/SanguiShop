@@ -9,4 +9,4 @@
 {"file": ".gitignore", "reason": "Confirm runtime directories remain ignored without hiding broker.conf."}
 {"file": "frontend\\package.json", "reason": "Check documented npm commands match actual frontend scripts."}
 {"file": "README.md", "reason": "Verify local smoke docs no longer recommend global mvn and clearly explain skip flags."}
-{"file": ".trellis\\tasks\\05-12-local-one-click-smoke-scripts\\prd.md", "reason": "Check implementation against PRD acceptance criteria and explicit non-goals."}
+{"file": ".trellis/tasks/archive/2026-05/05-12-local-one-click-smoke-scripts/prd.md", "reason": "Check implementation against PRD acceptance criteria and explicit non-goals."}

@@ -24,4 +24,4 @@
 {"file": "frontend\\src\\views\\mall\\MallStorefrontView.spec.ts", "reason": "Existing DOM regression coverage to avoid duplicating happy-dom assertions."}
 {"file": "frontend\\tests\\mallCheckoutModel.spec.ts", "reason": "Existing composable/model regression coverage for payment refresh failure and duplicate guards."}
 {"file": "frontend\\tests\\mallOrderStatusModel.spec.ts", "reason": "Existing pure model coverage for status labels, filters, deep link and non-overwrite merge."}
-{"file": ".trellis\\tasks\\05-16-mall-order-status-center-browser-smoke\\prd.md", "reason": "Task PRD, acceptance criteria, forbidden scope and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-16-mall-order-status-center-browser-smoke/prd.md", "reason": "Task PRD, acceptance criteria, forbidden scope and required tests."}

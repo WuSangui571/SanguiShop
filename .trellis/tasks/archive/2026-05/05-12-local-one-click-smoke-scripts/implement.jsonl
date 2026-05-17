@@ -11,4 +11,4 @@
 {"file": ".gitignore", "reason": "Git hygiene source for RocketMQ runtime ignore validation."}
 {"file": "frontend\\package.json", "reason": "Frontend smoke commands must use existing typecheck/build scripts."}
 {"file": "README.md", "reason": "README Verification section currently uses global mvn and should be updated or coordinated with DevOps spec."}
-{"file": ".trellis\\tasks\\05-12-local-one-click-smoke-scripts\\prd.md", "reason": "Authoritative task requirements, command contract, validation matrix, and boundaries."}
+{"file": ".trellis/tasks/archive/2026-05/05-12-local-one-click-smoke-scripts/prd.md", "reason": "Authoritative task requirements, command contract, validation matrix, and boundaries."}

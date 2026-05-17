@@ -1,7 +1,7 @@
 {"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
 {"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
-{"file": ".trellis/tasks/05-17-e2e-smoke-mock-state-reset-audit/prd.md", "reason": "Check implementation against task requirements, acceptance criteria, forbidden scope, and required tests."}
-{"file": ".trellis/tasks/05-17-e2e-smoke-mock-state-reset-audit/research.md", "reason": "Review expected mutable state reset map, risks, and required verification commands."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-e2e-smoke-mock-state-reset-audit/prd.md", "reason": "Check implementation against task requirements, acceptance criteria, forbidden scope, and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-e2e-smoke-mock-state-reset-audit/research.md", "reason": "Review expected mutable state reset map, risks, and required verification commands."}
 {"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check changed E2E tests and optional spec update against frontend quality and deferred route lifecycle rules."}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify implementation does not change route paths, payload contracts, duplicate guards, or traceId/error behavior."}
 {"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Check that implementation avoids unnecessary abstraction and broad refactors."}

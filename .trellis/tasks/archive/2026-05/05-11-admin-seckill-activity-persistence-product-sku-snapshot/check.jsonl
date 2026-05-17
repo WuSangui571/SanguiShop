@@ -10,8 +10,8 @@
 {"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer API/DB/idempotency risk checklist."}
 {"file": ".trellis/spec/guides/seckill-thinking-guide.md", "reason": "Seckill-specific stock/idempotency/race risk checklist."}
 {"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Microservice boundary and data consistency review order."}
-{"file": ".trellis/tasks/05-11-admin-seckill-activity-persistence-product-sku-snapshot/prd.md", "reason": "Authoritative task requirements, error matrix, Good/Base/Bad cases, and tests."}
-{"file": ".trellis/tasks/05-11-admin-seckill-activity-persistence-product-sku-snapshot/research.md", "reason": "Focused code research, files likely to modify, risks, and test plan."}
+{"file": ".trellis/tasks/archive/2026-05/05-11-admin-seckill-activity-persistence-product-sku-snapshot/prd.md", "reason": "Authoritative task requirements, error matrix, Good/Base/Bad cases, and tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-11-admin-seckill-activity-persistence-product-sku-snapshot/research.md", "reason": "Focused code research, files likely to modify, risks, and test plan."}
 {"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/domain/ActivityRepository.java", "reason": "Repository interface contract to implement with MySQL."}
 {"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/infrastructure/InMemoryActivityRepository.java", "reason": "Temporary repository behavior to preserve or replace with JDBC-backed behavior."}
 {"file": "services/sangui-seckill-service/src/main/java/com/sangui/shop/seckill/application/AdminSeckillActivityService.java", "reason": "Application idempotency, SKU validation, and status transition orchestration."}

@@ -1,7 +1,7 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/tasks/05-17-e2e-smoke-mock-state-reset-audit/prd.md", "reason": "Task requirements, acceptance criteria, forbidden scope, and required tests."}
-{"file": ".trellis/tasks/05-17-e2e-smoke-mock-state-reset-audit/research.md", "reason": "Focused research with relevant specs, mutable state map, likely files, risks, and test plan."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-e2e-smoke-mock-state-reset-audit/prd.md", "reason": "Task requirements, acceptance criteria, forbidden scope, and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-e2e-smoke-mock-state-reset-audit/research.md", "reason": "Focused research with relevant specs, mutable state map, likely files, risks, and test plan."}
 {"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend E2E quality rules, deferred route lifecycle cleanup, and potential mock-state reset rule location."}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin and mall order/payment/fulfillment API mock contracts must remain unchanged while test reset state is audited."}
 {"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Use this to avoid broad helper abstractions and keep fixes local to concrete reset inconsistencies."}

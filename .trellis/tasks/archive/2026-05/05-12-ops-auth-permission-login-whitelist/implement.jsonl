@@ -1,8 +1,8 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis\\tasks\\05-12-ops-auth-permission-login-whitelist\\prd.md", "reason": "Confirmed PRD, scope, validation matrix, tests, and handoff boundaries"}
-{"file": ".trellis\\tasks\\05-12-ops-auth-permission-login-whitelist\\research.md", "reason": "Focused code research and files likely to modify"}
+{"file": ".trellis/tasks/archive/2026-05/05-12-ops-auth-permission-login-whitelist/prd.md", "reason": "Confirmed PRD, scope, validation matrix, tests, and handoff boundaries"}
+{"file": ".trellis/tasks/archive/2026-05/05-12-ops-auth-permission-login-whitelist/research.md", "reason": "Focused code research and files likely to modify"}
 {"file": ".trellis\\spec\\backend\\authentication-contracts.md", "reason": "Ops login, refresh, JWT permissions, and ops binding contract"}
 {"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Gateway/user-service responsibility split for ops login and security"}
 {"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "API envelope and auth error code conventions"}

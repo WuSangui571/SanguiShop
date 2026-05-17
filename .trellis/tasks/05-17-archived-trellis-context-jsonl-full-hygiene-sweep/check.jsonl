@@ -1,0 +1,10 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/05-17-archived-trellis-context-jsonl-full-hygiene-sweep/prd.md", "reason": "Check implementation against task requirements, forbidden scope, and tests."}
+{"file": ".trellis/tasks/05-17-archived-trellis-context-jsonl-full-hygiene-sweep/research.md", "reason": "Check expected findings, files, risks, and verification plan."}
+{"file": ".trellis/spec/guides/trellis-task-context-hygiene.md", "reason": "Verify guide updates cover full audit and Good/Base/Bad cases."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Confirm no unnecessary script or abstraction changes were introduced."}
+{"file": ".trellis/scripts/common/task_context.py", "reason": "Validate edits respect existing task.py context validation contract."}
+{"file": ".trellis/scripts/common/cli_adapter.py", "reason": "Validate command path guidance matches Codex adapter behavior."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Completion discipline and Good/Base/Bad case review habits; no backend code changes allowed."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Completion discipline from recent frontend E2E metadata context; no frontend code changes allowed."}

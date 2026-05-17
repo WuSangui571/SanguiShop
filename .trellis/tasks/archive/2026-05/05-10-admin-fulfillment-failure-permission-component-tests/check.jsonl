@@ -1,7 +1,7 @@
 {"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
 {"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
-{"file": ".trellis\\tasks\\05-10-admin-fulfillment-failure-permission-component-tests\\prd.md", "reason": "Check implementation against agreed scope and acceptance criteria"}
-{"file": ".trellis\\tasks\\05-10-admin-fulfillment-failure-permission-component-tests\\research.md", "reason": "Review against researched patterns and risk notes"}
+{"file": ".trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/prd.md", "reason": "Check implementation against agreed scope and acceptance criteria"}
+{"file": ".trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/research.md", "reason": "Review against researched patterns and risk notes"}
 {"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Verify tests assert fulfillment API and permission contract"}
 {"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Check UI state coverage and component boundaries"}
 {"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Check no any bypass and DTO-compatible test data"}

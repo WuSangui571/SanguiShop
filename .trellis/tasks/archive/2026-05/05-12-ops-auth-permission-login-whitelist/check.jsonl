@@ -1,5 +1,5 @@
-{"file": ".trellis\\tasks\\05-12-ops-auth-permission-login-whitelist\\prd.md", "reason": "Check implementation against confirmed PRD, scope, validation matrix, and tests"}
-{"file": ".trellis\\tasks\\05-12-ops-auth-permission-login-whitelist\\research.md", "reason": "Review against researched patterns and risk boundaries"}
+{"file": ".trellis/tasks/archive/2026-05/05-12-ops-auth-permission-login-whitelist/prd.md", "reason": "Check implementation against confirmed PRD, scope, validation matrix, and tests"}
+{"file": ".trellis/tasks/archive/2026-05/05-12-ops-auth-permission-login-whitelist/research.md", "reason": "Review against researched patterns and risk boundaries"}
 {"file": ".trellis\\spec\\backend\\authentication-contracts.md", "reason": "Verify auth contract and forbidden behavior remain correct"}
 {"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Check security boundary and audit expectations"}
 {"file": ".trellis\\spec\\backend\\microservice-contracts.md", "reason": "Check envelope, shop scope, and AUTH_FORBIDDEN semantics"}

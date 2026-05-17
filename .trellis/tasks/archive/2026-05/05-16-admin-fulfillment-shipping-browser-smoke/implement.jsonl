@@ -1,6 +1,6 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/tasks/05-16-admin-fulfillment-shipping-browser-smoke/prd.md", "reason": "Implementation requirements, API matrix, acceptance criteria, and boundaries."}
+{"file": ".trellis/tasks/archive/2026-05/05-16-admin-fulfillment-shipping-browser-smoke/prd.md", "reason": "Implementation requirements, API matrix, acceptance criteria, and boundaries."}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin fulfillment route, ops auth context, requestId, error envelope, and required tests."}
 {"file": ".trellis/spec/frontend/type-safety.md", "reason": "Use typed DTOs and unknown-status fallbacks."}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Fulfillment composable/loading/error/retry/pending rules."}

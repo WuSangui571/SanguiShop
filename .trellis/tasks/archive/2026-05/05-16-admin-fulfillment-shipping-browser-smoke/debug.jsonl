@@ -1,4 +1,4 @@
-{"file": ".trellis/tasks/05-16-admin-fulfillment-shipping-browser-smoke/prd.md", "reason": "Debug against the fulfillment shipping browser smoke PRD."}
+{"file": ".trellis/tasks/archive/2026-05/05-16-admin-fulfillment-shipping-browser-smoke/prd.md", "reason": "Debug against the fulfillment shipping browser smoke PRD."}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Debug route/auth/requestId/envelope behavior."}
 {"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Debug frontend verification and forbidden patterns."}
 {"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Debug existing smoke route/mock patterns."}

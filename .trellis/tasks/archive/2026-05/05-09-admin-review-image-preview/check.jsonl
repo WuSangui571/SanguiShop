@@ -1,6 +1,6 @@
 {"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
 {"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
-{"file": ".trellis/tasks/05-09-admin-review-image-preview/prd.md", "reason": "Check implementation against explicit requirements and non-goals."}
+{"file": ".trellis/tasks/archive/2026-05/05-09-admin-review-image-preview/prd.md", "reason": "Check implementation against explicit requirements and non-goals."}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Verify component boundaries, props/state handling, and UI states."}
 {"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify no global store is introduced and translation/color rules are followed."}
 {"file": ".trellis/spec/frontend/type-safety.md", "reason": "Verify optional imageUrls/unknown fallback remain safe and typed."}

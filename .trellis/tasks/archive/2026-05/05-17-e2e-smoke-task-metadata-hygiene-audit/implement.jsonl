@@ -1,7 +1,7 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis\\tasks\\05-17-e2e-smoke-task-metadata-hygiene-audit\\prd.md", "reason": "Current task PRD, boundaries, acceptance criteria, and validation matrix"}
+{"file": ".trellis/tasks/archive/2026-05/05-17-e2e-smoke-task-metadata-hygiene-audit/prd.md", "reason": "Current task PRD, boundaries, acceptance criteria, and validation matrix"}
 {"file": ".agents\\skills\\start\\SKILL.md", "reason": "Trellis start workflow and task classification rules"}
 {"file": ".agents\\skills\\before-dev\\SKILL.md", "reason": "Mandatory pre-development spec discovery workflow"}
 {"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "E2E smoke quality rules and recent smoke hygiene context"}

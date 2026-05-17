@@ -1,7 +1,7 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis\\tasks\\05-10-admin-fulfillment-failure-permission-component-tests\\prd.md", "reason": "Confirmed requirements, scope, acceptance criteria, and required tests"}
-{"file": ".trellis\\tasks\\05-10-admin-fulfillment-failure-permission-component-tests\\research.md", "reason": "Focused code research and suggested test structure"}
+{"file": ".trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/prd.md", "reason": "Confirmed requirements, scope, acceptance criteria, and required tests"}
+{"file": ".trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/research.md", "reason": "Focused code research and suggested test structure"}
 {"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin fulfillment API contract, permissions, errors, requestId, and required tests"}
 {"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Async component states: loading, empty, error, retry"}
 {"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Typed API mocks and unknown status fallback"}

@@ -1,4 +1,4 @@
-{"file": ".trellis/tasks/05-16-admin-fulfillment-shipping-browser-smoke/prd.md", "reason": "Check acceptance criteria and out-of-scope constraints."}
+{"file": ".trellis/tasks/archive/2026-05/05-16-admin-fulfillment-shipping-browser-smoke/prd.md", "reason": "Check acceptance criteria and out-of-scope constraints."}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify route/auth/requestId/error-envelope behavior against frontend contract."}
 {"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review DTO use and unknown fallback behavior."}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Check async state and duplicate-submit guard."}

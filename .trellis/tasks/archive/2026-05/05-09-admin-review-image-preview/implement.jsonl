@@ -1,6 +1,6 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/tasks/05-09-admin-review-image-preview/prd.md", "reason": "Task requirements, acceptance criteria, boundaries, and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-09-admin-review-image-preview/prd.md", "reason": "Task requirements, acceptance criteria, boundaries, and required tests."}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Admin Review Management is a Vue page component with UI state and accessibility requirements."}
 {"file": ".trellis/spec/frontend/state-management.md", "reason": "Preview open state must remain local page state and new copy must use typed translations."}
 {"file": ".trellis/spec/frontend/type-safety.md", "reason": "Image model changes should use explicit TypeScript types and tolerate optional API fields."}
