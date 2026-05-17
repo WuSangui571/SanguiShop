@@ -1,0 +1,11 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\tasks\\05-17-e2e-deferred-route-isolation-hardening\\prd.md", "reason": "Task requirements, acceptance criteria, forbidden scope, route contracts, and required tests"}
+{"file": ".trellis\\tasks\\05-17-e2e-deferred-route-isolation-hardening\\research.md", "reason": "Focused code research for deferred route patterns and implementation boundaries"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend E2E quality expectations, duplicate guards, cleanup, lint/typecheck/build requirements"}
+{"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin order, admin fulfillment, mall payment, and receipt route contracts under smoke tests"}
+{"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Keep DTO-shaped mocks and helper APIs type-safe without any escape hatches"}
+{"file": ".trellis\\spec\\frontend\\directory-structure.md", "reason": "Keep optional helper test-scoped under frontend/e2e"}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Decide whether helper abstraction is justified and avoid over-generalization"}
+{"file": "frontend\\e2e\\admin-order-payment-smoke.spec.ts", "reason": "Admin payment/cancel/fulfillment deferred route and request-count patterns"}
+{"file": "frontend\\e2e\\mall-order-status-smoke.spec.ts", "reason": "Mall payment refresh and receipt confirmation deferred route patterns"}

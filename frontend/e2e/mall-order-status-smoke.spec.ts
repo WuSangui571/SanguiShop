@@ -351,6 +351,11 @@ test.describe('Mall order status center browser smoke', () => {
     await expect(page.locator('.order-detail')).toBeVisible()
     await expect(page.locator('button', { hasText: 'Refresh payment' })).toBeVisible()
 
+    // Snapshot baseline: if future app behavior introduces an automatic payment
+    // refresh on detail load, this captures it so the deferred route is only
+    // consumed by the manual click.
+    const paymentCountBaseline = paymentRequestCount
+
     deferPaymentResponse = true
 
     await page.locator('button:has-text("Refresh payment")').click()
@@ -358,6 +363,7 @@ test.describe('Mall order status center browser smoke', () => {
     await expect(page.locator('button:has-text("Refreshing")')).toBeDisabled()
 
     const countAfterClick = paymentRequestCount
+    expect(countAfterClick).toBe(paymentCountBaseline + 1)
 
     await page.locator('button:has-text("Refreshing")').dispatchEvent('click')
     expect(paymentRequestCount).toBe(countAfterClick)
