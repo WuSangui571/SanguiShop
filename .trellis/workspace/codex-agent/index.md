@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 24
+- **Total Sessions**: 25
 - **Last Active**: 2026-05-17
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1442 | Active |
+| `journal-1.md` | ~1503 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 25 | 2026-05-17 | E2E Smoke Task Metadata Hygiene Audit | `c2a9940` | `main` |
 | 24 | 2026-05-17 | E2E smoke mock state reset audit | `4709301` | `main` |
 | 23 | 2026-05-17 | E2E pending route lifecycle cleanup | `6ac9a11` | `main` |
 | 22 | 2026-05-17 | 商城支付刷新 smoke 隔离收尾 | `89f6af8` | `main` |

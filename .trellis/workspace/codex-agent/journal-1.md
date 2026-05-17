@@ -1439,3 +1439,64 @@ Reason: recent sessions exposed stale Trellis context references and repeated ta
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: E2E Smoke Task Metadata Hygiene Audit
+
+**Date**: 2026-05-17
+**Task**: E2E Smoke Task Metadata Hygiene Audit
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+**Commit**: `c2a9940 chore:??Trellis???????`
+
+**Main Changes**:
+- Added Trellis task context hygiene guidance for Codex task context paths.
+- Registered the new guide in `.trellis/spec/guides/index.md`.
+- Replaced stale `.claude/commands/trellis/check.md` and `.claude/commands/trellis/finish-work.md` JSONL context paths with `.agents/skills/check/SKILL.md` and `.agents/skills/finish-work/SKILL.md`.
+- During Codex check, also fixed touched archived task context entries that still referenced pre-archive `.trellis/tasks/<task>/prd.md` or `research.md` paths, pointing them to `.trellis/tasks/archive/2026-05/<task>/...`.
+
+**Updated Modules / Files**:
+- `.trellis/spec/guides/trellis-task-context-hygiene.md`
+- `.trellis/spec/guides/index.md`
+- `.trellis/tasks/archive/2026-05/*/{implement,check,debug}.jsonl` for touched metadata hygiene tasks
+- `.trellis/tasks/archive/2026-05/05-17-e2e-smoke-task-metadata-hygiene-audit/`
+
+**Verification**:
+- `git diff --check` passed.
+- `rg -n "\.claude/commands/trellis|\.claude\\commands\\trellis" .trellis\tasks -g "*.jsonl"` returned no JSONL matches.
+- `python .\.trellis\scripts\task.py validate .trellis\tasks\05-17-e2e-smoke-task-metadata-hygiene-audit` passed before archive.
+- Representative archived task validates passed, including `05-09-admin-review-failure-permission-component-tests`, `05-12-manual-existing-feature-test-plan`, `05-14-admin-order-status-regression-coverage`, `05-17-e2e-deferred-route-isolation-hardening`, and `05-17-e2e-pending-route-lifecycle-cleanup`.
+- Loop validation over all 18 touched archived task directories passed.
+- `python .\.trellis\scripts\task.py list`, `python .\.trellis\scripts\task.py list-archive 2026-05`, and `python .\.trellis\scripts\get_context.py` showed consistent active/archive/current-task state.
+- Frontend quality commands passed via `cmd /c npm run lint`, `cmd /c npm run typecheck`, and `cmd /c npm run test` (`21` files, `286` tests).
+- Human manually tested and committed the work.
+
+**Result / Boundaries**:
+- Current task acceptance criteria are satisfied and the task has been archived.
+- No production frontend/backend source, API, DB, Redis/MQ, Docker, or infra behavior changed.
+- Full historical `.trellis/tasks` scan still showed unrelated pre-existing invalid JSON / missing archived path issues outside touched scope; those remain candidates for a follow-up cleanup task.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c2a9940` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
