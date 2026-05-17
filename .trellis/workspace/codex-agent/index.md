@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 19
-- **Last Active**: 2026-05-16
+- **Total Sessions**: 20
+- **Last Active**: 2026-05-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1171 | Active |
+| `journal-1.md` | ~1227 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 20 | 2026-05-17 | 记录管理端履约发货状态摘要回归收尾 | `2509dc15702f23ae6082b6045a617eb77ff0e4f8` | `main` |
 | 19 | 2026-05-16 | 商城订单收货确认浏览器冒烟覆盖收尾 | `b81efae` | `main` |
 | 18 | 2026-05-16 | 管理端履约发货浏览器冒烟覆盖收尾 | `502b9e8` | `main` |
 | 17 | 2026-05-16 | 管理端订单取消浏览器冒烟收尾 | `f081cd5` | `main` |
