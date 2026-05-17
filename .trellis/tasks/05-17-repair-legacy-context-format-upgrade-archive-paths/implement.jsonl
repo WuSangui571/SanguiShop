@@ -1,0 +1,12 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".agents/skills/start/SKILL.md", "reason": "Session workflow and task classification instructions."}
+{"file": ".agents/skills/before-dev/SKILL.md", "reason": "Mandatory pre-development guideline discovery workflow."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend scope awareness; no backend implementation checklist is triggered."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend scope awareness; no frontend implementation checklist is triggered."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared guide index identifying Trellis context hygiene as the relevant concrete guide."}
+{"file": ".trellis/spec/guides/trellis-task-context-hygiene.md", "reason": "Context JSONL path conventions, archived path repair rules, audit pattern, and evidence-based repair rules."}
+{"file": ".trellis/scripts/common/task_context.py", "reason": "Validator contract for file, reason, and optional directory type fields."}
+{"file": ".trellis/tasks/05-17-repair-legacy-context-format-upgrade-archive-paths/prd.md", "reason": "Task scope, acceptance criteria, forbidden scope, and DeepSeek handoff boundary."}
+{"file": ".trellis/tasks/05-17-repair-legacy-context-format-upgrade-archive-paths/research.md", "reason": "Focused research findings, target audit baseline, expected files, risks, and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/check.jsonl", "reason": "Target archived check context containing two active-task path findings."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/implement.jsonl", "reason": "Target archived implement context containing two active-task path findings."}

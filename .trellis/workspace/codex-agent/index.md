@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 27
+- **Total Sessions**: 28
 - **Last Active**: 2026-05-17
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1660 | Active |
+| `journal-1.md` | ~1705 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 28 | 2026-05-17 | Repair archived Trellis context paths | `8e73fd1` | `main` |
 | 27 | 2026-05-17 | Trellis Legacy Context Format Upgrade | `372aa80fe9d9c9b87ad67070b044b534b2c3cb55` | `main` |
 | 26 | 2026-05-17 | Archived Trellis Context JSONL Full Hygiene Sweep | `03deb3553abd8796f180fb2527ec9637bde9b930` | `main` |
 | 25 | 2026-05-17 | E2E Smoke Task Metadata Hygiene Audit | `c2a9940` | `main` |

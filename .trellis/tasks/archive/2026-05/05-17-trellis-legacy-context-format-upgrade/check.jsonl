@@ -1,7 +1,7 @@
 {"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
 {"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
-{"file": ".trellis/tasks/05-17-trellis-legacy-context-format-upgrade/prd.md", "reason": "Check implementation against scope, acceptance criteria, and required tests."}
-{"file": ".trellis/tasks/05-17-trellis-legacy-context-format-upgrade/research.md", "reason": "Check implementation against audit baseline, risk notes, and expected modified files."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/prd.md", "reason": "Check implementation against scope, acceptance criteria, and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/research.md", "reason": "Check implementation against audit baseline, risk notes, and expected modified files."}
 {"file": ".trellis/spec/guides/trellis-task-context-hygiene.md", "reason": "Verify guide update documents legacy path format and evidence-based upgrade rules."}
 {"file": ".trellis/scripts/common/task_context.py", "reason": "Verify output matches current validator contract without changing scripts."}
 {"file": ".trellis/tasks/archive/2026-04/04-29-phase-1-foundation/implement.jsonl", "reason": "Verify target implement JSONL has current file fields and valid targets."}
