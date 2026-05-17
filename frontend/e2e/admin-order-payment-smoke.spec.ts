@@ -756,26 +756,33 @@ test.describe('Admin order payment browser smoke', () => {
 
     deferPaymentResponse = true
 
-    await page.locator('button:has-text("Refresh payment")').click()
-    await expect(page.locator('button:has-text("Refreshing")')).toBeVisible()
-    await expect(page.locator('button:has-text("Refreshing")')).toBeDisabled()
+    try {
+      await page.locator('button:has-text("Refresh payment")').click()
+      await expect(page.locator('button:has-text("Refreshing")')).toBeVisible()
+      await expect(page.locator('button:has-text("Refreshing")')).toBeDisabled()
 
-    const countAfterClick = adminPaymentStatusCallCount
+      const countAfterClick = adminPaymentStatusCallCount
 
-    await page.locator('button:has-text("Refreshing")').dispatchEvent('click')
-    expect(adminPaymentStatusCallCount).toBe(countAfterClick)
+      await page.locator('button:has-text("Refreshing")').dispatchEvent('click')
+      expect(adminPaymentStatusCallCount).toBe(countAfterClick)
 
-    const paymentRoute = pendingPaymentRoute
-    expect(paymentRoute).not.toBeNull()
-    if (!paymentRoute) {
-      throw new Error('Expected deferred payment route to be captured.')
+      const paymentRoute = pendingPaymentRoute
+      expect(paymentRoute).not.toBeNull()
+      if (!paymentRoute) {
+        throw new Error('Expected deferred payment route to be captured.')
+      }
+      await paymentRoute.fulfill({
+        json: apiEnvelope(createAdminPaymentResponse({ orderId: 1001, paymentNo: 'ADM-PAY-NEW' }), 'ADMIN_PAYMENT_STATUS'),
+      })
+      pendingPaymentRoute = null
+
+      await expect(page.locator('button:has-text("Refresh payment")')).toBeVisible()
+    } finally {
+      if (pendingPaymentRoute !== null) {
+        await pendingPaymentRoute.abort().catch(() => {})
+        pendingPaymentRoute = null
+      }
     }
-    await paymentRoute.fulfill({
-      json: apiEnvelope(createAdminPaymentResponse({ orderId: 1001, paymentNo: 'ADM-PAY-NEW' }), 'ADMIN_PAYMENT_STATUS'),
-    })
-    pendingPaymentRoute = null
-
-    await expect(page.locator('button:has-text("Refresh payment")')).toBeVisible()
   })
 
   test.describe('Admin order cancel browser smoke', () => {
@@ -847,34 +854,41 @@ test.describe('Admin order payment browser smoke', () => {
       await page.locator('.detail-actions button.danger').click()
       await expect(page.locator('.confirm-dialog')).toBeVisible()
 
-      await page.locator('.confirm-actions button.danger').click()
-      await expect(page.locator('.confirm-actions button.danger')).toContainText('Cancelling')
-      await expect(page.locator('.confirm-actions button.danger')).toBeDisabled()
+      try {
+        await page.locator('.confirm-actions button.danger').click()
+        await expect(page.locator('.confirm-actions button.danger')).toContainText('Cancelling')
+        await expect(page.locator('.confirm-actions button.danger')).toBeDisabled()
 
-      const countAfterFirst = cancelApiCallCount
-      expect(countAfterFirst).toBe(1)
+        const countAfterFirst = cancelApiCallCount
+        expect(countAfterFirst).toBe(1)
 
-      await page.locator('.confirm-actions button.danger').dispatchEvent('click')
-      expect(cancelApiCallCount).toBe(countAfterFirst)
+        await page.locator('.confirm-actions button.danger').dispatchEvent('click')
+        expect(cancelApiCallCount).toBe(countAfterFirst)
 
-      const cancelRoute = pendingCancelRoute
-      expect(cancelRoute).not.toBeNull()
-      if (!cancelRoute) {
-        throw new Error('Expected deferred cancel route to be captured.')
+        const cancelRoute = pendingCancelRoute
+        expect(cancelRoute).not.toBeNull()
+        if (!cancelRoute) {
+          throw new Error('Expected deferred cancel route to be captured.')
+        }
+        const cancelSuccess = mockCancelSuccess
+        expect(cancelSuccess).not.toBeNull()
+        if (!cancelSuccess) {
+          throw new Error('Expected cancel success mock to be configured.')
+        }
+        applyMockCancelSuccess(1001, cancelSuccess)
+        await cancelRoute.fulfill({
+          status: 200,
+          json: apiEnvelope(cancelSuccess, 'ADMIN_ORDER_CANCELLED', 'trace-admin-cancel-success'),
+        })
+        pendingCancelRoute = null
+
+        await expect(page.locator('.confirm-dialog')).not.toBeVisible()
+      } finally {
+        if (pendingCancelRoute !== null) {
+          await pendingCancelRoute.abort().catch(() => {})
+          pendingCancelRoute = null
+        }
       }
-      const cancelSuccess = mockCancelSuccess
-      expect(cancelSuccess).not.toBeNull()
-      if (!cancelSuccess) {
-        throw new Error('Expected cancel success mock to be configured.')
-      }
-      applyMockCancelSuccess(1001, cancelSuccess)
-      await cancelRoute.fulfill({
-        status: 200,
-        json: apiEnvelope(cancelSuccess, 'ADMIN_ORDER_CANCELLED', 'trace-admin-cancel-success'),
-      })
-      pendingCancelRoute = null
-
-      await expect(page.locator('.confirm-dialog')).not.toBeVisible()
     })
 
     test('non-created orders keep cancel disabled and send zero cancel requests', async ({ page }) => {
@@ -1065,28 +1079,35 @@ test.describe('Admin order payment browser smoke', () => {
       await inputs.nth(0).fill('SF Express')
       await inputs.nth(1).fill('SF123456789CN')
 
-      await page.locator('.ship-form .primary').click()
-      await expect(page.locator('.ship-form .primary')).toContainText('Shipping...')
-      await expect(page.locator('.ship-form .primary')).toBeDisabled()
+      try {
+        await page.locator('.ship-form .primary').click()
+        await expect(page.locator('.ship-form .primary')).toContainText('Shipping...')
+        await expect(page.locator('.ship-form .primary')).toBeDisabled()
 
-      const countAfterFirst = shipApiCallCount
-      expect(countAfterFirst).toBe(1)
+        const countAfterFirst = shipApiCallCount
+        expect(countAfterFirst).toBe(1)
 
-      await page.locator('.ship-form .primary').dispatchEvent('click')
-      expect(shipApiCallCount).toBe(countAfterFirst)
+        await page.locator('.ship-form .primary').dispatchEvent('click')
+        expect(shipApiCallCount).toBe(countAfterFirst)
 
-      const shipRoute = pendingFulfillmentShipRoute
-      expect(shipRoute).not.toBeNull()
-      if (!shipRoute) {
-        throw new Error('Expected deferred fulfillment ship route to be captured.')
+        const shipRoute = pendingFulfillmentShipRoute
+        expect(shipRoute).not.toBeNull()
+        if (!shipRoute) {
+          throw new Error('Expected deferred fulfillment ship route to be captured.')
+        }
+        await shipRoute.fulfill({
+          status: 200,
+          json: apiEnvelope(mockFulfillmentShipSuccess, 'ADMIN_FULFILLMENT_SHIPPED', 'trace-admin-ship-success'),
+        })
+        pendingFulfillmentShipRoute = null
+
+        await expect(page.locator('.ship-form .primary')).toContainText('Ship order')
+      } finally {
+        if (pendingFulfillmentShipRoute !== null) {
+          await pendingFulfillmentShipRoute.abort().catch(() => {})
+          pendingFulfillmentShipRoute = null
+        }
       }
-      await shipRoute.fulfill({
-        status: 200,
-        json: apiEnvelope(mockFulfillmentShipSuccess, 'ADMIN_FULFILLMENT_SHIPPED', 'trace-admin-ship-success'),
-      })
-      pendingFulfillmentShipRoute = null
-
-      await expect(page.locator('.ship-form .primary')).toContainText('Ship order')
     })
 
     test('non-shippable lifecycle statuses keep ship button disabled and send zero ship requests', async ({ page }) => {

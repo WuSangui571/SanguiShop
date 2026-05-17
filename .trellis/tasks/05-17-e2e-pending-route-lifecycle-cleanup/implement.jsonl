@@ -1,0 +1,11 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend DoD and async cleanup expectations for E2E route lifecycle hardening"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin and mall order payment/receipt API smoke assertions must keep contract-specific behavior"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Pending UI state and duplicate guard assertions depend on reactive disabled/loading behavior"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Explicit async lifecycle cleanup principle applies to intentionally pending Playwright routes"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Any optional E2E helper should be typed and avoid any"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Decide local try/finally versus small E2E-only helper without over-abstracting business assertions"}
+{"file": ".trellis/tasks/05-17-e2e-pending-route-lifecycle-cleanup/research.md", "reason": "Focused research: pending route sites, patterns, risks, tests"}
+{"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Target E2E smoke file: admin pending payment, cancel, and fulfillment ship routes"}
+{"file": "frontend/e2e/mall-order-status-smoke.spec.ts", "reason": "Target E2E smoke file: mall pending payment and receipt routes"}

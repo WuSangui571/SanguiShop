@@ -358,25 +358,32 @@ test.describe('Mall order status center browser smoke', () => {
 
     deferPaymentResponse = true
 
-    await page.locator('button:has-text("Refresh payment")').click()
-    await expect(page.locator('button:has-text("Refreshing")')).toBeVisible()
-    await expect(page.locator('button:has-text("Refreshing")')).toBeDisabled()
+    try {
+      await page.locator('button:has-text("Refresh payment")').click()
+      await expect(page.locator('button:has-text("Refreshing")')).toBeVisible()
+      await expect(page.locator('button:has-text("Refreshing")')).toBeDisabled()
 
-    const countAfterClick = paymentRequestCount
-    expect(countAfterClick).toBe(paymentCountBaseline + 1)
+      const countAfterClick = paymentRequestCount
+      expect(countAfterClick).toBe(paymentCountBaseline + 1)
 
-    await page.locator('button:has-text("Refreshing")').dispatchEvent('click')
-    expect(paymentRequestCount).toBe(countAfterClick)
+      await page.locator('button:has-text("Refreshing")').dispatchEvent('click')
+      expect(paymentRequestCount).toBe(countAfterClick)
 
-    const paymentRoute = pendingPaymentRoute
-    expect(paymentRoute).not.toBeNull()
-    if (!paymentRoute) {
-      throw new Error('Expected deferred payment route to be captured.')
+      const paymentRoute = pendingPaymentRoute
+      expect(paymentRoute).not.toBeNull()
+      if (!paymentRoute) {
+        throw new Error('Expected deferred payment route to be captured.')
+      }
+      await paymentRoute.fulfill({ json: apiEnvelope(createPaymentResponse()) })
+      pendingPaymentRoute = null
+
+      await expect(page.locator('button', { hasText: 'Refresh payment' })).toBeVisible()
+    } finally {
+      if (pendingPaymentRoute !== null) {
+        await pendingPaymentRoute.abort().catch(() => {})
+        pendingPaymentRoute = null
+      }
     }
-    await paymentRoute.fulfill({ json: apiEnvelope(createPaymentResponse()) })
-    pendingPaymentRoute = null
-
-    await expect(page.locator('button', { hasText: 'Refresh payment' })).toBeVisible()
   })
 
   test('payment refresh failure shows traceId and preserves current detail', async ({ page }) => {
@@ -557,26 +564,33 @@ test.describe('Mall order status center browser smoke', () => {
 
     deferReceiptConfirmationResponse = true
 
-    await page.locator('button:has-text("Confirm receipt")').click()
-    await expect(page.locator('button:has-text("Confirming")')).toBeVisible()
-    await expect(page.locator('button:has-text("Confirming")')).toBeDisabled()
+    try {
+      await page.locator('button:has-text("Confirm receipt")').click()
+      await expect(page.locator('button:has-text("Confirming")')).toBeVisible()
+      await expect(page.locator('button:has-text("Confirming")')).toBeDisabled()
 
-    const countAfterClick = receiptConfirmationRequestCount
+      const countAfterClick = receiptConfirmationRequestCount
 
-    await page.locator('button:has-text("Confirming")').dispatchEvent('click')
-    expect(receiptConfirmationRequestCount).toBe(countAfterClick)
+      await page.locator('button:has-text("Confirming")').dispatchEvent('click')
+      expect(receiptConfirmationRequestCount).toBe(countAfterClick)
 
-    const receiptRoute = pendingReceiptRoute
-    expect(receiptRoute).not.toBeNull()
-    if (!receiptRoute) {
-      throw new Error('Expected deferred receipt route to be captured.')
+      const receiptRoute = pendingReceiptRoute
+      expect(receiptRoute).not.toBeNull()
+      if (!receiptRoute) {
+        throw new Error('Expected deferred receipt route to be captured.')
+      }
+      await receiptRoute.fulfill({
+        json: apiEnvelope(createCompletedFromShippedOrder(shipped), 'ORDER_RECEIPT_CONFIRMED'),
+      })
+      pendingReceiptRoute = null
+
+      await expect(page.locator('button:has-text("Confirm receipt")')).toBeDisabled()
+    } finally {
+      if (pendingReceiptRoute !== null) {
+        await pendingReceiptRoute.abort().catch(() => {})
+        pendingReceiptRoute = null
+      }
     }
-    await receiptRoute.fulfill({
-      json: apiEnvelope(createCompletedFromShippedOrder(shipped), 'ORDER_RECEIPT_CONFIRMED'),
-    })
-    pendingReceiptRoute = null
-
-    await expect(page.locator('button:has-text("Confirm receipt")')).toBeDisabled()
   })
 
   test('receipt confirmation failure shows code message traceId and preserves shipped snapshot', async ({ page }) => {

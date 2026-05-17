@@ -1283,3 +1283,46 @@ Codex check also fixed two direct task-scope issues before final validation: the
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: 商城支付刷新 smoke 隔离收尾
+
+**Date**: 2026-05-17
+**Task**: 商城支付刷新 smoke 隔离收尾
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Item | Details |
+| --- | --- |
+| Commit | `89f6af8 test:???????? smoke ??` |
+| Main module | Frontend E2E smoke tests for mall order payment refresh delayed route isolation. |
+| Updated files | `frontend/e2e/mall-order-status-smoke.spec.ts`; task metadata archived under `.trellis/tasks/archive/2026-05/05-17-e2e-deferred-route-isolation-hardening/`. |
+| Change summary | Added a `paymentRequestCount` baseline before enabling `deferPaymentResponse` in the mall payment refresh smoke test, then asserted the manual click increments the payment request count by exactly one. This keeps future automatic payment refresh behavior from consuming the deferred route intended for the duplicate-click guard assertion. |
+| Verification | `cmd /c npx playwright test e2e/mall-order-status-smoke.spec.ts --project=chromium -g "shows payment refresh loading state"` passed; `cmd /c npm run test:smoke` passed with 57/57 E2E tests; `cmd /c npm run lint` passed; `cmd /c npm run typecheck` passed; `cmd /c npm run build` passed; `cmd /c npm run test` passed with 21 files and 286 tests. |
+| Manual test | Human manually tested and confirmed all checks passed before record-session. |
+| Result | Task acceptance criteria met: no production implementation, API, DTO, backend, DB, infra, auth, cache, or MQ files were changed; existing loading/disabled, duplicate guard, pending route fulfill, backend trace preservation, and status non-overwrite smoke coverage remained intact. |
+| Boundary | No reusable helper or frontend spec update was added because the final change stayed a local route-specific counter guard and did not establish a new reusable deferred-route abstraction. Backend tests were not run because no backend files or contracts changed. |
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `89f6af8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
