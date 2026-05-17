@@ -1,8 +1,8 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/tasks/05-10-admin-product-failure-permission-component-tests/prd.md", "reason": "Product admin test PRD, scope, acceptance criteria, API payload matrix, and boundaries"}
+{"file": ".trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/prd.md", "reason": "Product admin test PRD, scope, acceptance criteria, API payload matrix, and boundaries"}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin Product Management API routes, auth context, error/detail preservation, and required tests"}
-{"file": ".trellis/tasks/05-10-admin-product-failure-permission-component-tests/research.md", "reason": "Focused product management code research and expected test assertions"}
+{"file": ".trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/research.md", "reason": "Focused product management code research and expected test assertions"}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Async component UI states and prop boundary expectations"}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Composable loading/error/retry and service API call boundaries"}
 {"file": ".trellis/spec/frontend/state-management.md", "reason": "Server-owned price/stock/status facts and backend error detail preservation"}

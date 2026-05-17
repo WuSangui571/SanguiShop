@@ -1,11 +1,11 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
 {"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check E2E route cleanup rule, duplicate guard coverage, and required frontend quality commands"}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify admin/mall order payment refresh, cancel, ship, and receipt smoke assertions still match documented API behavior"}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check loading/disabled duplicate guard assertions remain meaningful after route cleanup changes"}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Check pending route lifecycle cleanup is explicit and not dependent only on teardown"}
 {"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check optional E2E helper typing and no any-based route lifecycle abstraction"}
 {"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Review helper abstraction only if it reduces real duplication while preserving scenario readability"}
-{"file": ".trellis/tasks/05-17-e2e-pending-route-lifecycle-cleanup/research.md", "reason": "Check against researched pending route sites and required tests"}
+{"file": ".trellis/tasks/archive/2026-05/05-17-e2e-pending-route-lifecycle-cleanup/research.md", "reason": "Check against researched pending route sites and required tests"}
 {"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Check admin pending route cleanup and duplicate guard assertions"}
 {"file": "frontend/e2e/mall-order-status-smoke.spec.ts", "reason": "Check mall pending route cleanup and duplicate guard assertions"}

@@ -1,7 +1,7 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis\\tasks\\05-09-admin-review-moderation-action-component-tests\\prd.md", "reason": "Task requirements, API payload fields, validation matrix, acceptance criteria, and out-of-scope boundaries."}
-{"file": ".trellis\\tasks\\05-09-admin-review-moderation-action-component-tests\\research.md", "reason": "Focused code research with existing helpers, selectors, risks, and required tests."}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-09-admin-review-moderation-action-component-tests\\prd.md", "reason": "Task requirements, API payload fields, validation matrix, acceptance criteria, and out-of-scope boundaries."}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-09-admin-review-moderation-action-component-tests\\research.md", "reason": "Focused code research with existing helpers, selectors, risks, and required tests."}
 {"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin Review API contract: requestId, payload trim, duplicate guards, backend code/message/traceId preservation."}
 {"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Component async UI states and button/disabled behavior expectations."}
 {"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend quality gates and required core interaction tests."}

@@ -17,5 +17,5 @@
 {"file": "frontend/src/views/admin/fulfillmentManagementModel.test.ts", "reason": "Model tests for payload trimming, labels, shippability, duplicate gate, errors."}
 {"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Browser smoke fixture routes and regression test for successful ship status summary."}
 {"file": "frontend/e2e/fixtures/adminOrderPaymentSmoke.ts", "reason": "Smoke fixture factory for admin fulfillment/order/payment responses."}
-{"file": ".trellis/tasks/05-17-admin-fulfillment-shipping-status-summary-regression/prd.md", "reason": "Task PRD with scope, acceptance criteria, non-goals, and tests."}
-{"file": ".trellis/tasks/05-17-admin-fulfillment-shipping-status-summary-regression/research.md", "reason": "Focused code research and DeepSeek execution handoff."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-admin-fulfillment-shipping-status-summary-regression/prd.md", "reason": "Task PRD with scope, acceptance criteria, non-goals, and tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-admin-fulfillment-shipping-status-summary-regression/research.md", "reason": "Focused code research and DeepSeek execution handoff."}

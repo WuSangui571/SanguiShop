@@ -1,0 +1,17 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis\\tasks\\05-17-e2e-smoke-task-metadata-hygiene-audit\\prd.md", "reason": "Current task PRD, boundaries, acceptance criteria, and validation matrix"}
+{"file": ".agents\\skills\\start\\SKILL.md", "reason": "Trellis start workflow and task classification rules"}
+{"file": ".agents\\skills\\before-dev\\SKILL.md", "reason": "Mandatory pre-development spec discovery workflow"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "E2E smoke quality rules and recent smoke hygiene context"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "General quality and Good/Base/Bad review discipline"}
+{"file": ".trellis\\spec\\guides\\index.md", "reason": "Shared thinking guide index and guide placement"}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Search-first guidance and avoid unnecessary abstraction"}
+{"file": ".trellis\\spec\\guides\\architecture-review-checklist.md", "reason": "Contract-first and Good/Base/Bad risk framing"}
+{"file": ".trellis\\scripts\\common\\task_context.py", "reason": "task.py init-context, add-context, and validate implementation"}
+{"file": ".trellis\\scripts\\common\\task_store.py", "reason": "task.py archive behavior and auto-commit boundary"}
+{"file": ".trellis\\scripts\\common\\tasks.py", "reason": "Active task iteration skips archive directory"}
+{"file": ".trellis\\scripts\\common\\cli_adapter.py", "reason": "Codex skill path convention for Trellis commands"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-12-local-runtime-and-manual-task-hygiene\\prd.md", "reason": "Prior task hygiene PRD pattern for archive/list/validate flow"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-17-e2e-smoke-mock-state-reset-audit\\check.jsonl", "reason": "Recent corrected Codex task context path example"}

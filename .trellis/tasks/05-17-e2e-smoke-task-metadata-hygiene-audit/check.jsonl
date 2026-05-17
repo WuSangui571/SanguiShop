@@ -1,0 +1,16 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\tasks\\05-17-e2e-smoke-task-metadata-hygiene-audit\\prd.md", "reason": "Check implementation against current task PRD and boundaries"}
+{"file": ".agents\\skills\\start\\SKILL.md", "reason": "Verify task workflow and current-task lifecycle expectations"}
+{"file": ".agents\\skills\\before-dev\\SKILL.md", "reason": "Verify specific guidelines were read and injected"}
+{"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Check no regression to E2E smoke quality guidance"}
+{"file": ".trellis\\spec\\backend\\quality-guidelines.md", "reason": "Check scoped metadata change and verification discipline"}
+{"file": ".trellis\\spec\\guides\\index.md", "reason": "Verify new/updated hygiene guide is discoverable"}
+{"file": ".trellis\\spec\\guides\\code-reuse-thinking-guide.md", "reason": "Verify cleanup reuses existing paths and scripts"}
+{"file": ".trellis\\spec\\guides\\architecture-review-checklist.md", "reason": "Verify boundaries and no production behavior changes"}
+{"file": ".trellis\\scripts\\common\\task_context.py", "reason": "Verify context JSONL validation behavior and file path checks"}
+{"file": ".trellis\\scripts\\common\\task_store.py", "reason": "Verify archive/list/record lifecycle assumptions"}
+{"file": ".trellis\\scripts\\common\\tasks.py", "reason": "Verify active/list archive separation"}
+{"file": ".trellis\\scripts\\common\\cli_adapter.py", "reason": "Verify Codex context paths use .agents skills"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-12-local-runtime-and-manual-task-hygiene\\prd.md", "reason": "Check against prior no-auto-commit and lifecycle boundary pattern"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-17-e2e-smoke-mock-state-reset-audit\\check.jsonl", "reason": "Verify corrected Codex context path example remains valid"}

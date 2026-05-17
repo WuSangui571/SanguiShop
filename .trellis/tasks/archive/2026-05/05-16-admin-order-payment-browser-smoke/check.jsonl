@@ -1,12 +1,12 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
 {"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Check pass must verify no accidental main-status regressions or deep-link contract drift."}
 {"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Check pass must verify smoke coverage, traceId display, and no live-dependency regressions."}
 {"file": ".trellis\\spec\\backend\\payment-pay-contracts.md", "reason": "Check pass must verify payment refresh / PAYMENT_NOT_FOUND behavior and order-status non-overwrite rules."}
 {"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Check pass must revalidate admin order/payment contract alignment and non-overwrite behavior."}
 {"file": ".trellis\\spec\\backend\\gateway-security.md", "reason": "Check pass must verify the OPS_COMPENSATION_ADMIN boundary and admin auth assumptions used by the smoke."}
 {"file": ".trellis\\spec\\guides\\cross-layer-thinking-guide.md", "reason": "Check pass must re-evaluate cross-layer edge cases, especially status preservation and permission gating."}
-{"file": ".trellis\\tasks\\05-16-admin-order-payment-browser-smoke\\prd.md", "reason": "Check implementation directly against acceptance criteria and explicit forbidden boundaries."}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-16-admin-order-payment-browser-smoke\\prd.md", "reason": "Check implementation directly against acceptance criteria and explicit forbidden boundaries."}
 {"file": "frontend\\e2e\\mall-order-status-smoke.spec.ts", "reason": "Check the new admin smoke stays consistent with the existing smoke lifecycle and mocking conventions."}
 {"file": "frontend\\src\\composables\\useOrderManagement.ts", "reason": "Check smoke assertions match current payment refresh and non-overwrite behavior."}
 {"file": "frontend\\src\\views\\admin\\OrderManagementView.vue", "reason": "Check selectors/assertions use real rendered UI without requiring implementation-only hooks."}

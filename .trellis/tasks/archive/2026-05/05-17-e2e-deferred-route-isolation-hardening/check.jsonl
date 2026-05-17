@@ -1,7 +1,7 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
-{"file": ".trellis\\tasks\\05-17-e2e-deferred-route-isolation-hardening\\prd.md", "reason": "Task requirements, acceptance criteria, forbidden scope, route contracts, and required tests"}
-{"file": ".trellis\\tasks\\05-17-e2e-deferred-route-isolation-hardening\\research.md", "reason": "Focused code research for deferred route patterns and implementation boundaries"}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-17-e2e-deferred-route-isolation-hardening\\prd.md", "reason": "Task requirements, acceptance criteria, forbidden scope, route contracts, and required tests"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-17-e2e-deferred-route-isolation-hardening\\research.md", "reason": "Focused code research for deferred route patterns and implementation boundaries"}
 {"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend E2E quality expectations, duplicate guards, cleanup, lint/typecheck/build requirements"}
 {"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin order, admin fulfillment, mall payment, and receipt route contracts under smoke tests"}
 {"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "Keep DTO-shaped mocks and helper APIs type-safe without any escape hatches"}

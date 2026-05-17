@@ -10,7 +10,7 @@
 {"file": ".trellis\\spec\\backend\\error-handling.md", "reason": "Backend error envelope semantics drive the smoke's code/message/traceId assertions."}
 {"file": ".trellis\\spec\\backend\\order-create-contracts.md", "reason": "Admin order smoke must preserve main order status, fulfilled/detail snapshots, deep-link behavior, and terminal-state non-overwrite rules from the order contract."}
 {"file": ".trellis\\spec\\backend\\payment-pay-contracts.md", "reason": "Admin payment smoke must validate payment refresh by order id, PAYMENT_NOT_FOUND handling, and payment-status refresh without overwriting terminal order status."}
-{"file": ".trellis\\tasks\\05-16-admin-order-payment-browser-smoke\\prd.md", "reason": "Primary requirements, scope boundaries, API/error matrix, Good/Base/Bad cases, and required smoke assertions."}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-16-admin-order-payment-browser-smoke\\prd.md", "reason": "Primary requirements, scope boundaries, API/error matrix, Good/Base/Bad cases, and required smoke assertions."}
 {"file": "frontend\\e2e\\mall-order-status-smoke.spec.ts", "reason": "Existing Playwright/Vite browser smoke pattern to mirror for server lifecycle, route mocks, auth header assertions, and deep-link/reload checks."}
 {"file": "frontend\\e2e\\fixtures\\mallOrderStatusSmoke.ts", "reason": "Existing typed fixture factory and ApiResult envelope pattern for the new admin smoke fixtures."}
 {"file": "frontend\\src\\App.vue", "reason": "Admin workspace routing, permission gates, session bootstrap, and initial orderId handling for /admin deep links."}

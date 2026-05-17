@@ -13,8 +13,8 @@
 {"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer API/shopId/idempotency risk checklist"}
 {"file": ".trellis/spec/guides/seckill-thinking-guide.md", "reason": "Seckill activity/status/stock risk checklist"}
 {"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Service boundary and security review checklist"}
-{"file": ".trellis/tasks/05-11-admin-seckill-activity-backend-contract-tests/prd.md", "reason": "Task PRD with API payloads validation errors tests and scope"}
-{"file": ".trellis/tasks/05-11-admin-seckill-activity-backend-contract-tests/research.md", "reason": "Focused code research and implementation handoff notes"}
+{"file": ".trellis/tasks/archive/2026-05/05-11-admin-seckill-activity-backend-contract-tests/prd.md", "reason": "Task PRD with API payloads validation errors tests and scope"}
+{"file": ".trellis/tasks/archive/2026-05/05-11-admin-seckill-activity-backend-contract-tests/research.md", "reason": "Focused code research and implementation handoff notes"}
 {"file": "common/sangui-common-core/src/main/java/com/sangui/shop/common/core/api/ApiResult.java", "reason": "Envelope implementation pattern"}
 {"file": "common/sangui-common-core/src/main/java/com/sangui/shop/common/core/error/CommonErrorCode.java", "reason": "Shared error code baseline"}
 {"file": "common/sangui-common-security/src/main/java/com/sangui/shop/common/security/SanguiPermissionConstants.java", "reason": "Admin permission constants requiring SECKILL_ACTIVITY_ADMIN"}

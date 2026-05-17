@@ -1,6 +1,6 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/tasks/05-16-mall-order-status-center-component-regression-coverage/prd.md", "reason": "Task requirements, acceptance criteria, boundaries, and DeepSeek handoff constraints"}
+{"file": ".trellis/tasks/archive/2026-05/05-16-mall-order-status-center-component-regression-coverage/prd.md", "reason": "Task requirements, acceptance criteria, boundaries, and DeepSeek handoff constraints"}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall Order Status API/UI contract, payment refresh non-overwrite, error traceId requirements"}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue component boundaries and required loading/error/disabled UI states"}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "useMallOrderStatus composable expectations for loading/error/retry and service calls"}

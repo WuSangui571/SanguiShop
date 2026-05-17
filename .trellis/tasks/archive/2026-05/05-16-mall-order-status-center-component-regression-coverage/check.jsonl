@@ -1,6 +1,6 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
-{"file": ".trellis/tasks/05-16-mall-order-status-center-component-regression-coverage/prd.md", "reason": "Task requirements, acceptance criteria, boundaries, and DeepSeek handoff constraints"}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/archive/2026-05/05-16-mall-order-status-center-component-regression-coverage/prd.md", "reason": "Task requirements, acceptance criteria, boundaries, and DeepSeek handoff constraints"}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Mall Order Status API/UI contract, payment refresh non-overwrite, error traceId requirements"}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Vue component boundaries and required loading/error/disabled UI states"}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "useMallOrderStatus composable expectations for loading/error/retry and service calls"}

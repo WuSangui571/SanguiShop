@@ -1,7 +1,7 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/tasks/05-09-admin-review-failure-permission-component-tests/prd.md", "reason": "Task requirements, scope boundaries, API payload fields, validation/error matrix, Good/Base/Bad cases, and acceptance criteria."}
-{"file": ".trellis/tasks/05-09-admin-review-failure-permission-component-tests/research.md", "reason": "Focused code research with relevant specs, code patterns, likely files, risk notes, and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-09-admin-review-failure-permission-component-tests/prd.md", "reason": "Task requirements, scope boundaries, API payload fields, validation/error matrix, Good/Base/Bad cases, and acceptance criteria."}
+{"file": ".trellis/tasks/archive/2026-05/05-09-admin-review-failure-permission-component-tests/research.md", "reason": "Focused code research with relevant specs, code patterns, likely files, risk notes, and required tests."}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component async UI states, empty/error/retry handling, and button disabled state expectations."}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin Review API contract: permissions, query payloads, requestId, duplicate guards, backend code/message/traceId preservation, image payload compatibility."}
 {"file": ".trellis/spec/frontend/type-safety.md", "reason": "Typed DTO fixtures and unknown fallback requirements."}

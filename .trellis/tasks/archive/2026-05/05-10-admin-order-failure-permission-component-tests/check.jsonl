@@ -1,5 +1,5 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check tests against Admin Order Management required tests and UI contract"}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check async UI state coverage"}
 {"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check frontend quality gates and forbidden patterns"}

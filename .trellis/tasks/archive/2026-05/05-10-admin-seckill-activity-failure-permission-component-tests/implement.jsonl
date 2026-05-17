@@ -23,5 +23,5 @@
 {"file": "frontend\\src\\views\\admin\\OrderManagementView.spec.ts", "reason": "Closest list error/retry/empty, filter, time, and duplicate guard test pattern"}
 {"file": "frontend\\src\\services\\productApi.ts", "reason": "Existing admin service authContext ops and status all omission pattern"}
 {"file": "frontend\\src\\types\\api\\product.ts", "reason": "Admin DTO and status unknown fallback type pattern"}
-{"file": ".trellis\\tasks\\05-10-admin-seckill-activity-failure-permission-component-tests\\prd.md", "reason": "Task PRD and acceptance criteria"}
-{"file": ".trellis\\tasks\\05-10-admin-seckill-activity-failure-permission-component-tests\\research.md", "reason": "Focused code research and expected write set"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-10-admin-seckill-activity-failure-permission-component-tests\\prd.md", "reason": "Task PRD and acceptance criteria"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-10-admin-seckill-activity-failure-permission-component-tests\\research.md", "reason": "Focused code research and expected write set"}

@@ -1,6 +1,6 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
-{"file": ".trellis\\tasks\\05-16-mall-payment-main-status-regression-coverage\\prd.md", "reason": "Task requirements, acceptance criteria, forbidden scope, and required tests."}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-16-mall-payment-main-status-regression-coverage\\prd.md", "reason": "Task requirements, acceptance criteria, forbidden scope, and required tests."}
 {"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Mall Order Status APIs and payment/order merge contract."}
 {"file": ".trellis\\spec\\frontend\\type-safety.md", "reason": "OrderResponse and PaymentResponse typed DTO compatibility and unknown fallback rules."}
 {"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Frontend verification, duplicate-submit, error, and regression test expectations."}

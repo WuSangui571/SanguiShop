@@ -1,5 +1,5 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify admin fulfillment API contract, requestId, error preservation, and status non-overwrite behavior."}
 {"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review DTO field compatibility and unknown status fallbacks."}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Check composable boundaries and pending/error behavior."}
@@ -17,5 +17,5 @@
 {"file": "frontend/src/views/admin/fulfillmentManagementModel.test.ts", "reason": "Review model test coverage for status helper changes."}
 {"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Review Playwright waits, mock isolation, and non-weakened shipped assertions."}
 {"file": "frontend/e2e/fixtures/adminOrderPaymentSmoke.ts", "reason": "Review fixture defaults and shipped response shape."}
-{"file": ".trellis/tasks/05-17-admin-fulfillment-shipping-status-summary-regression/prd.md", "reason": "Review implementation against agreed PRD and boundary constraints."}
-{"file": ".trellis/tasks/05-17-admin-fulfillment-shipping-status-summary-regression/research.md", "reason": "Review implementation against focused research and handoff boundaries."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-admin-fulfillment-shipping-status-summary-regression/prd.md", "reason": "Review implementation against agreed PRD and boundary constraints."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-admin-fulfillment-shipping-status-summary-regression/research.md", "reason": "Review implementation against focused research and handoff boundaries."}

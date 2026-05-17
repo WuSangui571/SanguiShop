@@ -1,6 +1,6 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/tasks/05-16-admin-order-cancel-browser-smoke/prd.md", "reason": "Task PRD with API contract, error matrix, Good/Base/Bad cases, acceptance commands, and scope boundaries."}
+{"file": ".trellis/tasks/archive/2026-05/05-16-admin-order-cancel-browser-smoke/prd.md", "reason": "Task PRD with API contract, error matrix, Good/Base/Bad cases, acceptance commands, and scope boundaries."}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin order cancel frontend contract: ops auth, requestId, created-only cancel, duplicate guard, code/message/traceId preservation."}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Confirmation dialog, reactive pending disabled state, component UI states."}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "HTTP requests through service/composable boundaries and async loading/error/retry behavior."}

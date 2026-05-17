@@ -1,7 +1,7 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis\\tasks\\05-09-admin-review-image-preview-component-tests\\prd.md", "reason": "Task requirements, boundaries, acceptance criteria, and required tests"}
-{"file": ".trellis\\tasks\\05-09-admin-review-image-preview-component-tests\\research.md", "reason": "Focused code research, test infrastructure findings, and suggested component assertions"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-09-admin-review-image-preview-component-tests\\prd.md", "reason": "Task requirements, boundaries, acceptance criteria, and required tests"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-09-admin-review-image-preview-component-tests\\research.md", "reason": "Focused code research, test infrastructure findings, and suggested component assertions"}
 {"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Component UI state and interaction testing boundaries"}
 {"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Core interactions require component or e2e coverage; required frontend quality gates"}
 {"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Admin review image URL, failure, unknown fallback, and API boundary rules"}

@@ -11,6 +11,7 @@
 | [Architecture Review Checklist](./architecture-review-checklist.md) | 评审微服务设计、部署、可观测、安全 | 开始大功能或 PR review 前 |
 | [Seckill Thinking Guide](./seckill-thinking-guide.md) | 秒杀链路专用风险清单 | 秒杀、库存、限流、MQ 改动前 |
 | [AI/RAG Thinking Guide](./ai-rag-thinking-guide.md) | AI 问答和推荐风险清单 | 知识库、模型、推荐改动前 |
+| [Trellis Task Context Hygiene](./trellis-task-context-hygiene.md) | Trellis 任务上下文路径规范和校验规则 | 创建/更新 task JSONL context 或 validate 失败时 |
 
 ## Quick Trigger
 

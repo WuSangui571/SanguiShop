@@ -1,7 +1,7 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
-{"file": ".trellis/tasks/05-09-admin-review-failure-permission-component-tests/prd.md", "reason": "Task requirements, scope boundaries, API payload fields, validation/error matrix, Good/Base/Bad cases, and acceptance criteria."}
-{"file": ".trellis/tasks/05-09-admin-review-failure-permission-component-tests/research.md", "reason": "Focused code research with relevant specs, code patterns, likely files, risk notes, and required tests."}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/archive/2026-05/05-09-admin-review-failure-permission-component-tests/prd.md", "reason": "Task requirements, scope boundaries, API payload fields, validation/error matrix, Good/Base/Bad cases, and acceptance criteria."}
+{"file": ".trellis/tasks/archive/2026-05/05-09-admin-review-failure-permission-component-tests/research.md", "reason": "Focused code research with relevant specs, code patterns, likely files, risk notes, and required tests."}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend spec index and pre-development checklist."}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component async UI states, empty/error/retry handling, and button disabled state expectations."}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin Review API contract: permissions, query payloads, requestId, duplicate guards, backend code/message/traceId preservation, image payload compatibility."}

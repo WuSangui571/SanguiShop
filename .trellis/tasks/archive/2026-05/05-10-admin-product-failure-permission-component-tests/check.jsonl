@@ -1,7 +1,7 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
-{"file": ".trellis/tasks/05-10-admin-product-failure-permission-component-tests/prd.md", "reason": "Acceptance checklist and out-of-scope boundaries for Codex check"}
-{"file": ".trellis/tasks/05-10-admin-product-failure-permission-component-tests/research.md", "reason": "Research findings and risk notes for review"}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/prd.md", "reason": "Acceptance checklist and out-of-scope boundaries for Codex check"}
+{"file": ".trellis/tasks/archive/2026-05/05-10-admin-product-failure-permission-component-tests/research.md", "reason": "Research findings and risk notes for review"}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify product API contract, payloads, status fallback, requestId, and error assertions"}
 {"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review loading/error/empty/retry/pending UI state coverage"}
 {"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Verify composable/service boundary and retry behavior"}

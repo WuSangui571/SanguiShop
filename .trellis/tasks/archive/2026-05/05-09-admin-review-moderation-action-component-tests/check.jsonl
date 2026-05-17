@@ -1,7 +1,7 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
-{"file": ".trellis\\tasks\\05-09-admin-review-moderation-action-component-tests\\research.md", "reason": "Check coverage against focused research, expected files, and known boundaries."}
-{"file": ".trellis\\tasks\\05-09-admin-review-moderation-action-component-tests\\prd.md", "reason": "Check implementation against task requirements, acceptance criteria, and out-of-scope boundaries."}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-09-admin-review-moderation-action-component-tests\\research.md", "reason": "Check coverage against focused research, expected files, and known boundaries."}
+{"file": ".trellis\\tasks\\archive\\2026-05\\05-09-admin-review-moderation-action-component-tests\\prd.md", "reason": "Check implementation against task requirements, acceptance criteria, and out-of-scope boundaries."}
 {"file": ".trellis\\spec\\frontend\\api-contracts.md", "reason": "Check Admin Review API contract assertions: requestId, payload trim, duplicate guards, backend code/message/traceId preservation."}
 {"file": ".trellis\\spec\\frontend\\component-guidelines.md", "reason": "Check component-level async UI states and disabled button behavior."}
 {"file": ".trellis\\spec\\frontend\\quality-guidelines.md", "reason": "Check frontend quality gates and core interaction coverage."}

@@ -1,5 +1,5 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
 {"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify receipt confirmation smoke follows frontend API contract and existing spec does not need expansion."}
 {"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check DTO usage avoids any and preserves backend field names."}
 {"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify no local-only completed transition before backend success and backend errors keep trace details."}
