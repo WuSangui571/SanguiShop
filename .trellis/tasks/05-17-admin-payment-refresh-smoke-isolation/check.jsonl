@@ -1,0 +1,14 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Check admin order payment refresh contract and assertions remain intact"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify required frontend quality gates and smoke coverage"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review API type compatibility and status fallback assumptions"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check test changes do not invent order/payment state semantics"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Verify mocked payment route/error behavior stays contract-compatible"}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Check order main status remains preserved in smoke expectations"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Final boundary review for cross-layer risks"}
+{"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Review isolation fix and preserved assertions"}
+{"file": "frontend/e2e/fixtures/adminOrderPaymentSmoke.ts", "reason": "Check fixture immutability/fresh clone behavior if touched"}
+{"file": "frontend/src/composables/useOrderManagement.ts", "reason": "Confirm production logic was not changed unless proven necessary"}
+{"file": "frontend/src/views/admin/orderManagementModel.ts", "reason": "Confirm payment response status does not overwrite order status"}
+{"file": "frontend/playwright.config.ts", "reason": "Confirm acceptance commands use chromium project and no retries"}

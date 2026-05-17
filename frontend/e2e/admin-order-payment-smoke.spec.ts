@@ -25,6 +25,7 @@ const LOCALE_STORAGE_KEY = 'sangui.app.locale.v1'
 let viteServer: ViteDevServer | null = null
 let pendingPaymentRoute: Route | null = null
 let adminApiCallCount = 0
+let adminPaymentStatusCallCount = 0
 let adminApiAuthHeaders: string[] = []
 let adminOrderListQueries: URLSearchParams[] = []
 let mockOrderSummaries: AdminOrderSummaryResponse[] = []
@@ -57,6 +58,7 @@ let mockSessionRefresh: ReturnType<typeof createOpsSessionResponse> | null = nul
 function resetMockState() {
   pendingPaymentRoute = null
   adminApiCallCount = 0
+  adminPaymentStatusCallCount = 0
   adminApiAuthHeaders = []
   adminOrderListQueries = []
   mockOrderSummaries = []
@@ -160,6 +162,7 @@ async function setupDefaultApiRoutes(page: Page) {
 
     if (method === 'GET' && /^\/api\/admin\/payments\/by-order\/\d+$/.test(path)) {
       recordAdminApiCall(route)
+      adminPaymentStatusCallCount++
       if (deferPaymentResponse) {
         pendingPaymentRoute = route
         return
@@ -745,6 +748,10 @@ test.describe('Admin order payment browser smoke', () => {
     await page.goto('/admin?workspace=order')
 
     await page.locator('.list-item').click()
+
+    // Wait for selectOrder()'s automatic payment refresh to be captured before
+    // enabling deferred responses, otherwise the auto-refresh can be deferred.
+    await expect.poll(() => adminPaymentStatusCallCount).toBe(1)
     await expect(page.locator('button:has-text("Refresh payment")')).toBeVisible()
 
     deferPaymentResponse = true
@@ -753,10 +760,10 @@ test.describe('Admin order payment browser smoke', () => {
     await expect(page.locator('button:has-text("Refreshing")')).toBeVisible()
     await expect(page.locator('button:has-text("Refreshing")')).toBeDisabled()
 
-    const countAfterClick = adminApiCallCount
+    const countAfterClick = adminPaymentStatusCallCount
 
     await page.locator('button:has-text("Refreshing")').dispatchEvent('click')
-    expect(adminApiCallCount).toBe(countAfterClick)
+    expect(adminPaymentStatusCallCount).toBe(countAfterClick)
 
     const paymentRoute = pendingPaymentRoute
     expect(paymentRoute).not.toBeNull()
