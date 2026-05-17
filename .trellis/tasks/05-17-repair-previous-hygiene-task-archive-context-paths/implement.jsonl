@@ -1,0 +1,13 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".agents/skills/start/SKILL.md", "reason": "Start workflow instructions and task classification rules."}
+{"file": ".agents/skills/before-dev/SKILL.md", "reason": "Mandatory before-dev spec discovery and guideline reading workflow."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared guide index identifying Trellis context hygiene as relevant."}
+{"file": ".trellis/spec/guides/trellis-task-context-hygiene.md", "reason": "Context path convention, audit script, archived repair rules, and evidence-based repair rules."}
+{"file": ".trellis/tasks/05-17-repair-previous-hygiene-task-archive-context-paths/prd.md", "reason": "Task requirements, scope limits, acceptance criteria, and required tests."}
+{"file": ".trellis/tasks/05-17-repair-previous-hygiene-task-archive-context-paths/research.md", "reason": "Focused audit findings, target entries, risks, and test plan."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-archived-trellis-context-jsonl-full-hygiene-sweep/implement.jsonl", "reason": "Target implement context file containing two in-scope active-task path drifts."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-archived-trellis-context-jsonl-full-hygiene-sweep/check.jsonl", "reason": "Target check context file containing two in-scope active-task path drifts."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-archived-trellis-context-jsonl-full-hygiene-sweep/prd.md", "reason": "Existing archived PRD target that path repair must point to."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-archived-trellis-context-jsonl-full-hygiene-sweep/research.md", "reason": "Existing archived research target that path repair must point to."}
