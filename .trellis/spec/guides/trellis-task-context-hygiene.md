@@ -67,6 +67,7 @@ jsonl_files = sorted(tasks_dir.glob('**/*.jsonl'))
 invalid_json = []
 missing_path = []
 stale_command = []
+legacy_path = []
 
 for f in jsonl_files:
     rel = str(f.relative_to(repo)).replace('\\', '/')
@@ -78,6 +79,8 @@ for f in jsonl_files:
         except json.JSONDecodeError:
             invalid_json.append(f'{rel}:{i}')
             continue
+        if 'path' in data and 'file' not in data:
+            legacy_path.append(f'{rel}:{i} -> {data.get("path")}')
         fp = data.get('file', '')
         if not fp:
             missing_path.append(f'{rel}:{i} (no file field)')
@@ -101,6 +104,9 @@ for item in invalid_json:
 print(f'MISSING_PATH_COUNT={len(missing_path)}')
 for item in missing_path:
     print(f'  MISSING_PATH: {item}')
+print(f'LEGACY_PATH_COUNT={len(legacy_path)}')
+for item in legacy_path:
+    print(f'  LEGACY_PATH: {item}')
 print(f'STALE_COMMAND_COUNT={len(stale_command)}')
 for item in stale_command:
     print(f'  STALE_COMMAND: {item}')
@@ -111,6 +117,29 @@ Also run a targeted stale-command scan:
 ```bash
 rg -n "\.claude/commands/trellis|\.claude\\commands\\trellis" .trellis/tasks -g "*.jsonl"
 ```
+
+## Recognized Legacy `path` Field Format
+
+Some archived task JSONL files use the historical `path` key instead of the current `file` key. This format originated before `task.py init-context` standardized on the `file` field contract.
+
+### Recognition Rule
+
+A JSONL entry uses the legacy `path` format when:
+- The JSON object contains a `path` key with a repo-relative path value.
+- No `file` key is present in the same object.
+- The `path` value follows the same repo-relative convention as current `file` entries.
+
+### Upgrade Rule
+
+When every legacy `path` target in a task's context JSONL files exists on disk, the safe conversion is:
+1. Rename the `path` key to `file`.
+2. Preserve the `reason` value exactly.
+3. Omit `type` unless the target is a directory (then add `type: "directory"`).
+4. Verify each converted entry passes `task.py validate`.
+
+### Audit Integration
+
+The full JSONL audit script in this guide reports legacy `path` entries separately as `LEGACY_PATH` findings and also treats them as `MISSING_PATH` because the current validator requires `file`. After conversion, if all targets exist, both the legacy-path count and the missing-path count drop by exactly the number of converted entries.
 
 ## Good / Base / Bad Cases
 
@@ -160,6 +189,26 @@ rg -n "\.claude/commands/trellis|\.claude\\commands\\trellis" .trellis/tasks -g 
 **Bad:**
 - Replacing a stale command path with a skill file that does not exist.
 - Leaving stale `.claude/commands/trellis` references in place without documentation when they could have been fixed.
+
+### Legacy `path` Field Upgrade
+
+**Good:**
+- A legacy `{"path":".trellis/spec/backend/index.md","reason":"..."}` is converted to `{"file":".trellis/spec/backend/index.md","reason":"..."}` after confirming the target file exists.
+- A legacy entry pointing to an existing directory is converted to `{"file":"<dir>","reason":"...","type":"directory"}`.
+- All legacy `path` entries in the target task are converted, leaving zero `path` fields and zero new missing-path findings.
+- The conversion is scoped strictly to the target archived task directory; no other JSONL files are touched.
+
+**Base:**
+- All legacy targets are files (not directories), so no `type: "directory"` entries are needed in the converted output.
+- Pre-existing unrelated invalid JSON and out-of-scope missing-path findings remain unchanged and are listed separately in the audit report.
+- Path separators and JSON key order are normalized only in the converted lines.
+
+**Bad:**
+- Replacing `path` with `file` without verifying the target exists on disk.
+- Adding `type: "directory"` when the target is a file.
+- Adding placeholder files to make validation pass.
+- Expanding the conversion scope to other archived tasks without explicit approval.
+- Treating all missing `file` findings as legacy `path` entries without parsing the actual JSON object structure.
 
 ## Evidence-Based Repair Rules
 

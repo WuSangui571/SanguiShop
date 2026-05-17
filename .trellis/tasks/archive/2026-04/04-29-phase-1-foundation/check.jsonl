@@ -1,12 +1,12 @@
-{"path":".trellis/spec/backend/index.md","reason":"Verify backend quality checklist and touched service boundaries."}
-{"path":".trellis/spec/backend/directory-structure.md","reason":"Verify module/package layout and common boundaries."}
-{"path":".trellis/spec/backend/microservice-contracts.md","reason":"Verify Result/event placeholders and cross-service contracts do not expose entities."}
-{"path":".trellis/spec/backend/gateway-security.md","reason":"Verify secret handling and Gateway responsibility boundaries."}
-{"path":".trellis/spec/backend/database-guidelines.md","reason":"Verify DB placeholders are environment-driven and no cross-service schema coupling exists."}
-{"path":".trellis/spec/backend/messaging-cache-guidelines.md","reason":"Verify Redis/MQ naming placeholders and no missing TTL/topic conventions."}
-{"path":".trellis/spec/backend/observability-devops.md","reason":"Verify Docker Compose/env/actuator conventions."}
-{"path":".trellis/spec/backend/quality-guidelines.md","reason":"Verify no forbidden patterns or debug/secret leaks."}
-{"path":".trellis/spec/frontend/api-contracts.md","reason":"Verify frontend placeholder docs align with Gateway ApiResult rule."}
-{"path":".trellis/spec/guides/architecture-review-checklist.md","reason":"Final architecture review checklist."}
-{"path":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Final cross-layer contract/config review."}
-{"path":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Final common module abstraction review."}
+{"file":".trellis/spec/backend/index.md","reason":"Verify backend quality checklist and touched service boundaries."}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"Verify module/package layout and common boundaries."}
+{"file":".trellis/spec/backend/microservice-contracts.md","reason":"Verify Result/event placeholders and cross-service contracts do not expose entities."}
+{"file":".trellis/spec/backend/gateway-security.md","reason":"Verify secret handling and Gateway responsibility boundaries."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Verify DB placeholders are environment-driven and no cross-service schema coupling exists."}
+{"file":".trellis/spec/backend/messaging-cache-guidelines.md","reason":"Verify Redis/MQ naming placeholders and no missing TTL/topic conventions."}
+{"file":".trellis/spec/backend/observability-devops.md","reason":"Verify Docker Compose/env/actuator conventions."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Verify no forbidden patterns or debug/secret leaks."}
+{"file":".trellis/spec/frontend/api-contracts.md","reason":"Verify frontend placeholder docs align with Gateway ApiResult rule."}
+{"file":".trellis/spec/guides/architecture-review-checklist.md","reason":"Final architecture review checklist."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Final cross-layer contract/config review."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Final common module abstraction review."}

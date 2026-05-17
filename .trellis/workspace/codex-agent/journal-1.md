@@ -1500,3 +1500,78 @@ Reason: recent sessions exposed stale Trellis context references and repeated ta
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: Archived Trellis Context JSONL Full Hygiene Sweep
+
+**Date**: 2026-05-17
+**Task**: Archived Trellis Context JSONL Full Hygiene Sweep
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+**Commit Recorded**
+
+- `03deb3553abd8796f180fb2527ec9637bde9b930` ? `docs:??Trellis???????`
+
+**Main Change Modules**
+
+- Trellis context metadata hygiene for archived 2026-05 task JSONL files.
+- Trellis task context hygiene guide update.
+- Current task PRD/research/context files for `05-17-archived-trellis-context-jsonl-full-hygiene-sweep`.
+
+**Updated Files**
+
+- `.trellis/spec/guides/trellis-task-context-hygiene.md`
+- `.trellis/tasks/archive/2026-05/05-09-admin-review-image-preview/{check,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-10-admin-fulfillment-failure-permission-component-tests/{check,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-11-admin-seckill-activity-persistence-product-sku-snapshot/{check,debug,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-12-local-one-click-smoke-scripts/{check,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-12-local-runtime-and-manual-task-hygiene/check.jsonl`
+- `.trellis/tasks/archive/2026-05/05-12-ops-auth-permission-login-whitelist/{check,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-16-admin-fulfillment-shipping-browser-smoke/{check,debug,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-16-mall-order-status-center-browser-smoke/{check,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-17-e2e-smoke-mock-state-reset-audit/{check,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-17-e2e-smoke-task-metadata-hygiene-audit/{check,implement}.jsonl`
+- `.trellis/tasks/archive/2026-05/05-17-archived-trellis-context-jsonl-full-hygiene-sweep/`
+
+**Verification Commands and Results**
+
+- `python ./.trellis/scripts/task.py validate .trellis/tasks/05-17-archived-trellis-context-jsonl-full-hygiene-sweep` ? PASS before archive.
+- `python ./.trellis/scripts/task.py validate <each modified archived task dir>` ? PASS for all 10 modified archived task directories.
+- Full JSONL audit over `.trellis/tasks/**/*.jsonl` ? expected unresolved findings only: `INVALID_JSON_COUNT=5`, `MISSING_PATH_COUNT=28`, `STALE_COMMAND_COUNT=0`.
+- `rg -n "\.claude/commands/trellis|\.claude\\commands\\trellis" .trellis/tasks -g "*.jsonl"` ? PASS, no matches.
+- `git diff --check` ? PASS, only CRLF warning for guide file.
+- Human manual testing ? PASS, confirmed by user before record-session.
+
+**Result and Boundaries**
+
+- Repaired provable archived PRD/research context path drift for modified 2026-05 archived tasks.
+- Updated the Trellis hygiene guide with full audit guidance, Good/Base/Bad cases, and evidence-based repair rules.
+- Codex follow-up check fixed the guide audit snippet so stale command detection normalizes backslashes before checking `.claude/commands/trellis`.
+- Did not alter backend/frontend business code, API contracts, database schema, Redis/MQ, Docker, deployment config, or Trellis scripts.
+- Left five invalid JSON fragments unresolved because the original `file` and `reason` cannot be reconstructed safely.
+- Left 28 legacy 04-29 `path`-field entries unresolved because they are pre-standard format and outside this task boundary.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `03deb3553abd8796f180fb2527ec9637bde9b930` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
