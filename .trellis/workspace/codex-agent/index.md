@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 22
+- **Total Sessions**: 23
 - **Last Active**: 2026-05-17
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1329 | Active |
+| `journal-1.md` | ~1379 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 23 | 2026-05-17 | E2E pending route lifecycle cleanup | `6ac9a11` | `main` |
 | 22 | 2026-05-17 | 商城支付刷新 smoke 隔离收尾 | `89f6af8` | `main` |
 | 21 | 2026-05-17 | 记录管理端支付刷新 smoke 隔离收尾 | `cb3413c` | `main` |
 | 20 | 2026-05-17 | 记录管理端履约发货状态摘要回归收尾 | `2509dc15702f23ae6082b6045a617eb77ff0e4f8` | `main` |

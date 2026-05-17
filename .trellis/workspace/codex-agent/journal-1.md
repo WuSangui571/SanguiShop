@@ -1326,3 +1326,53 @@ Codex check also fixed two direct task-scope issues before final validation: the
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: E2E pending route lifecycle cleanup
+
+**Date**: 2026-05-17
+**Task**: E2E pending route lifecycle cleanup
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| ?? | ?? |
+| --- | --- |
+| ?? | `6ac9a11 test:??E2E??????????` |
+| ?????? | Frontend E2E smoke tests; frontend quality spec |
+| ???? | `frontend/e2e/admin-order-payment-smoke.spec.ts`; `frontend/e2e/mall-order-status-smoke.spec.ts`; `.trellis/spec/frontend/quality-guidelines.md` |
+| ???? | `cmd /c npx playwright test e2e/admin-order-payment-smoke.spec.ts --project=chromium -g "shows payment refresh loading state and guards duplicate clicks"` -> PASS |
+| ???? | `cmd /c npx playwright test e2e/mall-order-status-smoke.spec.ts --project=chromium -g "shows payment refresh loading state"` -> PASS |
+| ???? | `cmd /c npx playwright test e2e/admin-order-payment-smoke.spec.ts --project=chromium -g "duplicate cancel confirm while pending sends exactly one request"` -> PASS |
+| ???? | `cmd /c npx playwright test e2e/admin-order-payment-smoke.spec.ts --project=chromium -g "duplicate ship click while pending sends exactly one request and shows pending state"` -> PASS |
+| ???? | `cmd /c npx playwright test e2e/mall-order-status-smoke.spec.ts --project=chromium -g "duplicate pending receipt confirmation sends only one POST"` -> PASS |
+| ???? | `cmd /c npm run test:smoke` -> PASS, 57 passed |
+| ???? | `cmd /c npm run lint` -> PASS |
+| ???? | `cmd /c npm run typecheck` -> PASS |
+| ???? | `cmd /c npm run build` -> PASS |
+| ???? | User manually tested after Codex check; all tests passed |
+| ?? | All intentional deferred Playwright Route sites in admin payment/cancel/ship and mall payment/receipt smoke tests now have explicit try/finally cleanup. Route-specific counters, duplicate guard assertions, and previous payment refresh isolation behavior were preserved. |
+| ?? | No production frontend source, backend, API, DTO, database, Redis/MQ, infra, or deployment contracts changed. `$record-session` executed only after human testing and commit. |
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6ac9a11` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
