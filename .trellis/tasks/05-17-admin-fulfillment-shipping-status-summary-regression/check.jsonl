@@ -1,0 +1,21 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Verify admin fulfillment API contract, requestId, error preservation, and status non-overwrite behavior."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Review DTO field compatibility and unknown status fallbacks."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Check composable boundaries and pending/error behavior."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review Vue component state rendering and pending disabled behavior."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify server-state vs client-state separation and translation rules."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality gate for tests, typecheck, lint, build, and forbidden patterns."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Confirm no API contract drift and envelope/idempotency remain intact."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Review error envelope preservation and no sensitive details."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Confirm backend/infra boundary was not crossed."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Review cross-layer risks and contract alignment."}
+{"file": "frontend/src/composables/useFulfillmentManagement.ts", "reason": "Review ship success/failure merge, pending gate, and refresh behavior."}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.vue", "reason": "Review visible labels and no stale paid/awaiting-shipment summary after ship."}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.ts", "reason": "Review model helper behavior and type-safe status boundaries."}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.spec.ts", "reason": "Review component-level assertions for detail/list status sync."}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.test.ts", "reason": "Review model test coverage for status helper changes."}
+{"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Review Playwright waits, mock isolation, and non-weakened shipped assertions."}
+{"file": "frontend/e2e/fixtures/adminOrderPaymentSmoke.ts", "reason": "Review fixture defaults and shipped response shape."}
+{"file": ".trellis/tasks/05-17-admin-fulfillment-shipping-status-summary-regression/prd.md", "reason": "Review implementation against agreed PRD and boundary constraints."}
+{"file": ".trellis/tasks/05-17-admin-fulfillment-shipping-status-summary-regression/research.md", "reason": "Review implementation against focused research and handoff boundaries."}

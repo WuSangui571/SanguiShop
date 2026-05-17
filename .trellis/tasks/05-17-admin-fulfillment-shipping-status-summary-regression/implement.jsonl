@@ -1,0 +1,21 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/api-contracts.md", "reason": "Admin fulfillment route, ship payload, requestId, error envelope, and order/payment status non-overwrite rules."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Use typed AdminFulfillmentResponse/OrderStatus/FulfillmentStatus without any or enum crashes."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Fulfillment composable owns async state, loading/error/retry, and service calls."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "View rendering must keep reactive pending state and separate UI states."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Order status is server fact; UI must not translate business data incorrectly."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Required frontend verification commands and regression coverage."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Align mocked gateway envelope and write request idempotency with backend contract."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Preserve backend code/message/traceId in frontend error display."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Boundary: no backend change unless explicitly authorized; Good/Base/Bad coverage."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Use cross-layer checklist for status fields, requestId, retry, and state consistency."}
+{"file": "frontend/src/composables/useFulfillmentManagement.ts", "reason": "Primary fulfillment async action and detail/list state merge pattern."}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.vue", "reason": "Primary admin fulfillment rendering for order main status and fulfillment status summary/list."}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.ts", "reason": "Fulfillment model helpers for labels, shippability, request payload, and errors."}
+{"file": "frontend/src/views/admin/FulfillmentManagementView.spec.ts", "reason": "Component regression tests for successful ship, status separation, and error preservation."}
+{"file": "frontend/src/views/admin/fulfillmentManagementModel.test.ts", "reason": "Model tests for payload trimming, labels, shippability, duplicate gate, errors."}
+{"file": "frontend/e2e/admin-order-payment-smoke.spec.ts", "reason": "Browser smoke fixture routes and regression test for successful ship status summary."}
+{"file": "frontend/e2e/fixtures/adminOrderPaymentSmoke.ts", "reason": "Smoke fixture factory for admin fulfillment/order/payment responses."}
+{"file": ".trellis/tasks/05-17-admin-fulfillment-shipping-status-summary-regression/prd.md", "reason": "Task PRD with scope, acceptance criteria, non-goals, and tests."}
+{"file": ".trellis/tasks/05-17-admin-fulfillment-shipping-status-summary-regression/research.md", "reason": "Focused code research and DeepSeek execution handoff."}
