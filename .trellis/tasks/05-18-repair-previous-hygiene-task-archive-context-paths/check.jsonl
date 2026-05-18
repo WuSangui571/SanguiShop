@@ -1,0 +1,17 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/start/SKILL.md", "reason": "Check workflow against session and task setup requirements."}
+{"file": ".agents/skills/before-dev/SKILL.md", "reason": "Verify before-dev guideline requirements were satisfied."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Verify no backend service scope was introduced."}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Verify no frontend surface scope was introduced."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Check against shared guide routing and task hygiene expectations."}
+{"file": ".trellis/spec/guides/trellis-task-context-hygiene.md", "reason": "Primary check standard for JSONL path repair, validation, and unresolved finding reporting."}
+{"file": ".trellis/scripts/common/task_context.py", "reason": "Check validator behavior for file existence and JSONL validity."}
+{"file": ".trellis/tasks/05-18-repair-previous-hygiene-task-archive-context-paths/prd.md", "reason": "Check implementation against approved task requirements and forbidden scope."}
+{"file": ".trellis/tasks/05-18-repair-previous-hygiene-task-archive-context-paths/research.md", "reason": "Check implementation against researched target entries and expected findings."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-repair-previous-hygiene-task-archive-context-paths/implement.jsonl", "reason": "Verify only intended implement JSONL entries changed and remain valid JSONL."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-repair-previous-hygiene-task-archive-context-paths/check.jsonl", "reason": "Verify only intended check JSONL entries changed and remain valid JSONL."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-repair-previous-hygiene-task-archive-context-paths/prd.md", "reason": "Verify repaired PRD path points to an existing archived file."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-repair-previous-hygiene-task-archive-context-paths/research.md", "reason": "Verify repaired research path points to an existing archived file."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Confirm backend quality requirements are out of scope because no backend code is touched."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Confirm frontend quality requirements are out of scope because no frontend code is touched."}
