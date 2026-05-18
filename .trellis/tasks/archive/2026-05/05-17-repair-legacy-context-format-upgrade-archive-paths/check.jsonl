@@ -1,7 +1,7 @@
 {"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
 {"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
-{"file": ".trellis/tasks/05-17-repair-legacy-context-format-upgrade-archive-paths/prd.md", "reason": "Check implementation against scope, acceptance criteria, forbidden scope, and required tests."}
-{"file": ".trellis/tasks/05-17-repair-legacy-context-format-upgrade-archive-paths/research.md", "reason": "Check implementation against audit baseline, risk notes, expected modified files, and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-repair-legacy-context-format-upgrade-archive-paths/prd.md", "reason": "Check implementation against scope, acceptance criteria, forbidden scope, and required tests."}
+{"file": ".trellis/tasks/archive/2026-05/05-17-repair-legacy-context-format-upgrade-archive-paths/research.md", "reason": "Check implementation against audit baseline, risk notes, expected modified files, and required tests."}
 {"file": ".trellis/spec/guides/trellis-task-context-hygiene.md", "reason": "Verify repair follows archived path and evidence-based JSONL hygiene rules."}
 {"file": ".trellis/scripts/common/task_context.py", "reason": "Verify final JSONL matches current validator contract without script changes."}
 {"file": ".trellis/tasks/archive/2026-05/05-17-trellis-legacy-context-format-upgrade/check.jsonl", "reason": "Verify target check JSONL paths are archived and reasons preserved."}
