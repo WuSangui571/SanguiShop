@@ -1,0 +1,26 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/backend/payment-pay-contracts.md", "reason": "Primary payment callback, payment status, reconcile, compensation ops, validation matrix, and required tests."}
+{"file": ".trellis/spec/backend/order-create-contracts.md", "reason": "Order payment confirmation and timeout compensation contracts/state machine."}
+{"file": ".trellis/spec/backend/microservice-contracts.md", "reason": "Cross-service API/DTO idempotency and error contract rules."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Payment/order callback indexes, compensation metadata/history columns, shop_id and money/time rules."}
+{"file": ".trellis/spec/backend/messaging-cache-guidelines.md", "reason": "Retry/idempotency expectations for async and compensation-adjacent flows."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Payment callback processing order, exception mapping, and sanitized failures."}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "Required callback and compensation log fields."}
+{"file": ".trellis/spec/backend/observability-devops.md", "reason": "Compensation scheduler config/env, metrics, and Maven wrapper rules."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Targeted Maven reactor command shape and backend test expectations."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Payment/order/inventory consistency and duplicate callback race checklist."}
+{"file": ".trellis/spec/guides/architecture-review-checklist.md", "reason": "Service boundary, data consistency, security, and observability review order."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse existing settlement/replay paths instead of inventing parallel state machines."}
+{"file": ".trellis/spec/guides/trellis-task-context-hygiene.md", "reason": "Context JSONL rules for task handoff validation."}
+{"file": ".trellis/tasks/05-19-payment-callback-compensation-audit/prd.md", "reason": "Task PRD with scope, API fields, validation matrix, acceptance criteria, and required tests."}
+{"file": ".trellis/tasks/05-19-payment-callback-compensation-audit/research.md", "reason": "Focused code research, relevant specs, patterns, likely files, risk notes, and tests."}
+{"file": "services/sangui-payment-service/src/main/java/com/sangui/shop/payment/application/PaymentCallbackService.java", "reason": "Current callback logging/idempotency/state mutation pattern."}
+{"file": "services/sangui-payment-service/src/main/java/com/sangui/shop/payment/application/PaymentReconcileService.java", "reason": "Current payment reconcile retry, terminal failure, metadata/history pattern."}
+{"file": "services/sangui-payment-service/src/main/java/com/sangui/shop/payment/application/PaymentPayService.java", "reason": "Shared payment settlement and replay path used by pay, callback, and reconcile."}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderPaymentService.java", "reason": "Order-side payment snapshot and created-to-paid idempotent transition."}
+{"file": "services/sangui-order-service/src/main/java/com/sangui/shop/order/application/OrderTimeoutCancelService.java", "reason": "Order timeout compensation state transition and inventory release pattern."}
+{"file": "services/sangui-payment-service/src/test/java/com/sangui/shop/payment/application/PaymentCallbackServiceTest.java", "reason": "Existing callback regression tests and likely place for additional callback cases."}
+{"file": "services/sangui-payment-service/src/test/java/com/sangui/shop/payment/application/PaymentReconcileServiceTest.java", "reason": "Existing reconcile tests and likely place for retry/metadata assertions."}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/application/OrderTimeoutCancelServiceTest.java", "reason": "Existing timeout compensation tests and likely place for race/metadata assertions."}
+{"file": "services/sangui-order-service/src/test/java/com/sangui/shop/order/application/OrderPaymentServiceTest.java", "reason": "Existing order payment transition tests."}

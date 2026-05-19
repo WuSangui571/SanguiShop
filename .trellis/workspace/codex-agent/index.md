@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 30
+- **Total Sessions**: 31
 - **Last Active**: 2026-05-18
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1808 | Active |
+| `journal-1.md` | ~1866 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 31 | 2026-05-18 | Repair legacy context archive paths | `b011ac8fcc54e9f6f4f34adb4d55f58c26e85159` | `main` |
 | 30 | 2026-05-18 | Repair archived task context paths | `078feeb563b259636b7dd4f647f7cc43709fa28e` | `main` |
 | 29 | 2026-05-17 | Repair legacy context archive paths | `e12556c` | `main` |
 | 28 | 2026-05-17 | Repair archived Trellis context paths | `8e73fd1` | `main` |

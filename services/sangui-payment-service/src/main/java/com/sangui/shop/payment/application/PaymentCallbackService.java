@@ -13,11 +13,15 @@ import com.sangui.shop.payment.domain.PaymentRepository;
 import com.sangui.shop.payment.domain.PaymentStatus;
 import java.util.Locale;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PaymentCallbackService {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentCallbackService.class);
 
     private static final String PROCESS_STATUS_PROCESSED = "processed";
     private static final String PROCESS_STATUS_FAILED = "failed";
@@ -32,6 +36,16 @@ public class PaymentCallbackService {
     }
 
     public PaymentCallbackResponse handleCallback(PaymentCallbackRequest request, String traceId) {
+        log.info(
+                "Payment callback received. traceId={} shopId={} paymentNo={} channel={} channelTradeNo={} tradeStatus={} paidAmountCent={}",
+                traceId,
+                request.shopId(),
+                normalizeRequired(request.paymentNo()),
+                normalizeRequired(request.channel()),
+                normalizeRequired(request.channelTradeNo()),
+                request.tradeStatus(),
+                request.paidAmountCent()
+        );
         PaymentCallbackLogRecord callbackLog = recordCallback(request, traceId);
         try {
             PaymentOrderRecord payment = paymentRepository.findByPaymentNo(request.shopId(), normalizeRequired(request.paymentNo()))
@@ -42,8 +56,19 @@ public class PaymentCallbackService {
             if (tradeStatus == CallbackTradeStatus.SUCCESS) {
                 return handleSuccess(request, payment, callbackLog, traceId);
             }
-            return handleTerminalFailure(payment, callbackLog);
+            return handleTerminalFailure(payment, callbackLog, traceId);
         } catch (SanguiException exception) {
+            log.warn(
+                    "Payment callback failed. traceId={} shopId={} paymentNo={} channel={} channelTradeNo={} tradeStatus={} errorCode={} reason={}",
+                    traceId,
+                    request.shopId(),
+                    normalizeRequired(request.paymentNo()),
+                    normalizeRequired(request.channel()),
+                    normalizeRequired(request.channelTradeNo()),
+                    request.tradeStatus(),
+                    exception.errorCode().code(),
+                    exception.getMessage()
+            );
             paymentRepository.updateCallbackProcessStatus(callbackLog.id(), PROCESS_STATUS_FAILED);
             throw exception;
         }
@@ -56,11 +81,31 @@ public class PaymentCallbackService {
             String traceId
     ) {
         if (!Objects.equals(payment.amountCent(), request.paidAmountCent())) {
+            log.warn(
+                    "Payment callback amount mismatch. traceId={} shopId={} paymentNo={} channel={} channelTradeNo={} expectedAmountCent={} paidAmountCent={}",
+                    traceId,
+                    payment.shopId(),
+                    payment.paymentNo(),
+                    payment.channel(),
+                    request.channelTradeNo(),
+                    payment.amountCent(),
+                    request.paidAmountCent()
+            );
             paymentRepository.updateCallbackProcessStatus(callbackLog.id(), PROCESS_STATUS_FAILED);
             throw new SanguiException(PaymentErrorCode.PAYMENT_AMOUNT_MISMATCH, 409);
         }
         PaymentResponse settled = paymentPayService.settlePayment(payment, traceId);
         paymentRepository.updateCallbackProcessStatus(callbackLog.id(), PROCESS_STATUS_PROCESSED);
+        log.info(
+                "Payment callback success settled. traceId={} shopId={} paymentNo={} channel={} channelTradeNo={} paymentStatus={} processStatus={}",
+                traceId,
+                payment.shopId(),
+                payment.paymentNo(),
+                payment.channel(),
+                request.channelTradeNo(),
+                settled.status(),
+                PROCESS_STATUS_PROCESSED
+        );
         return new PaymentCallbackResponse(
                 settled.paymentNo(),
                 settled.channel(),
@@ -70,9 +115,19 @@ public class PaymentCallbackService {
         );
     }
 
-    private PaymentCallbackResponse handleTerminalFailure(PaymentOrderRecord payment, PaymentCallbackLogRecord callbackLog) {
+    private PaymentCallbackResponse handleTerminalFailure(PaymentOrderRecord payment, PaymentCallbackLogRecord callbackLog, String traceId) {
         if (payment.status() == PaymentStatus.PAID) {
             paymentRepository.updateCallbackProcessStatus(callbackLog.id(), PROCESS_STATUS_IGNORED);
+            log.info(
+                    "Payment callback terminal failure ignored for already paid. traceId={} shopId={} paymentNo={} channel={} channelTradeNo={} paymentStatus={} processStatus={}",
+                    traceId,
+                    payment.shopId(),
+                    payment.paymentNo(),
+                    payment.channel(),
+                    callbackLog.channelTradeNo(),
+                    payment.status().value(),
+                    PROCESS_STATUS_IGNORED
+            );
             return new PaymentCallbackResponse(
                     payment.paymentNo(),
                     payment.channel(),
@@ -84,6 +139,16 @@ public class PaymentCallbackService {
 
         paymentRepository.updatePaymentStatus(payment.shopId(), payment.id(), PaymentStatus.FAILED);
         paymentRepository.updateCallbackProcessStatus(callbackLog.id(), PROCESS_STATUS_PROCESSED);
+        log.info(
+                "Payment callback terminal failure marked payment failed. traceId={} shopId={} paymentNo={} channel={} channelTradeNo={} paymentStatus={} processStatus={}",
+                traceId,
+                payment.shopId(),
+                payment.paymentNo(),
+                payment.channel(),
+                callbackLog.channelTradeNo(),
+                PaymentStatus.FAILED.value(),
+                PROCESS_STATUS_PROCESSED
+        );
         return new PaymentCallbackResponse(
                 payment.paymentNo(),
                 payment.channel(),
@@ -118,13 +183,30 @@ public class PaymentCallbackService {
                     draft.traceId()
             );
         } catch (DuplicateKeyException exception) {
-            return paymentRepository.findCallbackLog(channel, channelTradeNo)
+            PaymentCallbackLogRecord existing = paymentRepository.findCallbackLog(channel, channelTradeNo)
                     .orElseThrow(() -> exception);
+            log.info(
+                    "Payment callback duplicate detected. traceId={} shopId={} paymentNo={} channel={} channelTradeNo={} existingCallbackId={}",
+                    traceId,
+                    draft.shopId(),
+                    draft.paymentNo(),
+                    channel,
+                    channelTradeNo,
+                    existing.id()
+            );
+            return existing;
         }
     }
 
     private void ensureChannelMatches(PaymentOrderRecord payment, PaymentCallbackRequest request) {
         if (!payment.channel().equalsIgnoreCase(normalizeRequired(request.channel()))) {
+            log.warn(
+                    "Payment callback channel mismatch. shopId={} paymentNo={} storedChannel={} requestChannel={}",
+                    payment.shopId(),
+                    payment.paymentNo(),
+                    payment.channel(),
+                    normalizeRequired(request.channel())
+            );
             throw new SanguiException(PaymentErrorCode.PAYMENT_CALLBACK_CHANNEL_MISMATCH, 409);
         }
     }

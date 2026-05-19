@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
 
 class PaymentCallbackServiceTest {
 
@@ -92,6 +93,59 @@ class PaymentCallbackServiceTest {
         assertThat(paymentRepository.findCallbackLog("mock", "MOCK-TXN-003").orElseThrow().processStatus()).isEqualTo("failed");
     }
 
+    @Test
+    void channelMismatchReturnsErrorAndDoesNotMutatePayment() {
+        paymentRepository.seed(createdPayment());
+
+        assertThatThrownBy(() -> paymentCallbackService.handleCallback(
+                new PaymentCallbackRequest(1L, "PAY-001", "alipay", "MOCK-TXN-CM", "SUCCESS", 59900L, null, null, null),
+                "trace-channel-mismatch"
+        )).isInstanceOfSatisfying(SanguiException.class, exception -> {
+            assertThat(exception.errorCode().code()).isEqualTo(PaymentErrorCode.PAYMENT_CALLBACK_CHANNEL_MISMATCH.code());
+            assertThat(exception.httpStatus()).isEqualTo(409);
+        });
+
+        assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.CREATED);
+        assertThat(orderPaymentClient.confirmCalls).isZero();
+        assertThat(productInventoryClient.confirmCalls).isZero();
+        assertThat(paymentRepository.findCallbackLog("alipay", "MOCK-TXN-CM").orElseThrow().processStatus()).isEqualTo("failed");
+    }
+
+    @Test
+    void successCallbackWithAmountMismatchReturnsErrorAndKeepsPaymentCreated() {
+        paymentRepository.seed(createdPayment());
+
+        assertThatThrownBy(() -> paymentCallbackService.handleCallback(
+                new PaymentCallbackRequest(1L, "PAY-001", "mock", "MOCK-TXN-AM", "SUCCESS", 1L, null, null, null),
+                "trace-amount-mismatch"
+        )).isInstanceOfSatisfying(SanguiException.class, exception -> {
+            assertThat(exception.errorCode().code()).isEqualTo(PaymentErrorCode.PAYMENT_AMOUNT_MISMATCH.code());
+            assertThat(exception.httpStatus()).isEqualTo(409);
+        });
+
+        assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.CREATED);
+        assertThat(orderPaymentClient.confirmCalls).isZero();
+        assertThat(productInventoryClient.confirmCalls).isZero();
+        assertThat(paymentRepository.findCallbackLog("mock", "MOCK-TXN-AM").orElseThrow().processStatus()).isEqualTo("failed");
+    }
+
+    @Test
+    void failureCallbackAfterPaidKeepsPaymentPaidAndMarksCallbackIgnored() {
+        paymentRepository.seed(paidPayment());
+
+        PaymentCallbackResponse response = paymentCallbackService.handleCallback(
+                new PaymentCallbackRequest(1L, "PAY-001", "mock", "MOCK-TXN-FP", "FAILED", 59900L, null, null, null),
+                "trace-failure-after-paid"
+        );
+
+        assertThat(response.paymentStatus()).isEqualTo("paid");
+        assertThat(response.processStatus()).isEqualTo("ignored");
+        assertThat(paymentRepository.findByPaymentNo(1L, "PAY-001").orElseThrow().status()).isEqualTo(PaymentStatus.PAID);
+        assertThat(orderPaymentClient.confirmCalls).isZero();
+        assertThat(productInventoryClient.confirmCalls).isZero();
+        assertThat(paymentRepository.findCallbackLog("mock", "MOCK-TXN-FP").orElseThrow().processStatus()).isEqualTo("ignored");
+    }
+
     private PaymentOrderRecord createdPayment() {
         LocalDateTime now = LocalDateTime.now();
         return new PaymentOrderRecord(
@@ -106,6 +160,32 @@ class PaymentCallbackServiceTest {
                 59900L,
                 PaymentStatus.CREATED,
                 "trace-created",
+                now,
+                now,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private PaymentOrderRecord paidPayment() {
+        LocalDateTime now = LocalDateTime.now();
+        return new PaymentOrderRecord(
+                10001L,
+                1L,
+                101L,
+                "ORD-001",
+                "10001",
+                "ord:10001:req-001",
+                "PAY-001",
+                "mock",
+                59900L,
+                PaymentStatus.PAID,
+                "trace-paid",
                 now,
                 now,
                 null,
@@ -194,7 +274,7 @@ class PaymentCallbackServiceTest {
             String key = callbackKey(draft.channel(), draft.channelTradeNo());
             PaymentCallbackLogRecord existing = callbackLogsByKey.get(key);
             if (existing != null) {
-                return existing.id();
+                throw new DuplicateKeyException("duplicate callback log: " + key);
             }
             Long callbackId = nextCallbackId.incrementAndGet();
             callbackLogsByKey.put(key, new PaymentCallbackLogRecord(

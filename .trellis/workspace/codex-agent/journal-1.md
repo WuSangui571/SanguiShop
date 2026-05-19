@@ -1805,3 +1805,61 @@ Outcome: task acceptance criteria were satisfied and the task was archived durin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: Repair legacy context archive paths
+
+**Date**: 2026-05-18
+**Task**: Repair legacy context archive paths
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+**??**
+- `b011ac8fcc54e9f6f4f34adb4d55f58c26e85159` / `b011ac8 chore:???????????`
+
+**??????**
+- Trellis metadata hygiene??? archived task context JSONL ? stale active-task file ???
+- Trellis task lifecycle????????????????
+
+**????**
+- `.trellis/tasks/archive/2026-05/05-17-repair-legacy-context-format-upgrade-archive-paths/check.jsonl`
+- `.trellis/tasks/archive/2026-05/05-17-repair-legacy-context-format-upgrade-archive-paths/implement.jsonl`
+- `.trellis/tasks/archive/2026-05/05-18-repair-legacy-context-format-upgrade-archive-context-paths/` archived task metadata
+
+**???????**
+- `python ./.trellis/scripts/task.py validate .trellis/tasks/archive/2026-05/05-17-repair-legacy-context-format-upgrade-archive-paths` -> PASS; implement/check/debug context all valid.
+- `python ./.trellis/scripts/task.py validate .trellis/tasks/05-18-repair-legacy-context-format-upgrade-archive-context-paths` -> PASS before archive; current task context valid.
+- Full JSONL audit from `.trellis/spec/guides/trellis-task-context-hygiene.md` -> `INVALID_JSON_COUNT=5`, `MISSING_PATH_COUNT=4`, `LEGACY_PATH_COUNT=0`, `STALE_COMMAND_COUNT=0`.
+- `rg -n "\.claude/commands/trellis|\.claude\\commands\\trellis" .trellis/tasks -g "*.jsonl"` -> PASS; no stale command matches.
+- `git diff --check` -> PASS; only known Windows CRLF warning for touched JSONL.
+
+**?????**
+- Repaired exactly four in-scope stale active-task file paths to archived `prd.md` and `research.md` paths.
+- Preserved all four `reason` values and kept JSONL as one object per line.
+- No backend, frontend, API, DB, Redis, MQ, infra, runtime script, or cross-layer contract changed.
+- Left five historical invalid JSON lines and four out-of-scope missing paths in `05-18-repair-previous-hygiene-task-archive-context-paths` unchanged for a separate follow-up task.
+- Human reported manual testing passed and committed the implementation before record-session.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b011ac8fcc54e9f6f4f34adb4d55f58c26e85159` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

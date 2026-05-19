@@ -96,6 +96,18 @@ class OrderPaymentServiceTest {
         });
     }
 
+    @Test
+    void confirmPaidRejectsNonPayableOrderStatus() {
+        Long orderId = orderRepository.seedOrder(1L, "10001", "ORD-001", "req-001", "ord:10001:req-001", OrderStatus.CANCELLED, 59900L);
+
+        assertThatThrownBy(() -> orderPaymentService.confirmPaid(
+                new ConfirmOrderPaymentRequest(1L, "10001", orderId, "PAY-001", 59900L)
+        )).isInstanceOfSatisfying(SanguiException.class, exception -> {
+            assertThat(exception.errorCode().code()).isEqualTo(OrderErrorCode.ORDER_STATUS_INVALID.code());
+            assertThat(exception.httpStatus()).isEqualTo(409);
+        });
+    }
+
     private static final class InMemoryOrderRepository implements OrderRepository {
 
         private final AtomicLong nextOrderId = new AtomicLong(10000);
