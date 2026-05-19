@@ -1863,3 +1863,44 @@ Outcome: task acceptance criteria were satisfied and the task was archived durin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 32: 支付回调补偿审计收尾
+
+**Date**: 2026-05-19
+**Task**: 支付回调补偿审计收尾
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Item | Details |
+| --- | --- |
+| Commit | `7ecba711 fix:??????????` |
+| Main modules | Payment callback service logging/idempotency tests; order payment confirmation state-machine regression test. |
+| Updated files | `services/sangui-payment-service/src/main/java/com/sangui/shop/payment/application/PaymentCallbackService.java`; `services/sangui-payment-service/src/test/java/com/sangui/shop/payment/application/PaymentCallbackServiceTest.java`; `services/sangui-order-service/src/test/java/com/sangui/shop/order/application/OrderPaymentServiceTest.java`; Trellis task archived under `.trellis/tasks/archive/2026-05/05-19-payment-callback-compensation-audit/`. |
+| Verification | Codex check ran targeted Maven reactor command for payment/order compensation paths and confirmed all selected Surefire reports passed; `python ./.trellis/scripts/task.py validate 05-19-payment-callback-compensation-audit` passed before archive; user manually tested and reported all tests passed. |
+| Results | Payment callback now logs received, duplicate, mismatch, settled, terminal failure, ignored failure-after-paid, and failed paths with trace/payment/channel context. Tests cover channel mismatch, amount mismatch, failure callback after paid, cancelled-order confirmPaid rejection, and duplicate callback repository semantics through `DuplicateKeyException`. |
+| Boundaries | No API schema, DB migration, MQ/Redis, infra, compensation ops controller, or frontend contract changes. `record-session` run after human test and commit; no manual git commit/push executed by Codex. |
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7ecba711` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
